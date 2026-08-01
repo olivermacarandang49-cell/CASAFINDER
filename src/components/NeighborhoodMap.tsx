@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { GUMACA_SCHOOLS, getSchoolDistancesForProperty } from "../utils/schoolDistances";
 import { AiMatch } from "../types";
 import { Property } from "../data/properties";
-import { Map, MapPin, Sparkles, Navigation, Layers, Compass, ExternalLink, School, Info, Search, Maximize2, Minimize2, Pencil, Trash2, Copy, Check, RotateCcw, Save, Ruler, Shapes, Footprints, GripHorizontal } from "lucide-react";
+import { Map, MapPin, Navigation, Layers, Compass, ExternalLink, School, Info, Search, Maximize2, Minimize2, Pencil, Trash2, Copy, Check, RotateCcw, Save, Ruler, Shapes, Footprints, GripHorizontal } from "lucide-react";
 
 interface NeighborhoodMapProps {
   properties: Property[];

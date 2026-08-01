@@ -27,7 +27,6 @@ import {
   Shield,
   Building,
   Users,
-  Sparkles,
   Mail,
   Phone,
   Upload,
@@ -36,6 +35,9 @@ import {
   Save,
   GraduationCap,
   CheckCircle2,
+  ShieldCheck,
+  FileText,
+  Award,
   ChevronDown,
   ChevronUp,
   SlidersHorizontal,
@@ -104,12 +106,26 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
-  const [registeredUsers, setRegisteredUsers] = useState<{ name: string; username: string; role: "student" | "landlord"; password?: string; email?: string; mobile?: string; school?: string; bio?: string }[]>(() => {
+  const [registeredUsers, setRegisteredUsers] = useState<{ name: string; username: string; role: "student" | "landlord"; password?: string; email?: string; mobile?: string; school?: string; bio?: string; permitNo?: string; permitFile?: string; permitStatus?: string }[]>(() => {
     const saved = localStorage.getItem("casafinder_registered_users");
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((u: any) => ({
+          ...u,
+          school: (u.school?.includes("Gumaca National") || u.school?.includes("Nena's Residences") || u.school?.includes("Gumaca Housing")) ? "" : u.school || "",
+          bio: (u.bio?.includes("Senior High Student") || u.bio?.includes("Managing student boarding")) ? "" : u.bio || "",
+          permitNo: (u.permitNo?.includes("BP-2026") || u.permitNo?.includes("2024-SLSU")) ? "" : u.permitNo || "",
+          permitFile: (u.permitFile?.includes("Mayors_Permit") || u.permitFile?.includes("Student_ID")) ? "" : u.permitFile || "",
+          permitStatus: (u.permitStatus?.includes("Verified LGU") || u.permitStatus?.includes("Verified Student")) ? "" : u.permitStatus || ""
+        }));
+      } catch (e) {
+        // Fallback
+      }
+    }
     return [
-      { name: "Juan Dela Cruz", username: "juan.student", role: "student", password: "123", email: "juan@example.com", mobile: "09123456789", school: "Gumaca National High School", bio: "Senior High Student looking for clean lodging near school." },
-      { name: "Aling Nena", username: "nena.landlord", role: "landlord", password: "123", email: "nena@example.com", mobile: "09987654321", school: "Nena's Residences & Boarding", bio: "Managing student boarding houses in Barangay Tabing Dagat since 2018." }
+      { name: "Juan Dela Cruz", username: "juan.student", role: "student", password: "123", email: "juan.delacruz@gmail.com", mobile: "09171234567", school: "SLSU Gumaca Campus", bio: "College Student looking for dorm near SLSU", permitNo: "", permitFile: "", permitStatus: "" },
+      { name: "Aling Nena", username: "nena.landlord", role: "landlord", password: "123", email: "alingnena.housing@gmail.com", mobile: "09987654321", school: "", bio: "Owner of Nena's Student Residences in Brgy. Tabing Dagat, Gumaca, Quezon. Providing clean and safe lodgings for students since 2018.", permitNo: "2026-0881", permitFile: "Mayors_Permit_2026.pdf", permitStatus: "Verified" }
     ];
   });
   const [userSession, setUserSession] = useState<{ role: "student" | "landlord"; name: string; username: string } | null>(() => {
@@ -144,6 +160,9 @@ export default function App() {
   const [profileEditMobile, setProfileEditMobile] = useState("");
   const [profileEditSchool, setProfileEditSchool] = useState("");
   const [profileEditBio, setProfileEditBio] = useState("");
+  const [profileEditPermitNo, setProfileEditPermitNo] = useState("");
+  const [profileEditPermitFile, setProfileEditPermitFile] = useState("");
+  const [profileEditPermitStatus, setProfileEditPermitStatus] = useState("Verified");
   const [profileEditPassword, setProfileEditPassword] = useState("");
   const [showProfilePassword, setShowProfilePassword] = useState(false);
   const [prefEmailNotifications, setPrefEmailNotifications] = useState(() => {
@@ -257,13 +276,13 @@ export default function App() {
   const [barangayInput, setBarangayInput] = useState("All");
   const [typeInput, setTypeInput] = useState("All");
   const [priceInput, setPriceInput] = useState(15000);
-  const [amenityGenderInput, setAmenityGenderInput] = useState<"Both" | "Girls Only" | "Boys Only">("Both");
+  const [amenityGenderInput, setAmenityGenderInput] = useState<"All" | "Both" | "Girls Only" | "Boys Only">("All");
 
   // Active filter states (only applied when clicking the Search button)
   const [activeBarangay, setActiveBarangay] = useState("All");
   const [activeType, setActiveType] = useState("All");
   const [activeMaxPrice, setActiveMaxPrice] = useState(15000);
-  const [activeAmenityGender, setActiveAmenityGender] = useState<"Both" | "Girls Only" | "Boys Only">("Both");
+  const [activeAmenityGender, setActiveAmenityGender] = useState<"All" | "Both" | "Girls Only" | "Boys Only">("All");
 
   // Simulate startup loading screen with dynamic progress
   useEffect(() => {
@@ -362,7 +381,12 @@ export default function App() {
         role: loginRole,
         password: loginPassword,
         email: emailVal,
-        mobile: mobileVal
+        mobile: mobileVal,
+        school: "",
+        bio: "",
+        permitNo: "",
+        permitFile: "",
+        permitStatus: ""
       };
 
       setRegisteredUsers(prev => [...prev, newUser]);
@@ -524,8 +548,11 @@ export default function App() {
     setProfileEditName(current.name || userSession.name);
     setProfileEditEmail(current.email || "");
     setProfileEditMobile(current.mobile || "");
-    setProfileEditSchool(current.school || (userSession.role === "student" ? "Gumaca National High School" : "Gumaca Housing Network"));
-    setProfileEditBio(current.bio || (userSession.role === "student" ? "Student looking for affordable boarding house in Gumaca." : "Managing student boarding houses in Gumaca."));
+    setProfileEditSchool(current.school || "");
+    setProfileEditBio(current.bio || "");
+    setProfileEditPermitNo(current.permitNo || "");
+    setProfileEditPermitFile(current.permitFile || "");
+    setProfileEditPermitStatus(current.permitStatus || "");
     setProfileEditPassword(current.password || "");
     setProfileSuccessMsg("");
     setProfileTab("profile");
@@ -551,6 +578,9 @@ export default function App() {
           mobile: profileEditMobile.trim(),
           school: profileEditSchool.trim(),
           bio: profileEditBio.trim(),
+          permitNo: profileEditPermitNo.trim(),
+          permitFile: profileEditPermitFile.trim(),
+          permitStatus: profileEditPermitStatus,
           password: profileEditPassword.trim() || u.password,
         };
       }
@@ -566,6 +596,31 @@ export default function App() {
     };
     setUserSession(updatedSession);
     localStorage.setItem("casafinder_user_session", JSON.stringify(updatedSession));
+
+    // Sync landlord properties with new profile details
+    if (userSession.role === "landlord") {
+      setPropertiesList((prev) =>
+        prev.map((p) => {
+          if (
+            (p.landlordUsername && p.landlordUsername.toLowerCase() === userSession.username.toLowerCase()) ||
+            (p.landlordName && p.landlordName.toLowerCase() === userSession.name.toLowerCase())
+          ) {
+            return {
+              ...p,
+              landlordName: profileEditName.trim() || p.landlordName,
+              landlordMobile: profileEditMobile.trim() || p.landlordMobile,
+              landlordEmail: profileEditEmail.trim() || p.landlordEmail,
+              landlordBio: profileEditBio.trim() || p.landlordBio,
+              landlordPermits: {
+                ...p.landlordPermits,
+                businessPermit: profileEditPermitNo.trim() ? `BP-GMC-${profileEditPermitNo.trim()}` : p.landlordPermits?.businessPermit
+              }
+            };
+          }
+          return p;
+        })
+      );
+    }
 
     setProfileSuccessMsg(
       prefLanguage === "english"
@@ -596,11 +651,11 @@ export default function App() {
     setBarangayInput("All");
     setTypeInput("All");
     setPriceInput(15000);
-    setAmenityGenderInput("Both");
+    setAmenityGenderInput("All");
     setActiveBarangay("All");
     setActiveType("All");
     setActiveMaxPrice(15000);
-    setActiveAmenityGender("Both");
+    setActiveAmenityGender("All");
   };
 
   // Handle toggle of amenities in creation form
@@ -671,6 +726,16 @@ export default function App() {
       finalLng = defaultCoords[1];
     }
 
+    const currentLandlordObj = registeredUsers.find((u) => u.username === userSession?.username);
+    const landlordName = userSession?.name || "Aling Nena";
+    const landlordUsername = userSession?.username || "nena.landlord";
+    const landlordMobile = currentLandlordObj?.mobile || "09987654321";
+    const landlordEmail = currentLandlordObj?.email || `${landlordUsername}@casafinder.ph`;
+    const landlordBio = currentLandlordObj?.bio || (prefLanguage === "tagalog"
+      ? "Rehistradong Operator at May-ari ng Boarding House sa Gumaca, Quezon."
+      : "Registered Boarding House & Accommodation Owner in Gumaca, Quezon.");
+    const landlordPermitNo = currentLandlordObj?.permitNo;
+
     const newProperty: Property = {
       id: "prop-" + Date.now(),
       title: newTitle,
@@ -693,7 +758,16 @@ export default function App() {
         x: Number(finalLat.toFixed(5)),
         y: Number(finalLng.toFixed(5))
       },
-      genderPolicy: newGenderPolicy
+      genderPolicy: newGenderPolicy,
+      landlordUsername: landlordUsername,
+      landlordName: landlordName,
+      landlordMobile: landlordMobile,
+      landlordEmail: landlordEmail,
+      landlordAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
+      landlordBio: landlordBio,
+      landlordPermits: landlordPermitNo ? {
+        businessPermit: landlordPermitNo.startsWith("BP-") ? landlordPermitNo : `BP-GMC-${landlordPermitNo}`
+      } : undefined
     };
 
     setPropertiesList(prev => [newProperty, ...prev]);
@@ -823,9 +897,9 @@ export default function App() {
     // Filter by Amenities / Gender Preference (Girls Only, Boys Only, Both)
     if (activeAmenityGender === "Girls Only") {
       result = result.filter((p) => {
-        if (p.genderPolicy === "Girls Only") return true;
-        if (p.genderPolicy === "Boys Only") return false;
-        if (p.genderPolicy === "Both") return true;
+        if (p.genderPolicy) {
+          return p.genderPolicy === "Girls Only";
+        }
 
         const lowerTitle = p.title.toLowerCase();
         const lowerDesc = p.description.toLowerCase();
@@ -839,15 +913,14 @@ export default function App() {
           lowerFeatures.some(f => f.includes("female") || f.includes("girl") || f.includes("pambabae")) ||
           lowerTags.some(t => t.includes("female") || t.includes("girl")) ||
           lowerTitle.includes("female") || lowerTitle.includes("girl") ||
-          lowerDesc.includes("female") || lowerDesc.includes("girls") ||
-          !p.genderPolicy
+          lowerDesc.includes("female") || lowerDesc.includes("girls")
         );
       });
     } else if (activeAmenityGender === "Boys Only") {
       result = result.filter((p) => {
-        if (p.genderPolicy === "Boys Only") return true;
-        if (p.genderPolicy === "Girls Only") return false;
-        if (p.genderPolicy === "Both") return true;
+        if (p.genderPolicy) {
+          return p.genderPolicy === "Boys Only";
+        }
 
         const lowerTitle = p.title.toLowerCase();
         const lowerDesc = p.description.toLowerCase();
@@ -861,8 +934,25 @@ export default function App() {
           lowerFeatures.some(f => f.includes("male") || f.includes("boy") || f.includes("panlalaki")) ||
           lowerTags.some(t => t.includes("male") || t.includes("boy")) ||
           lowerTitle.includes("male") || lowerTitle.includes("boy") ||
-          lowerDesc.includes("male") || lowerDesc.includes("boys") ||
-          !p.genderPolicy
+          lowerDesc.includes("male") || lowerDesc.includes("boys")
+        );
+      });
+    } else if (activeAmenityGender === "Both") {
+      result = result.filter((p) => {
+        if (p.genderPolicy) {
+          return p.genderPolicy === "Both";
+        }
+
+        const lowerTitle = p.title.toLowerCase();
+        const lowerDesc = p.description.toLowerCase();
+        const lowerFeatures = p.features.map(f => f.toLowerCase());
+        const lowerTags = p.tags.map(t => t.toLowerCase());
+
+        return (
+          lowerFeatures.some(f => f.includes("both") || f.includes("co-ed") || f.includes("male & female") || f.includes("pareho")) ||
+          lowerTags.some(t => t.includes("both") || t.includes("co-ed")) ||
+          lowerTitle.includes("both") || lowerTitle.includes("co-ed") ||
+          lowerDesc.includes("both") || lowerDesc.includes("co-ed")
         );
       });
     }
@@ -940,449 +1030,459 @@ export default function App() {
 
   if (!userSession) {
     return (
-      <div className="min-h-screen bg-[#faf9f6] text-stone-900 font-sans flex items-center justify-center p-4 antialiased relative overflow-hidden">
+      <div className="h-screen h-[100dvh] w-full bg-[#faf9f6] text-stone-900 font-sans flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 antialiased relative overflow-hidden">
         {/* Background elements */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-indigo-200/25 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-emerald-200/25 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-3xl border border-stone-200 p-8 shadow-xl relative z-10 space-y-6"
+          className="w-full max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-2xl sm:rounded-3xl border border-stone-200 p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10 shadow-2xl relative z-10 my-auto overflow-y-auto max-h-[92dvh] sm:max-h-[88dvh] lg:max-h-[85dvh] flex flex-col justify-center"
         >
-          {/* Logo & Header */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex h-14 w-14 bg-indigo-600 rounded-2xl items-center justify-center text-white font-display font-bold text-2xl shadow-lg shadow-indigo-100 mb-2">
-              🎓
-            </div>
-            <h2 className="font-display text-2xl font-bold tracking-tight text-stone-950">CasaFinder Gumaca</h2>
-            <p className="text-xs text-stone-400 max-w-xs mx-auto font-light leading-relaxed">
-              {authMode === "signup"
-                ? t("signupSubTitle")
-                : authMode === "forgot"
-                ? t("forgotSubTitle")
-                : t("loginSubTitle")}
-            </p>
-          </div>
-
-          {/* Log In vs Sign Up Tab switcher */}
-          {authMode !== "forgot" && (
-            <div className="flex border-b border-stone-100 pb-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("login");
-                  setLoginError("");
-                }}
-                className={`flex-1 pb-2.5 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
-                  authMode === "login"
-                    ? "border-indigo-600 text-indigo-600 font-black"
-                    : "border-transparent text-stone-400 hover:text-stone-600"
-                }`}
-              >
-                {t("loginTab")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("signup");
-                  setLoginError("");
-                }}
-                className={`flex-1 pb-2.5 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
-                  authMode === "signup"
-                    ? "border-indigo-600 text-indigo-600 font-black"
-                    : "border-transparent text-stone-400 hover:text-stone-600"
-                }`}
-              >
-                {t("signupTab")}
-              </button>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {loginError && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-[11px] text-red-600 font-medium">
-              ⚠️ {loginError}
-            </div>
-          )}
-
-          {/* FORGOT PASSWORD MODE FLOW */}
-          {authMode === "forgot" ? (
-            <div className="space-y-4">
-              <div className="p-3.5 bg-indigo-50/80 border border-indigo-100 rounded-2xl space-y-1">
-                <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs">
-                  <KeyRound className="h-4 w-4 text-indigo-600 shrink-0" />
-                  <span>Password Recovery</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5 md:gap-6 lg:gap-10 xl:gap-12 items-center w-full">
+            {/* Left Column: Brand, Role & Quick Demo */}
+            <div className="space-y-2 sm:space-y-2.5 lg:space-y-4 flex flex-col justify-center">
+              {/* Logo & Header */}
+              <div className="text-center sm:text-left space-y-0.5 lg:space-y-1">
+                <div className="inline-flex h-9 w-9 sm:h-10 sm:w-10 lg:h-12 lg:w-12 bg-indigo-600 rounded-xl sm:rounded-2xl items-center justify-center text-white font-display font-bold text-base sm:text-lg lg:text-xl shadow-md shadow-indigo-100 mb-0.5 lg:mb-1">
+                  🎓
                 </div>
-                <p className="text-[11px] text-indigo-700 font-light leading-relaxed">
-                  Enter your Username, Email address, or Mobile number to find your account.
+                <h2 className="font-display text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight text-stone-950">CasaFinder Gumaca</h2>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-stone-400 max-w-xs sm:max-w-sm mx-auto sm:mx-0 font-light leading-tight lg:leading-normal">
+                  {authMode === "signup"
+                    ? t("signupSubTitle")
+                    : authMode === "forgot"
+                    ? t("forgotSubTitle")
+                    : t("loginSubTitle")}
                 </p>
               </div>
 
-              {forgotSuccessMsg ? (
-                <div className="space-y-4">
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs space-y-2">
-                    <div className="flex items-center gap-2 font-bold">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                      <span>Success!</span>
-                    </div>
-                    <p className="text-[11px] font-medium leading-relaxed">{forgotSuccessMsg}</p>
+              {/* Role Choice Tabs */}
+              {authMode !== "forgot" && (
+                <div className="space-y-0.5 lg:space-y-1">
+                  <span className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 block mb-0.5 lg:mb-1">
+                    {t("selectRole")}
+                  </span>
+                  <div className="grid grid-cols-2 p-0.5 lg:p-1 bg-stone-100 rounded-xl lg:rounded-2xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginRole("student");
+                        setLoginError("");
+                      }}
+                      className={`py-1 sm:py-1.5 lg:py-2 px-2 sm:px-3 lg:px-4 text-[10px] sm:text-[11px] lg:text-xs font-bold rounded-lg lg:rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
+                        loginRole === "student"
+                          ? "bg-white text-indigo-700 shadow-xs"
+                          : "text-stone-500 hover:text-stone-800"
+                      }`}
+                    >
+                      <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
+                      {t("studentRole")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginRole("landlord");
+                        setLoginError("");
+                      }}
+                      className={`py-1 sm:py-1.5 lg:py-2 px-2 sm:px-3 lg:px-4 text-[10px] sm:text-[11px] lg:text-xs font-bold rounded-lg lg:rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
+                        loginRole === "landlord"
+                          ? "bg-white text-indigo-700 shadow-xs"
+                          : "text-stone-500 hover:text-stone-800"
+                      }`}
+                    >
+                      <Building className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
+                      {t("landlordRole")}
+                    </button>
                   </div>
+                </div>
+              )}
 
+              {/* Quick Demo Credentials */}
+              <div className="pt-1.5 sm:pt-2 lg:pt-3 border-t border-stone-100 space-y-1 lg:space-y-1.5">
+                <p className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 text-center sm:text-left">
+                  {t("quickAccessDemo")}
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 lg:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("student")}
+                    className="bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/80 rounded-xl p-1.5 sm:p-2 lg:p-2.5 text-center transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] sm:text-xs lg:text-sm font-bold text-indigo-700 group-hover:scale-102 transition-transform">
+                      {prefLanguage === "tagalog" ? "Demo Estudyante 🎓" : "Demo Student 🎓"}
+                    </div>
+                    <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-indigo-500 font-mono mt-0.5">Quick Access</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("landlord")}
+                    className="bg-emerald-50/60 hover:bg-emerald-50 border border-emerald-100/80 rounded-xl p-1.5 sm:p-2 lg:p-2.5 text-center transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] sm:text-xs lg:text-sm font-bold text-emerald-700 group-hover:scale-102 transition-transform">
+                      {prefLanguage === "tagalog" ? "Demo Landlord 🏠" : "Demo Landlord 🏠"}
+                    </div>
+                    <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-emerald-500 font-mono mt-0.5">Property Owner</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Forms & Controls */}
+            <div className="space-y-2 sm:space-y-2.5 lg:space-y-3.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-stone-100 sm:pl-4 md:pl-6 lg:pl-8 xl:pl-10 flex flex-col justify-center">
+              {/* Log In vs Sign Up Tab switcher */}
+              {authMode !== "forgot" && (
+                <div className="flex border-b border-stone-100 pb-0.5 lg:pb-1">
                   <button
                     type="button"
                     onClick={() => {
                       setAuthMode("login");
-                      if (forgotFoundUser) {
-                        setLoginUsername(forgotFoundUser.username);
-                        setLoginRole(forgotFoundUser.role);
-                      }
-                      setLoginPassword("");
                       setLoginError("");
-                      setForgotFoundUser(null);
-                      setForgotQuery("");
-                      setForgotSuccessMsg("");
                     }}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 cursor-pointer"
+                    className={`flex-1 pb-1 sm:pb-1.5 lg:pb-2 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
+                      authMode === "login"
+                        ? "border-indigo-600 text-indigo-600 font-black"
+                        : "border-transparent text-stone-400 hover:text-stone-600"
+                    }`}
                   >
-                    <span>Log In with New Password 🚀</span>
+                    {t("loginTab")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("signup");
+                      setLoginError("");
+                    }}
+                    className={`flex-1 pb-1 sm:pb-1.5 lg:pb-2 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
+                      authMode === "signup"
+                        ? "border-indigo-600 text-indigo-600 font-black"
+                        : "border-transparent text-stone-400 hover:text-stone-600"
+                    }`}
+                  >
+                    {t("signupTab")}
                   </button>
                 </div>
-              ) : (
-                <>
-                  {!forgotFoundUser ? (
-                    /* Step 1: Find Account */
-                    <form onSubmit={handleSearchForgotAccount} className="space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                          <Search className="h-3.5 w-3.5 text-stone-400" />
-                          Username, Email, or Mobile Number
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. juan.student / juan@example.com / 09123456789"
-                          value={forgotQuery}
-                          onChange={(e) => setForgotQuery(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2.5 text-xs text-stone-800 font-medium focus:outline-none"
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <Search className="h-4 w-4" />
-                        <span>Find Account 🔍</span>
-                      </button>
-                    </form>
-                  ) : (
-                    /* Step 2: Reset Password Form */
-                    <form onSubmit={handleResetForgotPassword} className="space-y-4">
-                      {/* Found Account Info Badge */}
-                      <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center justify-between">
-                        <div>
-                          <span className="text-[9px] text-stone-400 uppercase font-bold tracking-wider block">
-                            Account Found
-                          </span>
-                          <p className="text-xs font-bold text-stone-800">{forgotFoundUser.name}</p>
-                          <p className="text-[10px] text-stone-500 font-mono">@{forgotFoundUser.username}</p>
-                        </div>
-                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                          forgotFoundUser.role === "student"
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}>
-                          {forgotFoundUser.role === "student" ? "STUDENT" : "LANDLORD"}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                          <Lock className="h-3.5 w-3.5 text-stone-400" />
-                          New Password
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showForgotNewPassword ? "text" : "password"}
-                            required
-                            placeholder="At least 3 characters"
-                            value={forgotNewPassword}
-                            onChange={(e) => setForgotNewPassword(e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-3 pr-10 py-2.5 text-xs text-stone-800 font-mono"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
-                          >
-                            {showForgotNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                          <Lock className="h-3.5 w-3.5 text-stone-400" />
-                          Confirm New Password
-                        </label>
-                        <input
-                          type={showForgotNewPassword ? "text" : "password"}
-                          required
-                          placeholder="Must match new password"
-                          value={forgotConfirmPassword}
-                          onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2.5 text-xs text-stone-800 font-mono"
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setForgotFoundUser(null)}
-                          className="px-3 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                        >
-                          Different User
-                        </button>
-                        <button
-                          type="submit"
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span>Save New Password 🔒</span>
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </>
               )}
 
-              {/* Back to Login Link */}
-              <div className="text-center pt-2 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("login");
-                    setLoginError("");
-                    setForgotFoundUser(null);
-                    setForgotQuery("");
-                  }}
-                  className="text-xs text-indigo-600 font-bold hover:underline cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Back to Log In</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Role Choice Tabs */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">
-                  {t("selectRole")}
-                </span>
-                <div className="grid grid-cols-2 p-1 bg-stone-100 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginRole("student");
-                      setLoginError("");
-                    }}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      loginRole === "student"
-                        ? "bg-white text-indigo-700 shadow-sm"
-                        : "text-stone-500 hover:text-stone-800"
-                    }`}
-                  >
-                    <Users className="h-3.5 w-3.5" />
-                    {t("studentRole")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginRole("landlord");
-                      setLoginError("");
-                    }}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      loginRole === "landlord"
-                        ? "bg-white text-indigo-700 shadow-sm"
-                        : "text-stone-500 hover:text-stone-800"
-                    }`}
-                  >
-                    <Building className="h-3.5 w-3.5" />
-                    {t("landlordRole")}
-                  </button>
+              {/* Error Message */}
+              {loginError && (
+                <div className="p-2 sm:p-2.5 bg-red-50 border border-red-100 rounded-xl text-[10px] sm:text-xs lg:text-sm text-red-600 font-medium">
+                  ⚠️ {loginError}
                 </div>
-              </div>
+              )}
 
-              {/* Login/Signup Form */}
-              <form onSubmit={handleLoginSubmit} className="space-y-4 animate-none">
-                {authMode === "signup" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5 text-stone-400" />
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        placeholder={loginRole === "student" ? "e.g. juan@example.com" : "e.g. nena@example.com"}
-                        value={signupEmail}
-                        onChange={e => setSignupEmail(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-hidden transition-all font-medium"
-                      />
+              {/* FORGOT PASSWORD MODE FLOW */}
+              {authMode === "forgot" ? (
+                <div className="space-y-2 sm:space-y-2.5 lg:space-y-3">
+                  <div className="p-2 sm:p-2.5 lg:p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl space-y-0.5 lg:space-y-1">
+                    <div className="flex items-center gap-1.5 text-indigo-900 font-bold text-[10px] sm:text-xs lg:text-sm">
+                      <KeyRound className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-indigo-600 shrink-0" />
+                      <span>Password Recovery</span>
                     </div>
+                    <p className="text-[10px] sm:text-xs lg:text-sm text-indigo-700 font-light leading-snug">
+                      Enter your Username, Email address, or Mobile number to find your account.
+                    </p>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-stone-400" />
-                        {prefLanguage === "tagalog" ? "Mobiile Number / Telepono" : "Mobile Number"}
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder={loginRole === "student" ? "e.g. 09123456789" : "e.g. 09987654321"}
-                        value={signupMobile}
-                        onChange={e => setSignupMobile(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-hidden transition-all font-medium"
-                      />
-                    </div>
-                  </>
-                )}
+                  {forgotSuccessMsg ? (
+                    <div className="space-y-2 sm:space-y-2.5 lg:space-y-3">
+                      <div className="p-2.5 lg:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[10px] sm:text-xs lg:text-sm space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <CheckCircle2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-emerald-600 shrink-0" />
+                          <span>Success!</span>
+                        </div>
+                        <p className="font-medium leading-snug">{forgotSuccessMsg}</p>
+                      </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                    <Shield className="h-3.5 w-3.5 text-stone-400" />
-                    {authMode === "signup" ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") : "Username"}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={loginRole === "student" ? "e.g. juan.student" : "e.g. nena.landlord"}
-                    value={loginUsername}
-                    onChange={e => setLoginUsername(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-hidden transition-all font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                      <Lock className="h-3.5 w-3.5 text-stone-400" />
-                      Password
-                    </label>
-                    {authMode === "login" && (
                       <button
                         type="button"
                         onClick={() => {
-                          setAuthMode("forgot");
+                          setAuthMode("login");
+                          if (forgotFoundUser) {
+                            setLoginUsername(forgotFoundUser.username);
+                            setLoginRole(forgotFoundUser.role);
+                          }
+                          setLoginPassword("");
                           setLoginError("");
-                          setForgotQuery(loginUsername || "");
                           setForgotFoundUser(null);
-                          setForgotNewPassword("");
-                          setForgotConfirmPassword("");
+                          setForgotQuery("");
                           setForgotSuccessMsg("");
                         }}
-                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        {t("forgotPasswordLink")}
+                        <span>Log In with New Password 🚀</span>
                       </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={e => setLoginPassword(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-3 pr-10 py-2.5 text-xs text-stone-800 focus:outline-hidden transition-all font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none cursor-pointer"
-                      title={showPassword ? "Hide Password" : "Show Password"}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer mt-2"
-                >
-                  {authMode === "signup" ? (
-                    <>{t("signupBtn")}</>
+                    </div>
                   ) : (
-                    <>{prefLanguage === "tagalog" ? `Mag-log In bilang ${loginRole === "student" ? "Estudyante" : "Landlord"} 🚀` : `Log In as ${loginRole === "student" ? "Student" : "Landlord"} 🚀`}</>
-                  )}
-                </button>
-              </form>
+                    <>
+                      {!forgotFoundUser ? (
+                        /* Step 1: Find Account */
+                        <form onSubmit={handleSearchForgotAccount} className="space-y-2 sm:space-y-2.5 lg:space-y-3">
+                          <div className="space-y-0.5 lg:space-y-1">
+                            <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                              <Search className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              Username, Email, or Mobile
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. juan.student / juan@example.com"
+                              value={forgotQuery}
+                              onChange={(e) => setForgotQuery(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-medium focus:outline-none"
+                            />
+                          </div>
 
-              {/* Alternate switch link */}
-              <div className="text-center text-xs pt-1">
-                {authMode === "login" ? (
-                  <span className="text-stone-500">
-                    {prefLanguage === "tagalog" ? "Bago sa CasaFinder? " : "New to CasaFinder? "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode("signup");
-                        setLoginError("");
-                      }}
-                      className="text-indigo-600 font-bold hover:underline cursor-pointer"
-                    >
-                      {prefLanguage === "tagalog" ? "Mag-sign Up dito!" : "Sign Up here!"}
-                    </button>
-                  </span>
-                ) : (
-                  <span className="text-stone-500">
-                    {prefLanguage === "tagalog" ? "May account na? " : "Already have an account? "}
+                          <button
+                            type="submit"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Search className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                            <span>Find Account 🔍</span>
+                          </button>
+                        </form>
+                      ) : (
+                        /* Step 2: Reset Password Form */
+                        <form onSubmit={handleResetForgotPassword} className="space-y-2 sm:space-y-2.5 lg:space-y-3">
+                          {/* Found Account Info Badge */}
+                          <div className="p-2 lg:p-2.5 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between">
+                            <div>
+                              <span className="text-[8px] sm:text-[9px] lg:text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
+                                Account Found
+                              </span>
+                              <p className="text-[10px] sm:text-xs lg:text-sm font-bold text-stone-800">{forgotFoundUser.name}</p>
+                              <p className="text-[9px] sm:text-[10px] lg:text-xs text-stone-500 font-mono">@{forgotFoundUser.username}</p>
+                            </div>
+                            <span className={`text-[8px] sm:text-[9px] lg:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full border ${
+                              forgotFoundUser.role === "student"
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}>
+                              {forgotFoundUser.role === "student" ? "STUDENT" : "LANDLORD"}
+                            </span>
+                          </div>
+
+                          <div className="space-y-0.5 lg:space-y-1">
+                            <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              New Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showForgotNewPassword ? "text" : "password"}
+                                required
+                                placeholder="At least 3 characters"
+                                value={forgotNewPassword}
+                                onChange={(e) => setForgotNewPassword(e.target.value)}
+                                className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                                className="absolute right-2.5 lg:right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                              >
+                                {showForgotNewPassword ? <EyeOff className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> : <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-0.5 lg:space-y-1">
+                            <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              Confirm New Password
+                            </label>
+                            <input
+                              type={showForgotNewPassword ? "text" : "password"}
+                              required
+                              placeholder="Must match new password"
+                              value={forgotConfirmPassword}
+                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
+                            />
+                          </div>
+
+                          <div className="flex gap-1.5 lg:gap-2 pt-0.5 lg:pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setForgotFoundUser(null)}
+                              className="px-2.5 lg:px-3 py-1.5 lg:py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] sm:text-xs lg:text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+                            >
+                              Different User
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 lg:py-2 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1 lg:gap-1.5 cursor-pointer"
+                            >
+                              <Save className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                              <span>Save New Password 🔒</span>
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  )}
+
+                  {/* Back to Login Link */}
+                  <div className="text-center pt-0.5 border-t border-stone-100">
                     <button
                       type="button"
                       onClick={() => {
                         setAuthMode("login");
                         setLoginError("");
+                        setForgotFoundUser(null);
+                        setForgotQuery("");
                       }}
-                      className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                      className="text-[10px] sm:text-xs lg:text-sm text-indigo-600 font-bold hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
                     >
-                      {prefLanguage === "tagalog" ? "Mag-log In dito!" : "Log In here!"}
+                      <ArrowLeft className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                      <span>Back to Log In</span>
                     </button>
-                  </span>
-                )}
-              </div>
-            </>
-          )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Login/Signup Form */}
+                  <form onSubmit={handleLoginSubmit} className="space-y-1.5 sm:space-y-2 lg:space-y-3 animate-none">
+                    {authMode === "signup" && (
+                      <>
+                        <div className="space-y-0.5 lg:space-y-1">
+                          <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                            <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder={loginRole === "student" ? "e.g. juan@example.com" : "e.g. nena@example.com"}
+                            value={signupEmail}
+                            onChange={e => setSignupEmail(e.target.value)}
+                            className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                          />
+                        </div>
 
-          {/* Quick Demo Credentials */}
-          <div className="pt-5 border-t border-stone-100 space-y-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 text-center">
-              {t("quickAccessDemo")}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("student")}
-                className="bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 text-center transition-all cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-indigo-700 group-hover:scale-102 transition-transform">
-                  {prefLanguage === "tagalog" ? "Demo Estudyante 🎓" : "Demo Student 🎓"}
-                </div>
-                <div className="text-[9px] text-indigo-500 font-mono mt-0.5">Quick Access</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("landlord")}
-                className="bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center transition-all cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-emerald-700 group-hover:scale-102 transition-transform">
-                  {prefLanguage === "tagalog" ? "Demo Landlord 🏠" : "Demo Landlord 🏠"}
-                </div>
-                <div className="text-[9px] text-emerald-500 font-mono mt-0.5">Property Owner</div>
-              </button>
+                        <div className="space-y-0.5 lg:space-y-1">
+                          <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                            <Phone className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                            {prefLanguage === "tagalog" ? "Mobile Number" : "Mobile Number"}
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder={loginRole === "student" ? "e.g. 09123456789" : "e.g. 09987654321"}
+                            value={signupMobile}
+                            onChange={e => setSignupMobile(e.target.value)}
+                            className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    <div className="space-y-0.5 lg:space-y-1">
+                      <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                        <Shield className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                        {authMode === "signup" ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") : "Username"}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder={loginRole === "student" ? "e.g. juan.student" : "e.g. nena.landlord"}
+                        value={loginUsername}
+                        onChange={e => setLoginUsername(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-0.5 lg:space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                          <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                          Password
+                        </label>
+                        {authMode === "login" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuthMode("forgot");
+                              setLoginError("");
+                              setForgotQuery(loginUsername || "");
+                              setForgotFoundUser(null);
+                              setForgotNewPassword("");
+                              setForgotConfirmPassword("");
+                              setForgotSuccessMsg("");
+                            }}
+                            className="text-[9px] sm:text-[10px] lg:text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                          >
+                            {t("forgotPasswordLink")}
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={e => setLoginPassword(e.target.value)}
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2.5 lg:right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none cursor-pointer"
+                          title={showPassword ? "Hide Password" : "Show Password"}
+                        >
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> : <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[11px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer mt-0.5 lg:mt-1"
+                    >
+                      {authMode === "signup" ? (
+                        <>{t("signupBtn")}</>
+                      ) : (
+                        <>{prefLanguage === "tagalog" ? `Mag-log In (${loginRole === "student" ? "Estudyante" : "Landlord"}) 🚀` : `Log In (${loginRole === "student" ? "Student" : "Landlord"}) 🚀`}</>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* Alternate switch link */}
+                  <div className="text-center text-[10px] sm:text-[11px] lg:text-xs pt-0.5">
+                    {authMode === "login" ? (
+                      <span className="text-stone-500">
+                        {prefLanguage === "tagalog" ? "Bago sa CasaFinder? " : "New to CasaFinder? "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode("signup");
+                            setLoginError("");
+                          }}
+                          className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                        >
+                          {prefLanguage === "tagalog" ? "Mag-sign Up dito!" : "Sign Up here!"}
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="text-stone-500">
+                        {prefLanguage === "tagalog" ? "May account na? " : "Already have an account? "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode("login");
+                            setLoginError("");
+                          }}
+                          className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                        >
+                          {prefLanguage === "tagalog" ? "Mag-log In dito!" : "Log In here!"}
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </motion.div>
@@ -1651,7 +1751,7 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-2">
-                {(boardingHouseSearchQuery || barangaySearchQuery || barangayInput !== "All" || typeInput !== "All" || priceInput !== 15000 || amenityGenderInput !== "Both") && (
+                {(boardingHouseSearchQuery || barangaySearchQuery || barangayInput !== "All" || typeInput !== "All" || priceInput !== 15000 || amenityGenderInput !== "All") && (
                   <button
                     type="button"
                     onClick={handleResetFilters}
@@ -1698,11 +1798,11 @@ export default function App() {
             </div>
 
             {/* Full Filters Grid - Collapsible on Mobile, always expanded on Desktop */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 sm:gap-3 items-end ${
-              isMobileSearchExpanded ? "block" : "hidden sm:grid"
+            <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 items-end ${
+              isMobileSearchExpanded ? "grid" : "hidden sm:grid"
             }`}>
-              {/* 1. Boarding House Search Bar (Typing) - Hidden on mobile if already shown in fast bar */}
-              <div className="hidden sm:flex flex-col space-y-1 sm:col-span-2 lg:col-span-2">
+              {/* 1. Boarding House Search Bar (Typing) */}
+              <div className="col-span-2 sm:col-span-2 lg:col-span-2 flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <Home className="h-3 w-3 text-indigo-600" />
@@ -1716,7 +1816,7 @@ export default function App() {
                     value={boardingHouseSearchQuery}
                     onChange={(e) => setBoardingHouseSearchQuery(e.target.value)}
                     placeholder={t("searchPlaceholder")}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2.5 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
                   />
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                   {boardingHouseSearchQuery && (
@@ -1732,7 +1832,7 @@ export default function App() {
               </div>
 
               {/* 2. Barangay Search Bar (Typing) */}
-              <div className="flex flex-col space-y-1 sm:col-span-2 lg:col-span-1">
+              <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 text-indigo-600" />
@@ -1749,7 +1849,7 @@ export default function App() {
                       setBarangayInput(e.target.value);
                     }}
                     placeholder={prefLanguage === "tagalog" ? "Mag-type ng barangay..." : "Type barangay..."}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2.5 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
                   />
                   <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                   {barangaySearchQuery && (
@@ -1775,14 +1875,14 @@ export default function App() {
               </div>
 
               {/* 3. Property Type Selector */}
-              <div className="flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <div className="col-span-1 flex flex-col space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
                   {t("filterType")}
                 </label>
                 <select
                   value={typeInput}
                   onChange={(e) => setTypeInput(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2.5 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
                 >
                   <option value="All">{t("allTypes")}</option>
                   <option value="Apartment">{t("typeApartment")}</option>
@@ -1794,30 +1894,31 @@ export default function App() {
               </div>
 
               {/* 4. Amenities / Gender Filter */}
-              <div className="flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  {prefLanguage === "tagalog" ? "Kasarian / Patakaran" : "Amenities / Gender"}
+              <div className="col-span-1 flex flex-col space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
+                  {prefLanguage === "tagalog" ? "Kasarian" : "Gender Policy"}
                 </label>
                 <select
                   value={amenityGenderInput}
-                  onChange={(e) => setAmenityGenderInput(e.target.value as "Both" | "Girls Only" | "Boys Only")}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2.5 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs"
+                  onChange={(e) => setAmenityGenderInput(e.target.value as "All" | "Both" | "Girls Only" | "Boys Only")}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
                 >
-                  <option value="Both">{prefLanguage === "tagalog" ? "Lahat (Co-ed)" : "Both (All / Co-ed)"}</option>
-                  <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae Lamang 👧" : "Girls Only 👧"}</option>
-                  <option value="Boys Only">{prefLanguage === "tagalog" ? "Pang-lalaki Lamang 👦" : "Boys Only 👦"}</option>
+                  <option value="All">{prefLanguage === "tagalog" ? "Lahat" : "All Policies"}</option>
+                  <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae 👧" : "Girls Only 👧"}</option>
+                  <option value="Boys Only">{prefLanguage === "tagalog" ? "Pang-lalaki 👦" : "Boys Only 👦"}</option>
+                  <option value="Both">{prefLanguage === "tagalog" ? "Co-ed 🚻" : "Both / Co-ed 🚻"}</option>
                 </select>
               </div>
 
-              {/* 4. Max Price & Filter Button */}
-              <div className="flex flex-col space-y-1">
+              {/* 5. Max Price & Filter Button */}
+              <div className="col-span-2 sm:col-span-1 flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                   {t("filterBudget")}
                 </label>
                 <select
                   value={priceInput}
                   onChange={(e) => setPriceInput(Number(e.target.value))}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2.5 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer font-mono shadow-2xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer font-mono shadow-2xs"
                 >
                   <option value="15000">{prefLanguage === "tagalog" ? "Kahit Anong Presyo" : "Any Price"}</option>
                   <option value="1500">₱1,500 pababa</option>
@@ -1912,7 +2013,7 @@ export default function App() {
               </div>
               <motion.div
                 layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6"
               >
                 <AnimatePresence mode="popLayout">
                   {processedProperties.map((property) => (
@@ -1962,27 +2063,70 @@ export default function App() {
 
       {/* Landlord Profile Modal */}
       <AnimatePresence>
-        {landlordProfileProperty && (
-          <LandlordProfileModal
-            landlordInfo={{
-              name: landlordProfileProperty.landlordName || "Registered Landlord",
-              avatar: landlordProfileProperty.landlordAvatar,
-              permits: landlordProfileProperty.landlordPermits,
-            }}
-            landlordProperties={propertiesList.filter(
-              (p) => (p.landlordName || "Registered Landlord") === (landlordProfileProperty.landlordName || "Registered Landlord")
-            )}
-            onClose={() => setLandlordProfileProperty(null)}
-            onSelectProperty={(prop) => setSelectedProperty(prop)}
-            onViewOnMap={handleViewOnMap}
-          />
-        )}
+        {landlordProfileProperty && (() => {
+          const propUsername = landlordProfileProperty.landlordUsername;
+          const propName = landlordProfileProperty.landlordName || "Aling Nena";
+
+          // Look up matched registered user if available
+          const matchedUser = registeredUsers.find(
+            (u) => (propUsername && u.username.toLowerCase() === propUsername.toLowerCase()) ||
+                   (u.name.toLowerCase() === propName.toLowerCase())
+          );
+
+          const actualName = matchedUser?.name || landlordProfileProperty.landlordName || "Aling Nena";
+          const actualUsername = matchedUser?.username || landlordProfileProperty.landlordUsername || "nena.landlord";
+          const actualMobile = matchedUser?.mobile || landlordProfileProperty.landlordMobile || "09987654321";
+          const actualEmail = matchedUser?.email || landlordProfileProperty.landlordEmail || (actualUsername ? `${actualUsername}@casafinder.ph` : "alingnena.housing@gmail.com");
+          const actualBio = matchedUser?.bio || landlordProfileProperty.landlordBio || (prefLanguage === "tagalog"
+            ? "Rehistradong Operator at May-ari ng Boarding House sa Gumaca, Quezon. Nagbibigay ng ligtas at malinis na tuluyan para sa mga estudyante."
+            : "Registered Boarding House & Accommodation Owner in Gumaca, Quezon. Dedicated to providing safe, comfortable, and student-friendly lodgings.");
+          const actualAvatar = landlordProfileProperty.landlordAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200";
+
+          const userPermitNo = matchedUser?.permitNo;
+          const propPermits = landlordProfileProperty.landlordPermits;
+
+          const actualPermits = {
+            businessPermit: propPermits?.businessPermit || (userPermitNo ? (userPermitNo.startsWith("BP-") ? userPermitNo : `BP-GMC-${userPermitNo}`) : ""),
+            barangayClearance: propPermits?.barangayClearance || "",
+            fireSafetyCert: propPermits?.fireSafetyCert || "",
+            dtiRegistration: propPermits?.dtiRegistration || "",
+            sanitaryPermit: propPermits?.sanitaryPermit || ""
+          };
+
+          const matchedProperties = propertiesList.filter(
+            (p) => (p.landlordUsername && actualUsername && p.landlordUsername.toLowerCase() === actualUsername.toLowerCase()) ||
+                   (p.landlordName && actualName && p.landlordName.toLowerCase() === actualName.toLowerCase())
+          );
+
+          return (
+            <LandlordProfileModal
+              landlordInfo={{
+                username: actualUsername,
+                name: actualName,
+                mobile: actualMobile,
+                email: actualEmail,
+                avatar: actualAvatar,
+                bio: actualBio,
+                permits: actualPermits,
+              }}
+              landlordProperties={matchedProperties}
+              onClose={() => setLandlordProfileProperty(null)}
+              onSelectProperty={(prop) => {
+                setSelectedProperty(prop);
+                setDetailModalProperty(prop);
+                setLandlordProfileProperty(null);
+              }}
+              onViewOnMap={handleViewOnMap}
+              language={prefLanguage}
+            />
+          );
+        })()}
       </AnimatePresence>
 
       {/* Homeowner / Landlord Upload Boarding House Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-md overflow-y-auto">
             {/* Backdrop click closer */}
             <div className="absolute inset-0" onClick={() => setShowAddModal(false)} />
 
@@ -1991,31 +2135,31 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-stone-200 z-10 max-h-[90vh]"
+              className="relative w-full max-w-lg sm:max-w-xl bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-stone-200 z-10 max-h-[88vh] my-auto"
             >
               {/* Modal Header */}
-              <div className="bg-indigo-600 text-white p-5 flex justify-between items-center shrink-0">
+              <div className="bg-indigo-600 text-white p-3.5 sm:p-5 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🏠</span>
+                  <span className="text-lg sm:text-xl">🏠</span>
                   <div>
-                    <h3 className="font-display font-bold text-sm md:text-base">{t("modalPostTitle")}</h3>
-                    <p className="text-[10px] text-indigo-100 font-light mt-0.5">{prefLanguage === "tagalog" ? "I-anunsyo ang iyong bakanteng silid para sa mga estudyante sa Gumaca" : "Advertise your vacant room for Gumaca students"}</p>
+                    <h3 className="font-display font-bold text-xs sm:text-base">{t("modalPostTitle")}</h3>
+                    <p className="text-[9px] sm:text-[10px] text-indigo-100 font-light mt-0.5">{prefLanguage === "tagalog" ? "I-anunsyo ang iyong bakanteng silid para sa mga estudyante sa Gumaca" : "Advertise your vacant room for Gumaca students"}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="p-1.5 bg-indigo-700/50 hover:bg-indigo-700 hover:scale-105 rounded-full transition-all text-white cursor-pointer"
+                  className="p-1.5 bg-indigo-700/50 hover:bg-indigo-700 hover:scale-105 rounded-full transition-all text-white cursor-pointer shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Modal Form */}
-              <form onSubmit={handleAddPropertySubmit} className="flex-1 overflow-y-auto p-6 space-y-5 animate-none">
+              <form onSubmit={handleAddPropertySubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 animate-none">
                 {/* Basic Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Pangalan ng Tuluyan *" : "Boarding House Name *"}
                     </label>
@@ -2025,11 +2169,11 @@ export default function App() {
                       placeholder={prefLanguage === "tagalog" ? "hal. Mary's Boarding House" : "e.g. Mary's Cozy Boarding House"}
                       value={newTitle}
                       onChange={e => setNewTitle(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-1.5">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Buwanang Upa (PHP) *" : "Monthly Rent (PHP) *"}
                     </label>
@@ -2040,50 +2184,50 @@ export default function App() {
                       placeholder="e.g. 2500"
                       value={newPrice}
                       onChange={e => setNewPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
                     />
                   </div>
                 </div>
 
                 {/* Type & Specs Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="flex flex-col space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 truncate">
                       {t("filterType")}
                     </label>
                     <select
                       value={newType}
                       onChange={e => setNewType(e.target.value as "Apartment" | "Bedspace")}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer truncate"
                     >
                       <option value="Apartment">{t("typeApartment")}</option>
                       <option value="Bedspace">{t("typeBedspace")}</option>
                     </select>
                   </div>
 
-                  <div className="flex flex-col space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Bilang ng Kama" : "Number of Beds"}
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 truncate">
+                      {prefLanguage === "tagalog" ? "Kama" : "Beds"}
                     </label>
                     <input
                       type="number"
                       min="1"
                       value={newBeds}
                       onChange={e => setNewBeds(Number(e.target.value))}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Bilang ng Banyo" : "Number of Baths"}
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 truncate">
+                      {prefLanguage === "tagalog" ? "Banyo" : "Baths"}
                     </label>
                     <input
                       type="number"
                       min="1"
                       value={newBaths}
                       onChange={e => setNewBaths(Number(e.target.value))}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
                     />
                   </div>
                 </div>
@@ -2145,15 +2289,15 @@ export default function App() {
                 />
 
                 {/* Utilities & Gender Accommodation Selection */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="flex flex-col space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Kasarian / Patakaran *" : "Gender Preference / Policy *"}
                     </label>
                     <select
                       value={newGenderPolicy}
                       onChange={e => setNewGenderPolicy(e.target.value as "Both" | "Girls Only" | "Boys Only")}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
                     >
                       <option value="Both">{prefLanguage === "tagalog" ? "Lahat (Co-ed)" : "Both (Co-ed)"}</option>
                       <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae Lamang 👧" : "Girls Only 👧"}</option>
@@ -2161,14 +2305,14 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div className="flex flex-col space-y-1.5">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Paradahan ng Sasakyan" : "Parking Arrangement"}
                     </label>
                     <select
                       value={newParking}
                       onChange={e => setNewParking(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
                     >
                       <option value="No Parking">{prefLanguage === "tagalog" ? "Walang Paradahan" : "No Parking Space"}</option>
                       <option value="Motorcycle Only">{prefLanguage === "tagalog" ? "Motorsiklo Lamang" : "Motorcycle Parking Only"}</option>
@@ -2176,14 +2320,14 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div className="flex flex-col space-y-1.5">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Bentilasyon / Araw at Hangin" : "Ventilation / Cooling"}
                     </label>
                     <select
                       value={newCooling}
                       onChange={e => setNewCooling(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
                     >
                       <option value="Electric Fan">{prefLanguage === "tagalog" ? "Electric Fan Lamang" : "Electric Fan Only"}</option>
                       <option value="Aircon Ready">{prefLanguage === "tagalog" ? "May Aircon" : "Aircon Installed"}</option>
@@ -2501,24 +2645,24 @@ export default function App() {
       {/* User Profile & Account Settings Modal */}
       <AnimatePresence>
         {showProfileModal && userSession && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-xl w-full overflow-hidden my-8"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full overflow-hidden my-auto max-h-[88vh] flex flex-col"
             >
               {/* Modal Header */}
-              <div className="bg-stone-900 text-white p-6 relative flex items-center gap-4">
-                <div className="h-14 w-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/20 shrink-0">
+              <div className="bg-stone-900 text-white p-3.5 sm:p-4 relative flex items-center gap-3 shrink-0">
+                <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-indigo-500/20 shrink-0">
                   {userSession.role === "student" ? "🎓" : "🏠"}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-display font-bold text-lg text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h2 className="font-display font-bold text-sm text-white truncate">
                       {t("profileTitle")}
                     </h2>
-                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
                       userSession.role === "student"
                         ? "bg-indigo-950 text-indigo-300 border-indigo-800"
                         : "bg-emerald-950 text-emerald-300 border-emerald-800"
@@ -2526,61 +2670,61 @@ export default function App() {
                       {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
                     </span>
                   </div>
-                  <p className="text-xs text-stone-300 font-light mt-0.5">
+                  <p className="text-[10px] text-stone-300 font-light truncate mt-0.5">
                     {userSession.name} (@{userSession.username})
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowProfileModal(false)}
-                  className="absolute right-5 top-5 text-stone-400 hover:text-white p-2 rounded-full hover:bg-stone-800 transition-colors cursor-pointer"
+                  className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-stone-800 transition-colors cursor-pointer shrink-0"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-stone-200 bg-stone-50/80 px-6 pt-3 gap-2">
+              <div className="flex border-b border-stone-200 bg-stone-50/80 px-3 pt-2 gap-1 overflow-x-auto shrink-0">
                 <button
                   type="button"
                   onClick={() => setProfileTab("profile")}
-                  className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "profile"
                       ? "border-indigo-600 text-indigo-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
-                  <User className="h-3.5 w-3.5" />
+                  <User className="h-3 w-3" />
                   <span>{t("tabProfileInfo")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProfileTab("settings")}
-                  className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "settings"
                       ? "border-indigo-600 text-indigo-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
-                  <Lock className="h-3.5 w-3.5" />
+                  <Lock className="h-3 w-3" />
                   <span>{t("tabSecurity")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProfileTab("notifications")}
-                  className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "notifications"
                       ? "border-indigo-600 text-indigo-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
-                  <Bell className="h-3.5 w-3.5" />
+                  <Bell className="h-3 w-3" />
                   <span>{t("tabPreferences")}</span>
                 </button>
               </div>
 
               {/* Modal Body & Form */}
-              <form onSubmit={handleSaveProfile} className="p-6 space-y-5">
+              <form onSubmit={handleSaveProfile} className="p-3.5 space-y-3 overflow-y-auto flex-1">
                 {profileSuccessMsg && (
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
@@ -2684,7 +2828,6 @@ export default function App() {
                     {/* Short Bio / Description */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                        <Sparkles className="h-3 w-3 text-stone-400" />
                         {prefLanguage === "tagalog" ? "Maikling Tungkol sa Sarili / Bio" : "Short Bio / Note"}
                       </label>
                       <textarea
@@ -2695,6 +2838,89 @@ export default function App() {
                         placeholder={prefLanguage === "tagalog" ? "Ipakilala ang sarili o mag-iwan ng maikling tala..." : "Introduce yourself or leave a short note..."}
                       />
                     </div>
+
+                    {/* Business Permit & Verification Proof Section (Landlords only) */}
+                    {userSession.role === "landlord" && (
+                      <div className="pt-3.5 border-t border-stone-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <span className="text-xs font-bold text-stone-800 uppercase tracking-wide">
+                              {prefLanguage === "tagalog" ? "Business Permit at Katibayan (Proof)" : "Business Permit & Proof Documents"}
+                            </span>
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-0.5 rounded-full">
+                            <ShieldCheck className="h-3 w-3 text-stone-500 shrink-0" />
+                            {profileEditPermitStatus || (prefLanguage === "tagalog" ? "Hindi pa nafi-fill out" : "Not Provided")}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {/* Permit / Document Number */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                              <Award className="h-3 w-3 text-stone-400 shrink-0" />
+                              {prefLanguage === "tagalog" ? "Numero ng Mayor's / Business Permit" : "Mayor's / Business Permit No."}
+                            </label>
+                            <input
+                              type="text"
+                              value={profileEditPermitNo}
+                              onChange={(e) => setProfileEditPermitNo(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
+                              placeholder="e.g. BP-2026-GUM-8842"
+                            />
+                          </div>
+
+                          {/* Upload Attachment File */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                              <FileText className="h-3 w-3 text-stone-400 shrink-0" />
+                              {prefLanguage === "tagalog" ? "Kopyang Permit / Dokumento (Attachment)" : "Proof Document / Permit File"}
+                            </label>
+                            <div className="relative flex items-center">
+                              <input
+                                type="file"
+                                id="profile-permit-file-upload"
+                                className="hidden"
+                                accept="image/*,.pdf"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setProfileEditPermitFile(file.name);
+                                    setProfileEditPermitStatus(prefLanguage === "tagalog" ? "Naka-upload (Para sa Review)" : "Uploaded - Pending Review");
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor="profile-permit-file-upload"
+                                className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-700 font-medium flex items-center justify-between cursor-pointer transition-colors"
+                              >
+                                <span className="truncate max-w-[160px] font-mono text-[11px] text-stone-600">
+                                  {profileEditPermitFile || (prefLanguage === "tagalog" ? "Pumili ng permit file..." : "Choose permit file...")}
+                                </span>
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md shrink-0">
+                                  <Upload className="h-3 w-3" />
+                                  {prefLanguage === "tagalog" ? "I-upload" : "Upload"}
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* File Document Attached Banner */}
+                        {profileEditPermitFile && (
+                          <div className="p-2.5 bg-stone-50 border border-stone-200/80 rounded-xl flex items-center justify-between text-xs text-stone-700">
+                            <div className="flex items-center gap-2 truncate">
+                              <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
+                              <span className="font-mono text-[11px] font-medium text-stone-800 truncate">{profileEditPermitFile}</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md shrink-0">
+                              {prefLanguage === "tagalog" ? "Naka-attach na Katibayan" : "Attached Proof"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2739,21 +2965,6 @@ export default function App() {
                 {/* TAB 3: Preferences */}
                 {profileTab === "notifications" && (
                   <div className="space-y-4">
-                    {/* Live Auto-save Banner */}
-                    <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-emerald-900 text-xs font-medium">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>
-                          {prefLanguage === "tagalog"
-                            ? "Awtomatikong nag-aapply at naka-save agad ang iyong Wika, Tema, at Notipikasyon!"
-                            : "Language, Theme, and Alert settings apply immediately & auto-save!"}
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md uppercase shrink-0">
-                        {prefLanguage === "tagalog" ? "NAKA-SAVE" : "AUTO-SAVED"}
-                      </span>
-                    </div>
-
                     {/* Compact Field Options: Language & Theme */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80">
                       {/* Language Field Option */}
@@ -2852,45 +3063,26 @@ export default function App() {
                 )}
 
                 {/* Modal Footer Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-                  {profileTab === "notifications" ? (
-                    <>
-                      <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                        <Check className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>
-                          {prefLanguage === "tagalog"
-                            ? "Awtomatikong naka-save ang mga bagong setting!"
-                            : "Preferences auto-saved!"}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowProfileModal(false)}
-                        className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
-                      >
-                        {prefLanguage === "tagalog" ? "Isara ✨" : "Done / Close ✨"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div />
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setShowProfileModal(false)}
-                          className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-100 transition-colors cursor-pointer"
-                        >
-                          {t("close")}
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span>{t("saveProfile")}</span>
-                        </button>
-                      </div>
-                    </>
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowProfileModal(false)}
+                    className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-100 transition-colors cursor-pointer"
+                  >
+                    {t("close")}
+                  </button>
+                  {profileTab !== "notifications" && (
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>
+                        {profileTab === "settings"
+                          ? (prefLanguage === "tagalog" ? "I-save ang Security at Password" : "Save Security & Password")
+                          : (prefLanguage === "tagalog" ? "I-save ang Profile" : "Save Profile")}
+                      </span>
+                    </button>
                   )}
                 </div>
               </form>

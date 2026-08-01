@@ -46,61 +46,69 @@ export default function LandlordProfileModal({
     ? "Rehistradong Operator at May-ari ng Boarding House sa Gumaca, Quezon. Nagbibigay ng ligtas at malinis na tuluyan para sa mga estudyante."
     : "Registered Boarding House & Accommodation Owner in Gumaca, Quezon. Dedicated to providing safe, comfortable, and student-friendly lodgings.");
   
-  const permits = landlordInfo.permits || {
-    businessPermit: "BP-GMC-2026-0881",
-    barangayClearance: "BC-BRGY-TABINGDAGAT-2026-105",
-    fireSafetyCert: "FSIC-GMC-2026-112",
-    dtiRegistration: "DTI-REG-04218829",
-    sanitaryPermit: "SP-GMC-HEALTH-2026-302"
-  };
+  const permits = landlordInfo.permits || {};
+  const hasAnyPermit = Boolean(
+    permits.businessPermit ||
+    permits.barangayClearance ||
+    permits.fireSafetyCert ||
+    permits.dtiRegistration ||
+    permits.sanitaryPermit
+  );
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-stone-900/65 backdrop-blur-md">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-stone-900/65 backdrop-blur-md overflow-y-auto">
       <div className="fixed inset-0" onClick={onClose} />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative z-10 w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]"
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="relative z-10 w-full max-w-md sm:max-w-xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-stone-200 flex flex-col max-h-[88vh] my-auto"
       >
         {/* Header Banner */}
-        <div className="bg-linear-to-r from-indigo-900 via-indigo-800 to-stone-900 p-6 text-white relative">
+        <div className="bg-linear-to-r from-indigo-900 via-indigo-800 to-stone-900 p-4 sm:p-5 text-white relative shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
 
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <div className="relative">
+          <div className="flex flex-row items-center gap-3">
+            <div className="relative shrink-0">
               <img
                 src={avatar}
                 alt={name}
-                className="h-20 w-20 rounded-2xl object-cover border-2 border-white/80 shadow-lg"
+                className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl object-cover border-2 border-white/80 shadow-md"
               />
-              <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full shadow-md" title="LGU & BFP Verified">
-                <ShieldCheck className="h-4 w-4" />
-              </div>
+              {hasAnyPermit && (
+                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-0.5 rounded-full shadow-md" title="LGU & BFP Verified">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                </div>
+              )}
             </div>
 
-            <div className="text-center sm:text-left space-y-1">
-              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                <h3 className="text-2xl font-bold font-display tracking-tight text-white">{name}</h3>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" /> {isTagalog ? "Verified Landlord" : "Verified Landlord"}
+            <div className="text-left space-y-0.5 min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="text-base sm:text-lg font-bold font-display tracking-tight text-white truncate">{name}</h3>
+                <span className={`border text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 ${
+                  hasAnyPermit
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/40"
+                    : "bg-amber-500/20 text-amber-300 border-amber-400/40"
+                }`}>
+                  <ShieldCheck className="h-2.5 w-2.5" />
+                  {hasAnyPermit ? (isTagalog ? "Verified Landlord" : "Verified Landlord") : (isTagalog ? "Landlord / Owner" : "Landlord Owner")}
                 </span>
               </div>
-              <p className="text-xs text-indigo-200">@{landlordInfo.username || "landlord_owner"}</p>
-              <p className="text-xs text-stone-300 max-w-md line-clamp-2 pt-1 font-light">{bio}</p>
+              <p className="text-[10px] text-indigo-200 font-mono">@{landlordInfo.username || "landlord_owner"}</p>
+              <p className="text-[11px] text-stone-300 line-clamp-2 pt-0.5 font-light">{bio}</p>
             </div>
           </div>
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-3.5 sm:p-5 space-y-4 overflow-y-auto">
           {/* Quick Contact Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <a
@@ -139,74 +147,98 @@ export default function LandlordProfileModal({
                 <FileCheck className="h-4 w-4 text-emerald-600" />
                 {isTagalog ? "Mga Rehistrado at Legal na Permit:" : "Registered & Legal Permits:"}
               </h4>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                Gumaca LGU Verified
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                hasAnyPermit ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+              }`}>
+                {hasAnyPermit ? "Gumaca LGU Verified" : (isTagalog ? "Wala pang Permit" : "No Permit On File")}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              {/* Business Permit */}
-              <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-stone-800">Mayor&apos;s / Business Permit</p>
-                  <p className="text-[10px] text-stone-500 font-mono">
-                    No: <span className="font-semibold text-stone-700">{permits.businessPermit || "GMC-BP-2026-ACTIVE"}</span>
-                  </p>
-                  <p className="text-[9px] text-emerald-700 font-medium">Verified Valid & Active</p>
-                </div>
-              </div>
-
-              {/* Barangay Clearance */}
-              <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
-                <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-stone-800">Barangay Clearance</p>
-                  <p className="text-[10px] text-stone-500 font-mono">
-                    No: <span className="font-semibold text-stone-700">{permits.barangayClearance || "BC-GMC-2026-001"}</span>
-                  </p>
-                  <p className="text-[9px] text-blue-700 font-medium">Barangay Licensed Boarding</p>
-                </div>
-              </div>
-
-              {/* Fire Safety Inspection Certificate (BFP) */}
-              <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
-                <CheckCircle2 className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-stone-800">Fire Safety Inspection (FSIC)</p>
-                  <p className="text-[10px] text-stone-500 font-mono">
-                    BFP No: <span className="font-semibold text-stone-700">{permits.fireSafetyCert || "BFP-GMC-2026-FIRE"}</span>
-                  </p>
-                  <p className="text-[9px] text-rose-700 font-medium">BFP Inspection Passed</p>
-                </div>
-              </div>
-
-              {/* DTI Business Name Registration */}
-              <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
-                <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-stone-800">DTI Registration Certificate</p>
-                  <p className="text-[10px] text-stone-500 font-mono">
-                    DTI No: <span className="font-semibold text-stone-700">{permits.dtiRegistration || "DTI-REG-091882"}</span>
-                  </p>
-                  <p className="text-[9px] text-amber-700 font-medium">Nationally Registered Business</p>
-                </div>
-              </div>
-
-              {/* Sanitary Permit */}
-              {permits.sanitaryPermit && (
-                <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs col-span-1 sm:col-span-2">
-                  <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-bold text-stone-800">Sanitary & Health Permit</p>
-                    <p className="text-[10px] text-stone-500 font-mono">
-                      Health Office No: <span className="font-semibold text-stone-700">{permits.sanitaryPermit}</span>
-                    </p>
-                    <p className="text-[9px] text-teal-700 font-medium">Cleanliness & Hygiene Standard Compliant</p>
+            {hasAnyPermit ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* Business Permit */}
+                {permits.businessPermit && (
+                  <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-800">Mayor&apos;s / Business Permit</p>
+                      <p className="text-[10px] text-stone-500 font-mono">
+                        No: <span className="font-semibold text-stone-700">{permits.businessPermit}</span>
+                      </p>
+                      <p className="text-[9px] text-emerald-700 font-medium">Verified Valid & Active</p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Barangay Clearance */}
+                {permits.barangayClearance && (
+                  <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-800">Barangay Clearance</p>
+                      <p className="text-[10px] text-stone-500 font-mono">
+                        No: <span className="font-semibold text-stone-700">{permits.barangayClearance}</span>
+                      </p>
+                      <p className="text-[9px] text-blue-700 font-medium">Barangay Licensed Boarding</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fire Safety Inspection Certificate (BFP) */}
+                {permits.fireSafetyCert && (
+                  <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-800">Fire Safety Inspection (FSIC)</p>
+                      <p className="text-[10px] text-stone-500 font-mono">
+                        BFP No: <span className="font-semibold text-stone-700">{permits.fireSafetyCert}</span>
+                      </p>
+                      <p className="text-[9px] text-rose-700 font-medium">BFP Inspection Passed</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* DTI Business Name Registration */}
+                {permits.dtiRegistration && (
+                  <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-800">DTI Registration Certificate</p>
+                      <p className="text-[10px] text-stone-500 font-mono">
+                        DTI No: <span className="font-semibold text-stone-700">{permits.dtiRegistration}</span>
+                      </p>
+                      <p className="text-[9px] text-amber-700 font-medium">Nationally Registered Business</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sanitary Permit */}
+                {permits.sanitaryPermit && (
+                  <div className="bg-white border border-stone-200/80 rounded-xl p-3 flex items-start gap-2.5 shadow-2xs sm:col-span-2">
+                    <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-800">Sanitary & Health Permit</p>
+                      <p className="text-[10px] text-stone-500 font-mono">
+                        Health Office No: <span className="font-semibold text-stone-700">{permits.sanitaryPermit}</span>
+                      </p>
+                      <p className="text-[9px] text-teal-700 font-medium">Cleanliness & Hygiene Standard Compliant</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white border border-dashed border-stone-200 rounded-xl p-3.5 text-center space-y-1">
+                <FileCheck className="h-5 w-5 text-stone-300 mx-auto" />
+                <p className="text-xs font-bold text-stone-600">
+                  {isTagalog ? "Walang naisusumiteng Permit" : "No Business Permits Provided"}
+                </p>
+                <p className="text-[11px] text-stone-400 max-w-sm mx-auto font-light">
+                  {isTagalog
+                    ? "Hindi pa nakakapag-lagay ng Mayor's Permit o Barangay Clearance ang landlord na ito sa kanyang profile."
+                    : "This landlord has not provided any Mayor's permit or Barangay clearance in their profile."}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Landlord Boarding Houses & Apartments Owned */}

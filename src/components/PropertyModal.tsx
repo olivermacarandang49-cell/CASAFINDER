@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Property } from "../data/properties";
 import { AiMatch } from "../types";
 import { motion } from "motion/react";
-import { X, Sparkles, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation } from "lucide-react";
+import { X, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation } from "lucide-react";
 import { SchoolDistancesList } from "./SchoolDistancesList";
 import { getTranslation, Language } from "../utils/translations";
 
@@ -68,7 +68,7 @@ export default function PropertyModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-md">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-md">
       {/* Backdrop click closer */}
       <div className="absolute inset-0" onClick={onClose} />
 
@@ -78,19 +78,19 @@ export default function PropertyModal({
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-stone-200"
+        className="relative w-full max-w-5xl max-h-[92vh] bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-stone-200"
       >
         {/* Close Button */}
         <button
           id="close-modal-btn"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-xs text-stone-700 hover:text-stone-950 rounded-full border border-stone-200 shadow-md hover:scale-105 transition-all cursor-pointer"
+          className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 p-1.5 sm:p-2 bg-white/90 backdrop-blur-xs text-stone-700 hover:text-stone-950 rounded-full border border-stone-200 shadow-md hover:scale-105 transition-all cursor-pointer"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
         {/* Left Side: Rich Details & Images */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 border-b md:border-b-0 md:border-r border-stone-100 max-h-[45vh] md:max-h-[90vh]">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r border-stone-100 max-h-[48vh] md:max-h-[92vh]">
           {/* Header Title */}
           <div className="mb-4">
             <div className="flex flex-wrap items-center gap-2 mb-2 font-mono">
@@ -439,7 +439,7 @@ export default function PropertyModal({
         </div>
 
         {/* Right Side: Price, AI Match context & Interactive Micro Chat */}
-        <div className="w-full md:w-[380px] flex flex-col bg-stone-50/50 max-h-[45vh] md:max-h-[90vh] overflow-y-auto p-6 md:p-8 justify-between">
+        <div className="w-full md:w-[380px] flex flex-col bg-stone-50/50 max-h-[48vh] md:max-h-[92vh] overflow-y-auto p-3.5 sm:p-6 md:p-8 justify-between">
           <div>
             {/* Real Price Display */}
             <div className="mb-6 p-4 bg-white rounded-2xl border border-stone-200/80 shadow-xs space-y-3">
@@ -545,7 +545,6 @@ export default function PropertyModal({
             {aiMatch && (
               <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-900">
                 <div className="flex items-center gap-1.5 font-bold mb-1">
-                  <Sparkles className="h-4 w-4 text-amber-600 animate-pulse" />
                   <span>Personalized {aiMatch.score}% AI Match</span>
                 </div>
                 <p className="leading-relaxed italic font-light">
