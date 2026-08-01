@@ -184,6 +184,7 @@ export default function App() {
     return (localStorage.getItem("casafinder_pref_theme") as "light" | "dark") || "light";
   });
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+  const [mobileMapTab, setMobileMapTab] = useState<"map" | "list">("map");
 
   useEffect(() => {
     if (prefTheme === "dark") {
@@ -2126,7 +2127,7 @@ export default function App() {
       {/* Homeowner / Landlord Upload Boarding House Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 bg-stone-900/60 backdrop-blur-md overflow-y-auto">
             {/* Backdrop click closer */}
             <div className="absolute inset-0" onClick={() => setShowAddModal(false)} />
 
@@ -2135,32 +2136,32 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-lg sm:max-w-xl bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-stone-200 z-10 max-h-[88vh] my-auto"
+              className="relative w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-stone-200 z-10 max-h-[92vh] lg:max-h-[88vh] my-auto"
             >
               {/* Modal Header */}
-              <div className="bg-indigo-600 text-white p-3.5 sm:p-5 flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg sm:text-xl">🏠</span>
+              <div className="bg-indigo-600 text-white p-3.5 sm:p-5 lg:p-6 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <span className="text-lg sm:text-xl lg:text-2xl">🏠</span>
                   <div>
-                    <h3 className="font-display font-bold text-xs sm:text-base">{t("modalPostTitle")}</h3>
-                    <p className="text-[9px] sm:text-[10px] text-indigo-100 font-light mt-0.5">{prefLanguage === "tagalog" ? "I-anunsyo ang iyong bakanteng silid para sa mga estudyante sa Gumaca" : "Advertise your vacant room for Gumaca students"}</p>
+                    <h3 className="font-display font-bold text-xs sm:text-base lg:text-xl">{t("modalPostTitle")}</h3>
+                    <p className="text-[9px] sm:text-[10px] lg:text-xs text-indigo-100 font-light mt-0.5">{prefLanguage === "tagalog" ? "I-anunsyo ang iyong bakanteng silid para sa mga estudyante sa Gumaca" : "Advertise your vacant room for Gumaca students"}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="p-1.5 bg-indigo-700/50 hover:bg-indigo-700 hover:scale-105 rounded-full transition-all text-white cursor-pointer shrink-0"
+                  className="p-1.5 lg:p-2 bg-indigo-700/50 hover:bg-indigo-700 hover:scale-105 rounded-full transition-all text-white cursor-pointer shrink-0"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 lg:h-5 lg:w-5" />
                 </button>
               </div>
 
               {/* Modal Form */}
-              <form onSubmit={handleAddPropertySubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 animate-none">
+              <form onSubmit={handleAddPropertySubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 space-y-3.5 sm:space-y-4 lg:space-y-6 animate-none">
                 {/* Basic Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2.5 sm:gap-4 lg:gap-6">
+                  <div className="flex flex-col space-y-1 lg:space-y-1.5">
+                    <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Pangalan ng Tuluyan *" : "Boarding House Name *"}
                     </label>
                     <input
@@ -2169,12 +2170,12 @@ export default function App() {
                       placeholder={prefLanguage === "tagalog" ? "hal. Mary's Boarding House" : "e.g. Mary's Cozy Boarding House"}
                       value={newTitle}
                       onChange={e => setNewTitle(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 lg:py-2.5 lg:px-3.5 text-xs lg:text-sm text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  <div className="flex flex-col space-y-1 lg:space-y-1.5">
+                    <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400">
                       {prefLanguage === "tagalog" ? "Buwanang Upa (PHP) *" : "Monthly Rent (PHP) *"}
                     </label>
                     <input
@@ -2184,7 +2185,7 @@ export default function App() {
                       placeholder="e.g. 2500"
                       value={newPrice}
                       onChange={e => setNewPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 lg:py-2.5 lg:px-3.5 text-xs lg:text-sm text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
                     />
                   </div>
                 </div>
@@ -2478,10 +2479,10 @@ export default function App() {
 
                 {/* Amenities checklist */}
                 <div className="flex flex-col space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400">
                     {prefLanguage === "tagalog" ? "Magdagdag ng Amenities / Serbiyo (Piliin ang nararapat)" : "Add Amenities / Features (Select all that apply)"}
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-2.5">
                     {AMENITY_PRESETS.map((amenity) => {
                       const isChecked = newSelectedAmenities.includes(amenity);
                       return (
@@ -2489,16 +2490,16 @@ export default function App() {
                           key={amenity}
                           type="button"
                           onClick={() => toggleAmenity(amenity)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-left text-[11px] transition-all cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 lg:py-2 rounded-lg border text-left text-[11px] lg:text-xs transition-all cursor-pointer ${
                             isChecked
                               ? "bg-indigo-50 border-indigo-200 text-indigo-700 font-medium"
                               : "bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100"
                           }`}
                         >
-                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                          <div className={`w-3.5 h-3.5 lg:w-4 lg:h-4 rounded border flex items-center justify-center shrink-0 ${
                             isChecked ? "bg-indigo-600 border-indigo-600 text-white" : "border-stone-300 bg-white"
                           }`}>
-                            {isChecked && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                            {isChecked && <Check className="h-2.5 w-2.5 lg:h-3 lg:w-3 stroke-[3]" />}
                           </div>
                           <span className="truncate">{amenity}</span>
                         </button>
@@ -2508,17 +2509,17 @@ export default function App() {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-4 border-t border-stone-100 flex gap-2">
+                <div className="pt-4 border-t border-stone-100 flex gap-2 lg:gap-3">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl py-2.5 text-xs font-semibold transition-all cursor-pointer"
+                    className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl py-2.5 lg:py-3 text-xs lg:text-sm font-semibold transition-all cursor-pointer"
                   >
                     {t("cancel")}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 text-xs font-bold transition-all shadow-md shadow-indigo-100 cursor-pointer"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 lg:py-3 text-xs lg:text-sm font-bold transition-all shadow-md shadow-indigo-100 cursor-pointer"
                   >
                     {prefLanguage === "tagalog" ? "I-save at I-post ang Tuluyan 🚀" : "Save & Post Listing 🚀"}
                   </button>
@@ -2540,16 +2541,16 @@ export default function App() {
             className="fixed inset-0 z-50 bg-[#faf9f6] flex flex-col"
           >
             {/* Map Page Header */}
-            <header className="bg-white border-b border-stone-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm shrink-0">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-md shadow-emerald-100 flex items-center justify-center">
-                  <MapPin className="h-5 w-5" />
+            <header className="bg-white border-b border-stone-200 px-3 py-2.5 sm:px-6 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 shadow-xs shrink-0">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <div className="p-2 sm:p-2.5 bg-emerald-600 text-white rounded-xl shadow-md shadow-emerald-100 flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div>
-                  <h2 className="font-display font-bold text-stone-900 text-base md:text-lg">
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-display font-bold text-stone-900 text-sm sm:text-base md:text-lg leading-snug truncate">
                     {prefLanguage === "tagalog" ? "Mapa ng mga Tuluyan sa Gumaca 🗺️" : "Gumaca Student Housing Campus Map 🗺️"}
                   </h2>
-                  <p className="text-[10px] text-stone-400 font-light mt-0.5">
+                  <p className="text-[10px] text-stone-400 font-light mt-0.5 hidden xs:block truncate">
                     {prefLanguage === "tagalog" ? "Hanapin sa mapa ang mga boarding house malapit sa SLSU Gumaca Campus & Eastern Quezon College" : "Visually locate boarding rooms and apartments near SLSU Gumaca Campus & Eastern Quezon College"}
                   </p>
                 </div>
@@ -2557,18 +2558,48 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowMapPage(false)}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer w-full sm:w-auto"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer w-full sm:w-auto shrink-0"
               >
                 <X className="h-4 w-4" />
                 <span>{prefLanguage === "tagalog" ? "Isara ang Mapa" : "Close Map view"}</span>
               </button>
             </header>
 
+            {/* Mobile Tab Switcher (Interactive Map vs Plotted List) */}
+            <div className="lg:hidden flex border-b border-stone-200 bg-stone-100 p-1.5 gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileMapTab("map")}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileMapTab === "map"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-white text-stone-600 hover:bg-stone-50 border border-stone-200"
+                }`}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                <span>{prefLanguage === "tagalog" ? "Interactive Map 🗺️" : "Interactive Map 🗺️"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileMapTab("list")}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileMapTab === "list"
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "bg-white text-stone-600 hover:bg-stone-50 border border-stone-200"
+                }`}
+              >
+                <Home className="h-3.5 w-3.5" />
+                <span>{prefLanguage === "tagalog" ? `Listahan (${processedProperties.length})` : `Listings (${processedProperties.length})`}</span>
+              </button>
+            </div>
+
             {/* Map Page Content Area */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
               {/* Left Side: Plotted Listings sidebar */}
-              <div className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-stone-200 bg-white flex flex-col h-1/2 lg:h-full overflow-hidden">
-                <div className="p-4 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center shrink-0">
+              <div className={`w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-stone-200 bg-white flex flex-col h-full overflow-hidden ${
+                mobileMapTab === "list" ? "flex" : "hidden lg:flex"
+              }`}>
+                <div className="p-3 sm:p-4 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center shrink-0">
                   <span className="text-xs font-mono font-bold text-stone-500">
                     {processedProperties.length} {prefLanguage === "tagalog" ? "Pla-notted na Tuluyan" : "Student Listings Plotted"}
                   </span>
@@ -2578,7 +2609,7 @@ export default function App() {
                 </div>
                 
                 {/* Scrollable list of properties on map */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 sm:space-y-3">
                   {processedProperties.length === 0 ? (
                     <div className="text-center py-12 px-4 text-stone-400 text-xs font-light">
                       {prefLanguage === "tagalog" ? "Walang boarding house na tumugma. Subukang baguhin ang mga filter!" : "No boarding houses fit your search query. Adjust the keyword search on the main dashboard!"}
@@ -2589,8 +2620,11 @@ export default function App() {
                       return (
                         <div
                           key={p.id}
-                          onClick={() => setSelectedProperty(p)}
-                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          onClick={() => {
+                            setSelectedProperty(p);
+                            setMobileMapTab("map");
+                          }}
+                          className={`p-3 sm:p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                             isSelected
                               ? "bg-indigo-50/50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
                               : "bg-white border-stone-200 hover:border-stone-300"
@@ -2623,8 +2657,10 @@ export default function App() {
               </div>
 
               {/* Right Side: Interactive Map Frame */}
-              <div className="flex-1 bg-stone-50 p-4 lg:p-6 flex flex-col h-1/2 lg:h-full relative overflow-hidden">
-                <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden relative">
+              <div className={`flex-1 bg-stone-50 p-1.5 sm:p-4 lg:p-6 flex flex-col h-full relative overflow-hidden ${
+                mobileMapTab === "map" ? "flex" : "hidden lg:flex"
+              }`}>
+                <div className="flex-1 bg-white border border-stone-200 rounded-xl sm:rounded-2xl shadow-xs overflow-hidden relative">
                   <NeighborhoodMap
                     properties={processedProperties}
                     selectedProperty={selectedProperty}

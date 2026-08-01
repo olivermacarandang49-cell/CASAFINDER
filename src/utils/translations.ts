@@ -10,7 +10,7 @@ export const translations = {
     landlordRole: "LANDLORD 🏠",
     studentAccount: "STUDENT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
-    postProperty: "Mag-post ng Tuluyan ➕",
+    postProperty: "Mag-post ng Tuluyan",
     profileSettings: "Profile & Settings ⚙️",
     logOut: "Mag-log Out",
 
@@ -136,7 +136,7 @@ export const translations = {
     landlordRole: "LANDLORD 🏠",
     studentAccount: "STUDENT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
-    postProperty: "Post Housing ➕",
+    postProperty: "Post Housing",
     profileSettings: "Profile & Settings ⚙️",
     logOut: "Log Out",
 

@@ -195,6 +195,7 @@ export default function NeighborhoodMap({
 
   // Interactive Boundary & Polygon Drawing States
   const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [isDrawingPanelMinimized, setIsDrawingPanelMinimized] = useState(false);
   const [drawShapeType, setDrawShapeType] = useState<"polygon" | "polyline" | "points">("polygon");
   const [drawColor, setDrawColor] = useState<string>("#2563eb"); // Vivid Blue
   const [mousePos, setMousePos] = useState<{ lat: number; lng: number } | null>(null);
@@ -1318,21 +1319,21 @@ export default function NeighborhoodMap({
       }`}
     >
       {/* Map Header */}
-      <div className="bg-stone-50 border-b border-stone-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className="bg-stone-50 border-b border-stone-200 px-3 py-2 sm:px-4 sm:py-3 flex flex-col xs:flex-row xs:items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2">
-          <Map className="h-4.5 w-4.5 text-stone-700 shrink-0" />
-          <div>
-            <h3 className="font-display text-sm font-bold text-stone-800 flex items-center gap-1.5">
+          <Map className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-stone-700 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-display text-xs sm:text-sm font-bold text-stone-800 flex items-center gap-1.5 truncate">
               Gumaca, Quezon Interactive Street Map 🗺️
             </h3>
-            <p className="text-[10px] text-stone-500 font-light">
+            <p className="text-[10px] text-stone-500 font-light hidden sm:block">
               Mag-search ng kalye, barangay, o campus, o pindutin ang mapa para makita ang detalye!
             </p>
           </div>
         </div>
 
           {/* Header Right Controls: Layer Switcher, Boundary Drawer Toggle & Fullscreen */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs">
             {/* Interactive Barangay Boundary Drawer Button */}
             <button
               onClick={() => {
@@ -1341,15 +1342,15 @@ export default function NeighborhoodMap({
                   setShowBoundariesOnMap(true);
                 }
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 ${
+              className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
                 isDrawingMode
                   ? "bg-amber-500 text-stone-950 ring-2 ring-amber-300 animate-pulse"
                   : "bg-indigo-600 text-white hover:bg-indigo-700"
               }`}
               title="I-edit o iguhit ang boundary ng bawat barangay sa Gumaca"
             >
-              <Shapes className="h-4 w-4" />
-              <span>{isDrawingMode ? "✏️ Mode: Drawing Boundary..." : "✏️ Iguhit / I-edit ang Boundary"}</span>
+              <Shapes className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span>{isDrawingMode ? "✏️ Drawing..." : "✏️ Boundary"}</span>
             </button>
 
             {/* Toggle Saved Barangay Boundaries Overlay */}
@@ -1364,7 +1365,7 @@ export default function NeighborhoodMap({
                   setShowBoundariesOnMap(false);
                 }
               }}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
                 showBoundariesOnMap
                   ? "bg-purple-100 text-purple-900 border border-purple-300"
                   : "bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200"
@@ -1374,28 +1375,28 @@ export default function NeighborhoodMap({
               <span>{showBoundariesOnMap ? "🗺️ Overlay ON" : "🗺️ Overlay OFF"}</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-stone-200/80 p-0.5 rounded-xl text-[11px] font-medium">
+            <div className="flex items-center gap-0.5 bg-stone-200/80 p-0.5 rounded-xl text-[10px] sm:text-[11px] font-medium">
               <button
                 onClick={() => setMapMode("streets")}
-                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
                   mapMode === "streets"
                     ? "bg-white text-stone-900 shadow-xs font-bold"
                     : "text-stone-600 hover:text-stone-900"
                 }`}
                 title="Live Google Maps Standard Roadmap"
               >
-                🗺️ Live Map
+                🗺️ Map
               </button>
               <button
                 onClick={() => setMapMode("satellite")}
-                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
                   mapMode === "satellite"
                     ? "bg-emerald-700 text-white shadow-xs font-bold"
                     : "text-stone-600 hover:text-stone-900"
                 }`}
                 title="Live Google Maps Satellite View"
               >
-                🛰️ Satellite
+                🛰️ Sat
               </button>
             </div>
 
@@ -1403,16 +1404,16 @@ export default function NeighborhoodMap({
             <button
               onClick={handleLocateUser}
               disabled={isLocatingUser}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 disabled:opacity-60 whitespace-nowrap"
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 disabled:opacity-60 whitespace-nowrap"
               title="Point out ang iyong eksaktong kasalukuyang lokasyon gamit ang GPS"
             >
-              <Navigation className="h-3.5 w-3.5 fill-white/20" />
-              <span>{isLocatingUser ? "GPS..." : "Eksaktong Lokasyon Ko 📍"}</span>
+              <Navigation className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-white/20" />
+              <span>{isLocatingUser ? "GPS..." : "GPS 📍"}</span>
             </button>
 
             <button
               onClick={toggleFullscreen}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
                 isFullscreen
                   ? "bg-amber-500 text-stone-900 hover:bg-amber-400"
                   : "bg-stone-900 text-white hover:bg-stone-800"
@@ -1906,11 +1907,11 @@ export default function NeighborhoodMap({
 
         {/* Street Inspector Card (When user clicks anywhere on the Leaflet map) */}
         {clickedStreet && (
-          <div className="absolute top-3 left-3 right-3 sm:right-auto z-30 bg-stone-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-stone-700 shadow-2xl max-w-sm font-sans animate-fade-in">
+          <div className="fixed sm:absolute bottom-3 sm:bottom-auto sm:top-3 left-2 right-2 sm:left-3 sm:right-auto z-30 bg-stone-900/95 backdrop-blur-md text-white p-3 sm:p-3.5 rounded-2xl border border-stone-700 shadow-2xl max-w-sm font-sans animate-fade-in">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
                 <Search className="h-3.5 w-3.5" />
-                <span>Street & Location Inspector 📍</span>
+                <span>Street Inspector 📍</span>
               </div>
               <button
                 onClick={() => setClickedStreet(null)}
@@ -1920,7 +1921,7 @@ export default function NeighborhoodMap({
               </button>
             </div>
 
-            <div className="mt-2 space-y-1 text-xs">
+            <div className="mt-1.5 space-y-1 text-xs">
               <p className="font-bold text-white text-sm leading-snug">
                 {clickedStreet.street}
               </p>
@@ -1952,312 +1953,328 @@ export default function NeighborhoodMap({
 
         {/* Interactive Barangay Boundary Drawer & Editor Floating Panel */}
         {isDrawingMode && (
-          <div className="absolute top-3 right-3 z-30 bg-stone-900/95 backdrop-blur-md text-white p-4 rounded-2xl border border-stone-700 shadow-2xl max-w-sm w-full font-sans animate-fade-in max-h-[85vh] overflow-y-auto divide-y divide-stone-800 space-y-3.5">
+          <div className="fixed sm:absolute bottom-2 sm:bottom-auto sm:top-3 left-2 right-2 sm:left-auto sm:right-3 z-30 bg-stone-900/95 backdrop-blur-md text-white p-3 sm:p-4 rounded-2xl border border-stone-700 shadow-2xl max-w-sm w-auto font-sans animate-fade-in max-h-[70vh] sm:max-h-[85vh] overflow-y-auto divide-y divide-stone-800 space-y-3">
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-1">
-              <div>
-                <h4 className="font-display text-sm font-bold text-amber-400 flex items-center gap-1.5">
-                  <Shapes className="h-4 w-4 text-amber-400" />
-                  ✏️ Barangay Boundary Drawer & Editor
+            <div className="flex items-center justify-between pb-1 gap-2">
+              <div className="min-w-0">
+                <h4 className="font-display text-xs sm:text-sm font-bold text-amber-400 flex items-center gap-1.5 truncate">
+                  <Shapes className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span>✏️ Boundary Drawer ({drawnPoints.length} pts)</span>
                 </h4>
-                <p className="text-[10px] text-stone-300 mt-0.5">
-                  Pindutin ang mapa para maglagay ng mga tuldok/points ng boundary!
-                </p>
+                {!isDrawingPanelMinimized && (
+                  <p className="text-[10px] text-stone-300 mt-0.5 hidden xs:block">
+                    Pindutin ang mapa para maglagay ng tuldok ng boundary!
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => setIsDrawingMode(false)}
-                className="text-stone-400 hover:text-white text-xs font-bold px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 transition-colors cursor-pointer"
-              >
-                ✕ Isara
-              </button>
-            </div>
-
-            {/* Shape & Color Settings */}
-            <div className="pt-3 space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-stone-400 font-semibold">Uri ng Boundary:</span>
-                <div className="flex items-center gap-1 bg-stone-800 p-0.5 rounded-xl text-[10px]">
-                  <button
-                    onClick={() => setDrawShapeType("polygon")}
-                    className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      drawShapeType === "polygon" ? "bg-amber-500 text-stone-950" : "text-stone-300"
-                    }`}
-                  >
-                    🔷 Polygon
-                  </button>
-                  <button
-                    onClick={() => setDrawShapeType("polyline")}
-                    className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      drawShapeType === "polyline" ? "bg-amber-500 text-stone-950" : "text-stone-300"
-                    }`}
-                  >
-                    〰️ Polyline
-                  </button>
-                  <button
-                    onClick={() => setDrawShapeType("points")}
-                    className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      drawShapeType === "points" ? "bg-amber-500 text-stone-950" : "text-stone-300"
-                    }`}
-                  >
-                    📍 Points
-                  </button>
-                </div>
-              </div>
-
-              {/* Color Selector */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-stone-400 font-semibold">Kulay ng Boundary:</span>
-                <div className="flex items-center gap-1.5">
-                  {[
-                    { color: "#2563eb", label: "Blue" },
-                    { color: "#059669", label: "Emerald" },
-                    { color: "#d97706", label: "Amber" },
-                    { color: "#7c3aed", label: "Violet" },
-                    { color: "#e11d48", label: "Rose" },
-                    { color: "#0284c7", label: "Cyan" }
-                  ].map((c) => (
-                    <button
-                      key={c.color}
-                      onClick={() => setDrawColor(c.color)}
-                      style={{ backgroundColor: c.color }}
-                      className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
-                        drawColor === c.color ? "ring-2 ring-white scale-125" : "opacity-80 hover:opacity-100"
-                      }`}
-                      title={c.label}
-                    />
-                  ))}
-                </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsDrawingPanelMinimized(prev => !prev)}
+                  className="text-stone-300 hover:text-white text-[10px] font-bold px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 transition-colors cursor-pointer"
+                >
+                  {isDrawingPanelMinimized ? "Expand ▲" : "Minimize ▼"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDrawingMode(false)}
+                  className="text-stone-400 hover:text-white text-xs font-bold px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
             </div>
 
-            {/* Current Active Points List & Coordinate Inputs */}
-            <div className="pt-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-200 flex items-center gap-1">
-                  📍 Active Points ({drawnPoints.length})
-                </span>
-                <div className="flex items-center gap-1 text-[10px]">
-                  {drawnPoints.length > 0 && (
-                    <>
+            {!isDrawingPanelMinimized && (
+              <>
+                {/* Shape & Color Settings */}
+                <div className="pt-3 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-stone-400 font-semibold">Uri ng Boundary:</span>
+                    <div className="flex items-center gap-1 bg-stone-800 p-0.5 rounded-xl text-[10px]">
                       <button
-                        onClick={handleUndoPoint}
-                        className="px-2 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded font-semibold cursor-pointer"
+                        onClick={() => setDrawShapeType("polygon")}
+                        className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          drawShapeType === "polygon" ? "bg-amber-500 text-stone-950" : "text-stone-300"
+                        }`}
                       >
-                        ↩️ Undo
+                        🔷 Polygon
                       </button>
                       <button
-                        onClick={handleClearPoints}
-                        className="px-2 py-0.5 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded font-semibold cursor-pointer"
+                        onClick={() => setDrawShapeType("polyline")}
+                        className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          drawShapeType === "polyline" ? "bg-amber-500 text-stone-950" : "text-stone-300"
+                        }`}
                       >
-                        🗑️ Clear
+                        〰️ Polyline
                       </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {drawnPoints.length === 0 ? (
-                <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-800 text-center text-stone-400 text-[11px]">
-                  👆 I-click ang anumang bahagi ng mapa para maglagay ng tuldok ng boundary!
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-[10px] font-mono divide-y divide-stone-800">
-                  {drawnPoints.map((p, idx) => (
-                    <div key={idx} className="pt-1 flex items-center justify-between gap-1">
-                      <span className="text-amber-400 font-bold shrink-0">#{idx + 1}</span>
-                      <input
-                        type="number"
-                        step="0.000001"
-                        value={p.lat}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            const newP = [...drawnPoints];
-                            newP[idx] = { ...newP[idx], lat: val };
-                            setDrawnPoints(newP);
-                          }
-                        }}
-                        className="w-20 bg-stone-800 border border-stone-700 rounded px-1 py-0.5 text-stone-200 focus:outline-none focus:border-amber-500"
-                      />
-                      <input
-                        type="number"
-                        step="0.000001"
-                        value={p.lng}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            const newP = [...drawnPoints];
-                            newP[idx] = { ...newP[idx], lng: val };
-                            setDrawnPoints(newP);
-                          }
-                        }}
-                        className="w-20 bg-stone-800 border border-stone-700 rounded px-1 py-0.5 text-stone-200 focus:outline-none focus:border-amber-500"
-                      />
                       <button
-                        onClick={() => {
-                          const newP = drawnPoints.filter((_, i) => i !== idx);
-                          setDrawnPoints(newP);
-                        }}
-                        className="text-stone-500 hover:text-rose-400 font-bold px-1"
-                        title="Burahin ang tuldok na ito"
+                        onClick={() => setDrawShapeType("points")}
+                        className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          drawShapeType === "points" ? "bg-amber-500 text-stone-950" : "text-stone-300"
+                        }`}
                       >
-                        ✕
+                        📍 Points
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
 
-            {/* Save Boundary Section */}
-            <div className="pt-3 space-y-2">
-              <label className="block text-xs font-semibold text-stone-300">
-                Piliin o Isulat ang Barangay:
-              </label>
-              <select
-                value={selectedBarangayToSave}
-                onChange={(e) => setSelectedBarangayToSave(e.target.value)}
-                className="w-full bg-stone-800 border border-stone-700 text-stone-200 text-xs font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500"
-              >
-                <option value="Barangay Tabing Dagat">Barangay Tabing Dagat</option>
-                <option value="Barangay Villa Nava">Barangay Villa Nava</option>
-                <option value="Barangay Peñafrancia">Barangay Peñafrancia</option>
-                <option value="Barangay Pipisik">Barangay Pipisik</option>
-                <option value="Barangay San Diego">Barangay San Diego</option>
-                <option value="Barangay Mabini">Barangay Mabini</option>
-                <option value="Barangay Rizal">Barangay Rizal</option>
-                <option value="Barangay Rosario">Barangay Rosario</option>
-                <option value="Barangay Luna">Barangay Luna</option>
-                <option value="Barangay Burgos">Barangay Burgos</option>
-                <option value="Barangay Castillo">Barangay Castillo</option>
-                <option value="Barangay Gayagayaan">Barangay Gayagayaan</option>
-                <option value="Barangay Hagakhakin">Barangay Hagakhakin</option>
-              </select>
-
-              <button
-                onClick={handleSaveBoundary}
-                disabled={drawnPoints.length < 2}
-                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
-              >
-                <Save className="h-4 w-4" />
-                <span>💾 I-save ang Boundary sa {selectedBarangayToSave}</span>
-              </button>
-            </div>
-
-            {/* Saved Barangay Boundaries List & Manual Editor Actions */}
-            <div className="pt-3 space-y-2">
-              {showConfirmDeleteAll ? (
-                <div className="bg-rose-950/90 border border-rose-700/80 p-2.5 rounded-xl text-xs space-y-2 text-rose-100 animate-fade-in">
-                  <p className="font-bold text-[11px] leading-tight">
-                    ⚠️ Sigurado ka bang gusto mong burahin ang LAHAT ng {drawnBarangayBoundaries.length} na-save na barangay boundary?
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDrawnBarangayBoundaries([]);
-                        localStorage.removeItem("barangay_drawn_boundaries");
-                        setSelectedBarangayBoundaryFilter("");
-                        setShowConfirmDeleteAll(false);
-                        setCopySuccessMsg("🗑️ Matagumpay na nabura ang LAHAT ng na-save na barangay boundary!");
-                        setTimeout(() => setCopySuccessMsg(""), 3500);
-                      }}
-                      className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition-colors text-center"
-                    >
-                      Oo, Burahin Lahat
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmDeleteAll(false)}
-                      className="bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition-colors"
-                    >
-                      Kanselahin
-                    </button>
+                  {/* Color Selector */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-stone-400 font-semibold">Kulay ng Boundary:</span>
+                    <div className="flex items-center gap-1.5">
+                      {[
+                        { color: "#2563eb", label: "Blue" },
+                        { color: "#059669", label: "Emerald" },
+                        { color: "#d97706", label: "Amber" },
+                        { color: "#7c3aed", label: "Violet" },
+                        { color: "#e11d48", label: "Rose" },
+                        { color: "#0284c7", label: "Cyan" }
+                      ].map((c) => (
+                        <button
+                          key={c.color}
+                          onClick={() => setDrawColor(c.color)}
+                          style={{ backgroundColor: c.color }}
+                          className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
+                            drawColor === c.color ? "ring-2 ring-white scale-125" : "opacity-80 hover:opacity-100"
+                          }`}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <div className="flex items-center justify-between text-xs font-bold text-stone-300">
-                  <span>📋 Saved Boundaries ({drawnBarangayBoundaries.length})</span>
-                  {drawnBarangayBoundaries.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmDeleteAll(true)}
-                      className="text-[10px] bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold px-2 py-0.5 rounded-lg cursor-pointer transition-colors"
-                    >
-                      🗑️ Burahin Lahat
-                    </button>
+
+                {/* Current Active Points List & Coordinate Inputs */}
+                <div className="pt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-stone-200 flex items-center gap-1">
+                      📍 Active Points ({drawnPoints.length})
+                    </span>
+                    <div className="flex items-center gap-1 text-[10px]">
+                      {drawnPoints.length > 0 && (
+                        <>
+                          <button
+                            onClick={handleUndoPoint}
+                            className="px-2 py-0.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded font-semibold cursor-pointer"
+                          >
+                            ↩️ Undo
+                          </button>
+                          <button
+                            onClick={handleClearPoints}
+                            className="px-2 py-0.5 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded font-semibold cursor-pointer"
+                          >
+                            🗑️ Clear
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {drawnPoints.length === 0 ? (
+                    <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-800 text-center text-stone-400 text-[11px]">
+                      👆 I-click ang anumang bahagi ng mapa para maglagay ng tuldok ng boundary!
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-[10px] font-mono divide-y divide-stone-800">
+                      {drawnPoints.map((p, idx) => (
+                        <div key={idx} className="pt-1 flex items-center justify-between gap-1">
+                          <span className="text-amber-400 font-bold shrink-0">#{idx + 1}</span>
+                          <input
+                            type="number"
+                            step="0.000001"
+                            value={p.lat}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                const newP = [...drawnPoints];
+                                newP[idx] = { ...newP[idx], lat: val };
+                                setDrawnPoints(newP);
+                              }
+                            }}
+                            className="w-20 bg-stone-800 border border-stone-700 rounded px-1 py-0.5 text-stone-200 focus:outline-none focus:border-amber-500"
+                          />
+                          <input
+                            type="number"
+                            step="0.000001"
+                            value={p.lng}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                const newP = [...drawnPoints];
+                                newP[idx] = { ...newP[idx], lng: val };
+                                setDrawnPoints(newP);
+                              }
+                            }}
+                            className="w-20 bg-stone-800 border border-stone-700 rounded px-1 py-0.5 text-stone-200 focus:outline-none focus:border-amber-500"
+                          />
+                          <button
+                            onClick={() => {
+                              const newP = drawnPoints.filter((_, i) => i !== idx);
+                              setDrawnPoints(newP);
+                            }}
+                            className="text-stone-500 hover:text-rose-400 font-bold px-1"
+                            title="Burahin ang tuldok na ito"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {drawnBarangayBoundaries.length === 0 ? (
-                <div className="text-[10px] text-stone-400 italic bg-stone-800/40 p-2.5 rounded-xl text-center">
-                  Wala pang nai-save na barangay boundary. Iguhit ang iyong unang boundary sa mapa!
+                {/* Save Boundary Section */}
+                <div className="pt-3 space-y-2">
+                  <label className="block text-xs font-semibold text-stone-300">
+                    Piliin o Isulat ang Barangay:
+                  </label>
+                  <select
+                    value={selectedBarangayToSave}
+                    onChange={(e) => setSelectedBarangayToSave(e.target.value)}
+                    className="w-full bg-stone-800 border border-stone-700 text-stone-200 text-xs font-bold rounded-xl p-2 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Barangay Tabing Dagat">Barangay Tabing Dagat</option>
+                    <option value="Barangay Villa Nava">Barangay Villa Nava</option>
+                    <option value="Barangay Peñafrancia">Barangay Peñafrancia</option>
+                    <option value="Barangay Pipisik">Barangay Pipisik</option>
+                    <option value="Barangay San Diego">Barangay San Diego</option>
+                    <option value="Barangay Mabini">Barangay Mabini</option>
+                    <option value="Barangay Rizal">Barangay Rizal</option>
+                    <option value="Barangay Rosario">Barangay Rosario</option>
+                    <option value="Barangay Luna">Barangay Luna</option>
+                    <option value="Barangay Burgos">Barangay Burgos</option>
+                    <option value="Barangay Castillo">Barangay Castillo</option>
+                    <option value="Barangay Gayagayaan">Barangay Gayagayaan</option>
+                    <option value="Barangay Hagakhakin">Barangay Hagakhakin</option>
+                  </select>
+
+                  <button
+                    onClick={handleSaveBoundary}
+                    disabled={drawnPoints.length < 2}
+                    className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>💾 I-save ang Boundary sa {selectedBarangayToSave}</span>
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {drawnBarangayBoundaries.map((b) => (
-                    <div
-                      key={b.id}
-                      className="bg-stone-800/90 p-2.5 rounded-xl border border-stone-700/80 flex flex-col gap-1.5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-white">
-                          <span
-                            className="w-3 h-3 rounded-full shrink-0 border border-white/20"
-                            style={{ backgroundColor: b.color }}
-                          />
-                          <span>{b.barangayName}</span>
-                        </div>
-                        <span className="text-[10px] font-mono text-stone-400">
-                          {b.points.length} points
-                        </span>
-                      </div>
 
-                      {/* Editing Actions for this Saved Boundary */}
-                      <div className="flex items-center gap-1 pt-1 border-t border-stone-700/50 text-[10px]">
+                {/* Saved Barangay Boundaries List & Manual Editor Actions */}
+                <div className="pt-3 space-y-2">
+                  {showConfirmDeleteAll ? (
+                    <div className="bg-rose-950/90 border border-rose-700/80 p-2.5 rounded-xl text-xs space-y-2 text-rose-100 animate-fade-in">
+                      <p className="font-bold text-[11px] leading-tight">
+                        ⚠️ Sigurado ka bang gusto mong burahin ang LAHAT ng {drawnBarangayBoundaries.length} na-save na barangay boundary?
+                      </p>
+                      <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => {
-                            // Load existing boundary points into the drawing canvas for editing!
-                            setDrawnPoints(b.points.map(p => ({ lat: p[0], lng: p[1] })));
-                            setSelectedBarangayToSave(b.barangayName);
-                            setDrawColor(b.color);
-                            setIsDrawingMode(true);
+                            setDrawnBarangayBoundaries([]);
+                            localStorage.removeItem("barangay_drawn_boundaries");
+                            setSelectedBarangayBoundaryFilter("");
+                            setShowConfirmDeleteAll(false);
+                            setCopySuccessMsg("🗑️ Matagumpay na nabura ang LAHAT ng na-save na barangay boundary!");
+                            setTimeout(() => setCopySuccessMsg(""), 3500);
                           }}
-                          className="flex-1 py-1 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-center cursor-pointer transition-colors"
-                          title="Kargahin ang mga tuldok para i-edit o dagdagan"
+                          className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition-colors text-center"
                         >
-                          ✏️ I-edit ang Points
+                          Oo, Burahin Lahat
                         </button>
-
                         <button
-                          onClick={() => {
-                            setSelectedBarangayBoundaryFilter(b.barangayName);
-                            setShowBoundariesOnMap(true);
-                            if (leafletMapRef.current && b.points.length > 0) {
-                              const bounds = L.latLngBounds(b.points);
-                              leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
-                            }
-                          }}
-                          className="py-1 px-2 bg-stone-700 hover:bg-stone-600 text-stone-200 font-semibold rounded-lg cursor-pointer"
-                          title="Tumingin sa mapa"
+                          type="button"
+                          onClick={() => setShowConfirmDeleteAll(false)}
+                          className="bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition-colors"
                         >
-                          👁️ View
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteBoundary(b.id)}
-                          className="py-1 px-2 bg-rose-950/80 hover:bg-rose-800 text-rose-300 font-semibold rounded-lg cursor-pointer"
-                          title="Burahin ang boundary"
-                        >
-                          🗑️
+                          Kanselahin
                         </button>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex items-center justify-between text-xs font-bold text-stone-300">
+                      <span>📋 Saved Boundaries ({drawnBarangayBoundaries.length})</span>
+                      {drawnBarangayBoundaries.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmDeleteAll(true)}
+                          className="text-[10px] bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold px-2 py-0.5 rounded-lg cursor-pointer transition-colors"
+                        >
+                          🗑️ Burahin Lahat
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {drawnBarangayBoundaries.length === 0 ? (
+                    <div className="text-[10px] text-stone-400 italic bg-stone-800/40 p-2.5 rounded-xl text-center">
+                      Wala pang nai-save na barangay boundary. Iguhit ang iyong unang boundary sa mapa!
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {drawnBarangayBoundaries.map((b) => (
+                        <div
+                          key={b.id}
+                          className="bg-stone-800/90 p-2.5 rounded-xl border border-stone-700/80 flex flex-col gap-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-bold text-xs text-white">
+                              <span
+                                className="w-3 h-3 rounded-full shrink-0 border border-white/20"
+                                style={{ backgroundColor: b.color }}
+                              />
+                              <span>{b.barangayName}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-stone-400">
+                              {b.points.length} points
+                            </span>
+                          </div>
+
+                          {/* Editing Actions for this Saved Boundary */}
+                          <div className="flex items-center gap-1 pt-1 border-t border-stone-700/50 text-[10px]">
+                            <button
+                              onClick={() => {
+                                // Load existing boundary points into the drawing canvas for editing!
+                                setDrawnPoints(b.points.map(p => ({ lat: p[0], lng: p[1] })));
+                                setSelectedBarangayToSave(b.barangayName);
+                                setDrawColor(b.color);
+                                setIsDrawingMode(true);
+                              }}
+                              className="flex-1 py-1 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-center cursor-pointer transition-colors"
+                              title="Kargahin ang mga tuldok para i-edit o dagdagan"
+                            >
+                              ✏️ I-edit ang Points
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedBarangayBoundaryFilter(b.barangayName);
+                                setShowBoundariesOnMap(true);
+                                if (leafletMapRef.current && b.points.length > 0) {
+                                  const bounds = L.latLngBounds(b.points);
+                                  leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
+                                }
+                              }}
+                              className="py-1 px-2 bg-stone-700 hover:bg-stone-600 text-stone-200 font-semibold rounded-lg cursor-pointer"
+                              title="Tumingin sa mapa"
+                            >
+                              👁️ View
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteBoundary(b.id)}
+                              className="py-1 px-2 bg-rose-950/80 hover:bg-rose-800 text-rose-300 font-semibold rounded-lg cursor-pointer"
+                              title="Burahin ang boundary"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -2267,7 +2284,7 @@ export default function NeighborhoodMap({
             drag
             dragMomentum={false}
             dragElastic={0.1}
-            className="absolute bottom-4 left-4 z-30 bg-white/95 backdrop-blur-md p-4 rounded-3xl border border-stone-200 shadow-2xl max-w-[320px] w-full font-sans cursor-grab active:cursor-grabbing select-none"
+            className="fixed sm:absolute bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-30 bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xl max-w-none sm:max-w-[320px] w-auto font-sans cursor-grab active:cursor-grabbing select-none"
           >
             {(() => {
               const displayProp = hoveredProperty || selectedProperty!;
