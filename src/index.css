@@ -64,6 +64,60 @@ html.dark .border-stone-100 {
 }
 
 /* Leaflet DivIcon clean background reset */
+.leaflet-container {
+  touch-action: none !important;
+  -webkit-tap-highlight-color: transparent;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10;
+}
+
+/* Hide scrollbar utility for clean horizontal jump bar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile-only positioning and styling for zoom controls (+ and -) */
+@media (max-width: 639px) {
+  .leaflet-top.leaflet-left {
+    top: 115px !important;
+    left: 12px !important;
+  }
+
+  .leaflet-control-zoom {
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    background: #ffffff !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 38px !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(8px);
+    transition: all 0.15s ease;
+  }
+
+  .leaflet-control-zoom a:first-child {
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .leaflet-control-zoom a:active {
+    background-color: #f1f5f9 !important;
+    transform: scale(0.95);
+  }
+}
+
 .leaflet-div-icon {
   background: transparent !important;
   border: none !important;

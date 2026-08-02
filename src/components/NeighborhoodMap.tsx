@@ -467,10 +467,17 @@ export default function NeighborhoodMap({
       scrollWheelZoom: true,
       doubleClickZoom: true,
       touchZoom: true,
-      dragging: true
+      dragging: true,
+      tap: false,
+      bounceAtZoom: false
     });
 
     leafletMapRef.current = map;
+
+    const container = map.getContainer();
+    if (container) {
+      container.style.touchAction = "none";
+    }
 
     // Create high-contrast Top Overlay Pane for Drawing Layer
     if (!map.getPane("drawingPane")) {
@@ -513,7 +520,6 @@ export default function NeighborhoodMap({
     let pointerStartX = 0;
     let pointerStartY = 0;
     let pointerStartTime = 0;
-    const container = map.getContainer();
 
     const handlePointerDown = (e: PointerEvent) => {
       pointerStartX = e.clientX;
@@ -567,6 +573,41 @@ export default function NeighborhoodMap({
       }
     };
   }, []);
+
+  // Automatic Size Invalidation Effect for Mobile Tabs and Resizes
+  useEffect(() => {
+    const handleInvalidate = () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.invalidateSize();
+      }
+    };
+
+    handleInvalidate();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        handleInvalidate();
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    const t1 = setTimeout(handleInvalidate, 100);
+    const t2 = setTimeout(handleInvalidate, 350);
+    const t3 = setTimeout(handleInvalidate, 700);
+
+    window.addEventListener("resize", handleInvalidate);
+    window.addEventListener("orientationchange", handleInvalidate);
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener("resize", handleInvalidate);
+      window.removeEventListener("orientationchange", handleInvalidate);
+    };
+  }, [isFullscreen]);
 
   // Update tile layer on mapMode change
   useEffect(() => {
@@ -1318,8 +1359,10 @@ export default function NeighborhoodMap({
           : "h-full rounded-2xl border border-stone-200"
       }`}
     >
-      {/* Map Header */}
-      <div className="bg-stone-50 border-b border-stone-200 px-3 py-2 sm:px-4 sm:py-3 flex flex-col xs:flex-row xs:items-center justify-between gap-2 shrink-0">
+      {/* Standard Map Header (Shown always on laptop; on mobile hidden during fullscreen) */}
+      <div className={`bg-stone-50 border-b border-stone-200 px-3 py-2 sm:px-4 sm:py-3 flex-col xs:flex-row xs:items-center justify-between gap-2 shrink-0 ${
+        isFullscreen ? "hidden sm:flex" : "flex"
+      }`}>
         <div className="flex items-center gap-2">
           <Map className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-stone-700 shrink-0" />
           <div className="min-w-0">
@@ -1332,112 +1375,114 @@ export default function NeighborhoodMap({
           </div>
         </div>
 
-          {/* Header Right Controls: Layer Switcher, Boundary Drawer Toggle & Fullscreen */}
-          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs">
-            {/* Interactive Barangay Boundary Drawer Button */}
-            <button
-              onClick={() => {
-                setIsDrawingMode(prev => !prev);
-                if (!showBoundariesOnMap) {
-                  setShowBoundariesOnMap(true);
+        {/* Header Right Controls: Layer Switcher, Boundary Drawer Toggle & Fullscreen */}
+        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs">
+          {/* Interactive Barangay Boundary Drawer Button */}
+          <button
+            onClick={() => {
+              setIsDrawingMode(prev => !prev);
+              if (!showBoundariesOnMap) {
+                setShowBoundariesOnMap(true);
+              }
+            }}
+            className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
+              isDrawingMode
+                ? "bg-amber-500 text-stone-950 ring-2 ring-amber-300 animate-pulse"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
+            }`}
+            title="I-edit o iguhit ang boundary ng bawat barangay sa Gumaca"
+          >
+            <Shapes className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+            <span>{isDrawingMode ? "✏️ Drawing..." : "✏️ Boundary"}</span>
+          </button>
+
+          {/* Toggle Saved Barangay Boundaries Overlay */}
+          <button
+            onClick={() => {
+              if (!showBoundariesOnMap) {
+                if (!selectedBarangayBoundaryFilter && drawnBarangayBoundaries.length > 0) {
+                  setSelectedBarangayBoundaryFilter(drawnBarangayBoundaries[0].barangayName);
                 }
-              }}
-              className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
-                isDrawingMode
-                  ? "bg-amber-500 text-stone-950 ring-2 ring-amber-300 animate-pulse"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
-              title="I-edit o iguhit ang boundary ng bawat barangay sa Gumaca"
-            >
-              <Shapes className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span>{isDrawingMode ? "✏️ Drawing..." : "✏️ Boundary"}</span>
-            </button>
+                setShowBoundariesOnMap(true);
+              } else {
+                setShowBoundariesOnMap(false);
+              }
+            }}
+            className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+              showBoundariesOnMap
+                ? "bg-purple-100 text-purple-900 border border-purple-300"
+                : "bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200"
+            }`}
+            title="Ipakita o Itago ang Boundary ng Napiling Barangay"
+          >
+            <span>{showBoundariesOnMap ? "🗺️ Overlay ON" : "🗺️ Overlay OFF"}</span>
+          </button>
 
-            {/* Toggle Saved Barangay Boundaries Overlay */}
+          <div className="flex items-center gap-0.5 bg-stone-200/80 p-0.5 rounded-xl text-[10px] sm:text-[11px] font-medium">
             <button
-              onClick={() => {
-                if (!showBoundariesOnMap) {
-                  if (!selectedBarangayBoundaryFilter && drawnBarangayBoundaries.length > 0) {
-                    setSelectedBarangayBoundaryFilter(drawnBarangayBoundaries[0].barangayName);
-                  }
-                  setShowBoundariesOnMap(true);
-                } else {
-                  setShowBoundariesOnMap(false);
-                }
-              }}
-              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
-                showBoundariesOnMap
-                  ? "bg-purple-100 text-purple-900 border border-purple-300"
-                  : "bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200"
+              onClick={() => setMapMode("streets")}
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
+                mapMode === "streets"
+                  ? "bg-white text-stone-900 shadow-xs font-bold"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
-              title="Ipakita o Itago ang Boundary ng Napiling Barangay"
+              title="Live Google Maps Standard Roadmap"
             >
-              <span>{showBoundariesOnMap ? "🗺️ Overlay ON" : "🗺️ Overlay OFF"}</span>
+              🗺️ Map
             </button>
-
-            <div className="flex items-center gap-0.5 bg-stone-200/80 p-0.5 rounded-xl text-[10px] sm:text-[11px] font-medium">
-              <button
-                onClick={() => setMapMode("streets")}
-                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
-                  mapMode === "streets"
-                    ? "bg-white text-stone-900 shadow-xs font-bold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-                title="Live Google Maps Standard Roadmap"
-              >
-                🗺️ Map
-              </button>
-              <button
-                onClick={() => setMapMode("satellite")}
-                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
-                  mapMode === "satellite"
-                    ? "bg-emerald-700 text-white shadow-xs font-bold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-                title="Live Google Maps Satellite View"
-              >
-                🛰️ Sat
-              </button>
-            </div>
-
-            {/* GPS Locate User Button */}
             <button
-              onClick={handleLocateUser}
-              disabled={isLocatingUser}
-              className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 disabled:opacity-60 whitespace-nowrap"
-              title="Point out ang iyong eksaktong kasalukuyang lokasyon gamit ang GPS"
-            >
-              <Navigation className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-white/20" />
-              <span>{isLocatingUser ? "GPS..." : "GPS 📍"}</span>
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
-                isFullscreen
-                  ? "bg-amber-500 text-stone-900 hover:bg-amber-400"
-                  : "bg-stone-900 text-white hover:bg-stone-800"
+              onClick={() => setMapMode("satellite")}
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg transition-all cursor-pointer ${
+                mapMode === "satellite"
+                  ? "bg-emerald-700 text-white shadow-xs font-bold"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Map"}
+              title="Live Google Maps Satellite View"
             >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="h-3.5 w-3.5" />
-                  <span>Exit</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="h-3.5 w-3.5" />
-                  <span>Full</span>
-                </>
-              )}
+              🛰️ Sat
             </button>
           </div>
+
+          {/* GPS Locate User Button */}
+          <button
+            onClick={handleLocateUser}
+            disabled={isLocatingUser}
+            className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 disabled:opacity-60 whitespace-nowrap"
+            title="Point out ang iyong eksaktong kasalukuyang lokasyon gamit ang GPS"
+          >
+            <Navigation className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-white/20" />
+            <span>{isLocatingUser ? "GPS..." : "GPS 📍"}</span>
+          </button>
+
+          <button
+            onClick={toggleFullscreen}
+            className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+              isFullscreen
+                ? "bg-amber-500 text-stone-950 font-black hover:bg-amber-400 ring-2 ring-amber-300"
+                : "bg-stone-900 text-white hover:bg-stone-800"
+            }`}
+            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Map"}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="h-3.5 w-3.5" />
+                <span>Exit ✕</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span>Full</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Map Location Search Bar (Hidden in Live Google Maps mode for clean view) */}
+      {/* Map Location Search Bar (On mobile hidden during fullscreen to maximize map view) */}
       {mapMode !== "google_embed" && (
-        <div className="relative bg-white border-b border-stone-200 px-3 py-2 z-40">
+        <div className={`relative bg-white border-b border-stone-200 px-3 py-2 z-40 ${
+          isFullscreen ? "hidden sm:block" : "block"
+        }`}>
           <div className="relative flex items-center">
             <Search className="absolute left-3 h-3.5 w-3.5 text-stone-400" />
             <input
@@ -1499,9 +1544,9 @@ export default function NeighborhoodMap({
         </div>
       )}
 
-      {/* Quick Jump Buttons for Gumaca Locations (Hidden during Live Google Maps to keep view clean) */}
-      {mapMode !== "google_embed" && (
-        <div className="bg-stone-100/70 border-b border-stone-200 px-3 py-2 flex items-center gap-1.5 overflow-x-auto text-[10px] no-scrollbar">
+      {/* Quick Jump Buttons for Laptop View when Fullscreen */}
+      {mapMode !== "google_embed" && isFullscreen && (
+        <div className="hidden sm:flex bg-stone-100/70 border-b border-stone-200 px-3 py-2 items-center gap-1.5 overflow-x-auto text-[10px] no-scrollbar">
           <span className="text-stone-400 font-mono shrink-0 mr-1 flex items-center gap-1">
             <Compass className="h-3 w-3 text-stone-400" />
             Quick Jump:
@@ -1511,7 +1556,7 @@ export default function NeighborhoodMap({
           <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-lg shrink-0">
             <span className="font-bold text-indigo-900 text-[10px] flex items-center gap-1">
               <Shapes className="h-3 w-3 text-indigo-600" />
-              📍 Jump to Barangay Boundary:
+              📍 Barangay:
             </span>
             <select
               value={selectedBarangayBoundaryFilter}
@@ -1551,8 +1596,8 @@ export default function NeighborhoodMap({
               }}
               className="bg-white text-indigo-950 text-[10px] font-bold py-0.5 px-1.5 rounded border border-indigo-200 focus:outline-none cursor-pointer"
             >
-              <option value="">-- Piliin ang Barangay ({drawnBarangayBoundaries.length}) --</option>
-              <option value="ALL_BARANGAYS">✨ Ipakita Lahat ng Barangay ({drawnBarangayBoundaries.length})</option>
+              <option value="">-- Piliin ({drawnBarangayBoundaries.length}) --</option>
+              <option value="ALL_BARANGAYS">✨ Lahat ng Barangay ({drawnBarangayBoundaries.length})</option>
               {drawnBarangayBoundaries.map((b) => (
                 <option key={b.id} value={b.barangayName}>
                   {b.barangayName} ({b.points.length} tuldok)
@@ -1566,35 +1611,35 @@ export default function NeighborhoodMap({
             className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
             <School className="h-3 w-3 text-teal-600" />
-            SLSU Villa Nava 🎓🌳
+            SLSU Villa Nava 🎓
           </button>
 
           <button
             onClick={() => triggerArrowHighlight(13.920523, 122.099064, "Jollibee Gumaca 🍔🐝", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
             className="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
-            🍔 Jollibee Gumaca
+            🍔 Jollibee
           </button>
 
           <button
             onClick={() => triggerArrowHighlight(13.920751, 122.100299, "McDonald's Gumaca 🍟🍔", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
             className="bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
-            🍟 McDonald's Gumaca
+            🍟 McDonald's
           </button>
 
           <button
             onClick={() => triggerArrowHighlight(13.920489, 122.098769, "Chowking Gumaca 🥢🥟", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
             className="bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
-            🥢 Chowking Gumaca
+            🥢 Chowking
           </button>
 
           <button
             onClick={() => triggerArrowHighlight(13.920196, 122.097666, "Novo Department Store 🛍️🏢", "Department Store & Shopping, Maharlika Highway, Gumaca", 17)}
             className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
-            🛍️ Novo Dept. Store
+            🛍️ Novo Dept Store
           </button>
 
           <button
@@ -1626,34 +1671,6 @@ export default function NeighborhoodMap({
           </button>
 
           <button
-            onClick={() => triggerArrowHighlight(13.918000, 122.099000, "Gumaca West & East Central Elementary 🏫", "Gumaca Central Elementary, M.H. Del Pilar St.", 17)}
-            className="bg-cyan-50 hover:bg-cyan-100 text-cyan-900 border border-cyan-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🏫 Central Elem
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.921500, 122.099500, "Holy Child Academy / Sacred Heart 🏫", "Holy Child Academy, Town Proper, Gumaca", 17)}
-            className="bg-violet-50 hover:bg-violet-100 text-violet-900 border border-violet-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🏫 Holy Child
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.921000, 122.097000, "Quezon West Academy 🏫", "Quezon West Academy, Poblacion, Gumaca", 17)}
-            className="bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-900 border border-fuchsia-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🏫 Quezon West
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.921587, 122.099428, "San Diego de Alcala Cathedral ⛪", "Historic Parish Church, Town Proper", 17)}
-            className="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            ⛪ San Diego Cathedral
-          </button>
-
-          <button
             onClick={() => triggerArrowHighlight(13.920509, 122.101597, "Gumaca Public Market 🛒🐟", "Public Market & Commercial Hub, Poblacion", 17)}
             className="bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
@@ -1671,49 +1688,213 @@ export default function NeighborhoodMap({
             onClick={() => triggerArrowHighlight(13.919680, 122.100656, "Jeep Terminal (Macalelon, Unisan, Lopez) 🚐", "Jeepney Terminal for Macalelon, Unisan & Lopez", 17)}
             className="bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
-            🚐 Jeep Terminal (Macalelon, Unisan, Lopez)
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.922163, 122.100909, "Jeep Terminal (Lopez) 🚐", "Jeepney Terminal bound for Lopez", 17)}
-            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🚐 Jeep (Lopez)
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.918025, 122.100401, "Piat Gumaca 📍", "Piat Area, Mabini / Poblacion, Gumaca", 17)}
-            className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            📍 Piat
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.921889, 122.099639, "Holy Child Jesus Christ ⛪", "Holy Child Jesus Christ Church / Chapel, Town Proper, Gumaca", 17)}
-            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            ⛪ Holy Child
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.921341, 122.103364, "578 Emporium 🛍️🏬", "Shopping Center & Emporium, Maharlika Highway, Gumaca", 17)}
-            className="bg-pink-50 hover:bg-pink-100 text-pink-900 border border-pink-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🛍️ 578 Emporium
+            🚐 Jeep Terminal
           </button>
 
           <button
             onClick={() => triggerArrowHighlight(13.9220, 122.0995, "Whole Gumaca Overview 🔍", "Gumaca Municipality Overview", 14)}
             className="bg-stone-200 hover:bg-stone-300 text-stone-800 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer ml-auto"
           >
-            🔍 Whole Gumaca View
+            🔍 Whole Gumaca
           </button>
         </div>
       )}
 
       {/* Main Map Canvas Area */}
-      <div className="relative flex-1 bg-[#f9f8f4] min-h-[380px] overflow-hidden">
+      <div className="relative flex-1 bg-[#f9f8f4] min-h-[380px] h-full w-full overflow-hidden">
         <div ref={mapContainerRef} className="w-full h-full min-h-[380px] z-10" />
+
+        {/* FLOATING OVERLAY STRICTLY FOR MOBILE VIEW WHEN IN FULLSCREEN */}
+        {isFullscreen && (
+          <>
+            <div className="sm:hidden absolute top-2.5 left-2.5 right-2.5 z-40 flex flex-col gap-2 pointer-events-none">
+              {/* Top Bar: Sleek Frosted Glass Header */}
+              <div className="pointer-events-auto bg-stone-900/90 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl border border-stone-700/80 shadow-2xl flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl shadow-md shrink-0">
+                    <Map className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-extrabold text-xs tracking-wide text-white truncate">Gumaca Map 🗺️</span>
+                    <span className="text-[9px] text-emerald-300/90 font-medium truncate">Interactive Local Guide</span>
+                  </div>
+                </div>
+
+                {/* Layer Quick Switcher for Mobile Fullscreen */}
+                <div className="flex items-center gap-1 bg-stone-800/90 p-1 rounded-xl border border-stone-700/80 shrink-0">
+                  <button
+                    onClick={() => setMapMode("osm")}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      mapMode === "osm" ? "bg-emerald-500 text-stone-950 shadow-xs" : "text-stone-300 hover:text-white"
+                    }`}
+                  >
+                    Street
+                  </button>
+                  <button
+                    onClick={() => setMapMode("satellite")}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      mapMode === "satellite" ? "bg-emerald-500 text-stone-950 shadow-xs" : "text-stone-300 hover:text-white"
+                    }`}
+                  >
+                    Sat 🛰️
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Quick Jump Bar Overlay */}
+              {mapMode !== "google_embed" && (
+                <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar rounded-2xl">
+                  <span className="text-stone-500 font-extrabold shrink-0 flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                    <Compass className="h-3.5 w-3.5 text-indigo-600 animate-spin-slow" />
+                    Jump:
+                  </span>
+
+                  {/* Barangay Filter Dropdown */}
+                  <div className="flex items-center gap-1 bg-indigo-50/90 border border-indigo-200/80 px-2 py-0.5 rounded-xl shrink-0 shadow-2xs">
+                    <span className="font-bold text-indigo-900 text-[10px]">📍 Brgy:</span>
+                    <select
+                      value={selectedBarangayBoundaryFilter}
+                      onChange={(e) => {
+                        const bName = e.target.value;
+                        setSelectedBarangayBoundaryFilter(bName);
+                        if (!bName) {
+                          setShowBoundariesOnMap(false);
+                          return;
+                        }
+                        setShowBoundariesOnMap(true);
+
+                        if (bName === "ALL_BARANGAYS") {
+                          triggerArrowHighlight(13.9220, 122.0995, "📍 Lahat ng Gumaca Barangays", "Ipinapakita ang lahat ng saved barangay boundaries sa Gumaca", 15);
+                          if (leafletMapRef.current) {
+                            leafletMapRef.current.flyTo([13.9220, 122.0995], 15);
+                          }
+                          return;
+                        }
+
+                        const boundary = drawnBarangayBoundaries.find(b => b.barangayName === bName);
+                        if (boundary && boundary.points.length > 0) {
+                          const lats = boundary.points.map(p => p[0]);
+                          const lngs = boundary.points.map(p => p[1]);
+                          const cLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                          const cLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+
+                          triggerArrowHighlight(cLat, cLng, `📍 Boundary: ${boundary.barangayName}`, `Kumpletong Na-guhit na Boundary (${boundary.points.length} tuldok)`, 16);
+                          const info = getStreetInfoForCoordinates(cLat, cLng);
+                          setClickedStreet(info);
+
+                          if (leafletMapRef.current) {
+                            const bounds = L.latLngBounds(boundary.points);
+                            leafletMapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+                          }
+                        }
+                      }}
+                      className="bg-white text-indigo-950 text-[10px] font-bold py-0.5 px-1 rounded-lg border border-indigo-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">-- Brgy --</option>
+                      <option value="ALL_BARANGAYS">✨ Lahat</option>
+                      {drawnBarangayBoundaries.map((b) => (
+                        <option key={b.id} value={b.barangayName}>
+                          {b.barangayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => triggerSLSUHighlight(17)}
+                    className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    <School className="h-3 w-3 text-teal-600" />
+                    SLSU 🎓
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.920523, 122.099064, "Jollibee Gumaca 🍔🐝", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
+                    className="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🍔 Jollibee
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.920751, 122.100299, "McDonald's Gumaca 🍟🍔", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
+                    className="bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🍟 McDonald's
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.920489, 122.098769, "Chowking Gumaca 🥢🥟", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🥢 Chowking
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.920196, 122.097666, "Novo Department Store 🛍️🏢", "Department Store & Shopping, Maharlika Highway, Gumaca", 17)}
+                    className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🛍️ Novo
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.923258, 122.101460, "SLSU Tabing Dagat Campus 🎓🌊", "Southern Luzon State University - Tabing Dagat Campus, Gumaca", 17)}
+                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🎓 Tabing Dagat
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.920509, 122.101597, "Gumaca Public Market 🛒🐟", "Public Market & Commercial Hub, Poblacion", 17)}
+                    className="bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🛒 Market
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.921103, 122.105650, "Puregold Gumaca 🟡🛒", "Puregold Supermarket, Maharlika Highway / San Diego", 17)}
+                    className="bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🟡 Puregold
+                  </button>
+
+                  <button
+                    onClick={() => triggerArrowHighlight(13.919680, 122.100656, "Jeep Terminal (Macalelon, Unisan, Lopez) 🚐", "Jeepney Terminal for Macalelon, Unisan & Lopez", 17)}
+                    className="bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    🚐 Jeep Terminal
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* FLOATING BOTTOM LEFT GPS BUTTON FOR MOBILE FULLSCREEN VIEW */}
+            <div className="sm:hidden absolute bottom-5 left-3.5 z-40 pointer-events-auto">
+              <button
+                onClick={handleLocateUser}
+                disabled={isLocatingUser}
+                className="px-3.5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black rounded-full text-xs shadow-2xl cursor-pointer flex items-center gap-1.5 active:scale-95 border border-indigo-400/40 ring-2 ring-indigo-500/20 transition-all"
+                title="Eksaktong Lokasyon sa GPS"
+              >
+                <Navigation className="h-4 w-4 fill-white/30 animate-pulse" />
+                <span>{isLocatingUser ? "Naghahanap..." : "GPS 📍"}</span>
+              </button>
+            </div>
+
+            {/* FLOATING BOTTOM RIGHT EXIT BUTTON FOR MOBILE FULLSCREEN VIEW */}
+            <div className="sm:hidden absolute bottom-5 right-3.5 z-40 pointer-events-auto">
+              <button
+                onClick={toggleFullscreen}
+                className="bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 active:scale-95 text-stone-950 font-extrabold px-4.5 py-2.5 rounded-full text-xs flex items-center gap-1.5 shadow-2xl ring-4 ring-amber-300/80 cursor-pointer border border-amber-200/60 transition-all"
+                title="Umalis sa Fullscreen Map"
+              >
+                <Minimize2 className="h-4 w-4 shrink-0" />
+                <span>Exit Fullscreen ✕</span>
+              </button>
+            </div>
+          </>
+        )}
+
+
 
         {/* ABSOLUTE GUARANTEED REACT DOM SVG & BADGE OVERLAY FOR SAVED BOUNDARIES */}
         {showBoundariesOnMap && savedPixelBoundaries.length > 0 && (

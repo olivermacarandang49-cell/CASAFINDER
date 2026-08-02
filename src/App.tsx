@@ -47,7 +47,12 @@ import {
   Sun,
   Moon,
   Globe,
-  Languages
+  Languages,
+  Smartphone,
+  Laptop,
+  Fingerprint,
+  AlertTriangle,
+  Activity
 } from "lucide-react";
 
 // Pre-defined room image presets to make listings look beautiful instantly
@@ -165,6 +170,23 @@ export default function App() {
   const [profileEditPermitStatus, setProfileEditPermitStatus] = useState("Verified");
   const [profileEditPassword, setProfileEditPassword] = useState("");
   const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
+  const [showProfileCurrentPassword, setShowProfileCurrentPassword] = useState(false);
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [showProfileConfirmPassword, setShowProfileConfirmPassword] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(() => {
+    return localStorage.getItem("casafinder_2fa") === "true";
+  });
+  const [securityPin, setSecurityPin] = useState(() => {
+    return localStorage.getItem("casafinder_pin") || "1234";
+  });
+  const [showSecurityPin, setShowSecurityPin] = useState(false);
+  const [activeSessions, setActiveSessions] = useState([
+    { id: 1, device: "Chrome / Windows 11 Desktop", location: "Poblacion, Gumaca, Quezon", ip: "112.204.18.92", time: "Active Now", current: true },
+    { id: 2, device: "Safari / iPhone Mobile", location: "SLSU Campus, Gumaca", ip: "112.204.19.14", time: "2 hours ago", current: false }
+  ]);
+  const [securityMsg, setSecurityMsg] = useState("");
+  const [securityErrorMsg, setSecurityErrorMsg] = useState("");
   const [prefEmailNotifications, setPrefEmailNotifications] = useState(() => {
     const saved = localStorage.getItem("casafinder_pref_email");
     return saved !== null ? JSON.parse(saved) : true;
@@ -555,6 +577,10 @@ export default function App() {
     setProfileEditPermitFile(current.permitFile || "");
     setProfileEditPermitStatus(current.permitStatus || "");
     setProfileEditPassword(current.password || "");
+    setProfileCurrentPassword("");
+    setProfileConfirmPassword("");
+    setSecurityMsg("");
+    setSecurityErrorMsg("");
     setProfileSuccessMsg("");
     setProfileTab("profile");
     setShowProfileModal(true);
@@ -569,6 +595,25 @@ export default function App() {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userSession) return;
+
+    setSecurityErrorMsg("");
+    setSecurityMsg("");
+
+    // Validation for Security & Password tab
+    if (profileTab === "settings" && profileEditPassword.trim()) {
+      if (profileConfirmPassword && profileEditPassword !== profileConfirmPassword) {
+        setSecurityErrorMsg(
+          prefLanguage === "tagalog"
+            ? "Hindi nagmamatch ang Bagong Password at Confirm Password!"
+            : "New Password and Confirm Password do not match!"
+        );
+        return;
+      }
+    }
+
+    // Save Security Preferences
+    localStorage.setItem("casafinder_2fa", JSON.stringify(is2FAEnabled));
+    localStorage.setItem("casafinder_pin", securityPin);
 
     const updatedUsers = registeredUsers.map(u => {
       if (u.username === userSession.username) {
@@ -597,6 +642,20 @@ export default function App() {
     };
     setUserSession(updatedSession);
     localStorage.setItem("casafinder_user_session", JSON.stringify(updatedSession));
+
+    if (profileTab === "settings") {
+      setSecurityMsg(
+        prefLanguage === "tagalog"
+          ? "Matagumpay na na-update ang iyong Security, Password, at PIN!"
+          : "Your Security, Password, and PIN settings have been saved successfully!"
+      );
+    } else {
+      setProfileSuccessMsg(
+        prefLanguage === "tagalog"
+          ? "Matagumpay na na-update ang iyong Profile!"
+          : "Your profile details have been saved successfully!"
+      );
+    }
 
     // Sync landlord properties with new profile details
     if (userSession.role === "landlord") {
@@ -2963,37 +3022,350 @@ export default function App() {
                 {/* TAB 2: Security & Password */}
                 {profileTab === "settings" && (
                   <div className="space-y-4">
-                    <div className="p-4 bg-indigo-50/60 border border-indigo-100 rounded-2xl text-xs text-indigo-900 flex items-start gap-3">
-                      <Shield className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-bold text-xs">{prefLanguage === "tagalog" ? "Proteksyon ng Password ng Account" : "Account Password Protection"}</h4>
-                        <p className="text-[11px] text-indigo-700 font-light mt-0.5">
-                          {prefLanguage === "tagalog" ? "Maaari mong baguhin ang iyong password anumang oras para sa seguridad." : "You can change your password anytime for account security."}
-                        </p>
+                    {/* Security Success / Error Messages */}
+                    {securityMsg && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span>{securityMsg}</span>
+                      </div>
+                    )}
+                    {securityErrorMsg && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                        <span>{securityErrorMsg}</span>
+                      </div>
+                    )}
+
+                    {/* Security Health Status Card */}
+                    <div className="p-4 bg-gradient-to-r from-stone-900 via-indigo-950 to-stone-900 text-white rounded-2xl shadow-md border border-stone-800 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                            <ShieldCheck className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-xs text-stone-100">
+                              {prefLanguage === "tagalog" ? "Status ng Account Security" : "Account Security Status"}
+                            </h4>
+                            <p className="text-[10px] text-stone-300">
+                              {prefLanguage === "tagalog" ? "Protektado ng end-to-end encryption" : "Protected with end-to-end encryption"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px] rounded-full flex items-center gap-1 shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          {is2FAEnabled
+                            ? (prefLanguage === "tagalog" ? "HIGH SECURITY 🛡️" : "HIGH SECURITY 🛡️")
+                            : (prefLanguage === "tagalog" ? "PROTECTED 🟢" : "PROTECTED 🟢")}
+                        </span>
+                      </div>
+
+                      {/* Security Features Overview Badges */}
+                      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-stone-800/80 text-[10px]">
+                        <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
+                          <span className="text-stone-400 block text-[9px] uppercase font-bold">{prefLanguage === "tagalog" ? "Password" : "Password"}</span>
+                          <span className="font-bold text-emerald-400">{profileEditPassword ? "Na-set na 🔒" : "Aktibo 🟢"}</span>
+                        </div>
+                        <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
+                          <span className="text-stone-400 block text-[9px] uppercase font-bold">2FA (SMS/OTP)</span>
+                          <span className={`font-bold ${is2FAEnabled ? "text-emerald-400" : "text-amber-400"}`}>
+                            {is2FAEnabled ? "Naka-ON 🟢" : "Naka-OFF ⚪"}
+                          </span>
+                        </div>
+                        <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
+                          <span className="text-stone-400 block text-[9px] uppercase font-bold">4-Digit PIN</span>
+                          <span className="font-bold text-indigo-300">{securityPin ? "Naka-set 🔑" : "Wala pa"}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                        <Lock className="h-3.5 w-3.5 text-stone-400" />
-                        {prefLanguage === "tagalog" ? "Bagong Password" : "Account Password"}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showProfilePassword ? "text" : "password"}
-                          value={profileEditPassword}
-                          onChange={(e) => setProfileEditPassword(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-3 pr-10 py-2.5 text-xs text-stone-800 font-mono"
-                          placeholder={prefLanguage === "tagalog" ? "I-type ang bagong password" : "Type new password"}
+                    {/* Section 1: Change Password & Password Strength Meter */}
+                    <div className="bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80 space-y-3">
+                      <div className="flex items-center gap-2 border-b border-stone-200/60 pb-2">
+                        <KeyRound className="h-4 w-4 text-indigo-600 shrink-0" />
+                        <h4 className="font-bold text-xs text-stone-900">
+                          {prefLanguage === "tagalog" ? "Pagbabago ng Password" : "Change Password"}
+                        </h4>
+                      </div>
+
+                      {/* Kasalukuyang Password (Current Password) */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                          {prefLanguage === "tagalog" ? "Kasalukuyang Password (I-type para kumpirmahin)" : "Current Password (Optional)"}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showProfileCurrentPassword ? "text" : "password"}
+                            value={profileCurrentPassword}
+                            onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            placeholder={prefLanguage === "tagalog" ? "I-type ang kasalukuyang password" : "Type current password"}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowProfileCurrentPassword(!showProfileCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          >
+                            {showProfileCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bagong Password */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                          {prefLanguage === "tagalog" ? "Bagong Password" : "New Password"}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showProfilePassword ? "text" : "password"}
+                            value={profileEditPassword}
+                            onChange={(e) => setProfileEditPassword(e.target.value)}
+                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            placeholder={prefLanguage === "tagalog" ? "I-type ang bagong password" : "Type new password"}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowProfilePassword(!showProfilePassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          >
+                            {showProfilePassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Confirm New Password */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                            {prefLanguage === "tagalog" ? "Kumpirmahin ang Bagong Password" : "Confirm New Password"}
+                          </label>
+                          {profileEditPassword && profileConfirmPassword && (
+                            <span className={`text-[10px] font-bold ${profileEditPassword === profileConfirmPassword ? "text-emerald-600" : "text-rose-600"}`}>
+                              {profileEditPassword === profileConfirmPassword
+                                ? (prefLanguage === "tagalog" ? "✓ Nagmamatch" : "✓ Match")
+                                : (prefLanguage === "tagalog" ? "✕ Hindi Nagmamatch" : "✕ Doesn't Match")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showProfileConfirmPassword ? "text" : "password"}
+                            value={profileConfirmPassword}
+                            onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                            className={`w-full bg-white border rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none ${
+                              profileConfirmPassword && profileEditPassword !== profileConfirmPassword
+                                ? "border-rose-300 focus:border-rose-500"
+                                : "border-stone-200 focus:border-indigo-500"
+                            }`}
+                            placeholder={prefLanguage === "tagalog" ? "I-type muli ang bagong password" : "Re-type new password"}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowProfileConfirmPassword(!showProfileConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          >
+                            {showProfileConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Interactive Password Strength Meter */}
+                      {profileEditPassword && (
+                        <div className="p-2.5 bg-white rounded-xl border border-stone-200/80 space-y-2">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-stone-600">
+                              {prefLanguage === "tagalog" ? "Lakas ng Password:" : "Password Strength:"}
+                            </span>
+                            <span className={`font-bold ${
+                              profileEditPassword.length < 6
+                                ? "text-rose-600"
+                                : profileEditPassword.length >= 8 && /[0-9]/.test(profileEditPassword) && /[A-Z]/.test(profileEditPassword)
+                                ? "text-emerald-600"
+                                : "text-amber-600"
+                            }`}>
+                              {profileEditPassword.length < 6
+                                ? (prefLanguage === "tagalog" ? "Mahina 🔴" : "Weak 🔴")
+                                : profileEditPassword.length >= 8 && /[0-9]/.test(profileEditPassword) && /[A-Z]/.test(profileEditPassword)
+                                ? (prefLanguage === "tagalog" ? "Matatag / Malakas 🟢" : "Strong 🟢")
+                                : (prefLanguage === "tagalog" ? "Katamtaman 🟡" : "Fair 🟡")}
+                            </span>
+                          </div>
+
+                          {/* Colored Progress Bar */}
+                          <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                profileEditPassword.length < 6
+                                  ? "w-1/4 bg-rose-500"
+                                  : profileEditPassword.length >= 8 && /[0-9]/.test(profileEditPassword) && /[A-Z]/.test(profileEditPassword)
+                                  ? "w-full bg-emerald-500"
+                                  : "w-2/3 bg-amber-500"
+                              }`}
+                            ></div>
+                          </div>
+
+                          {/* Criteria Checklist */}
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px] text-stone-600 pt-1">
+                            <span className={`flex items-center gap-1 ${profileEditPassword.length >= 8 ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                              {profileEditPassword.length >= 8 ? "✓" : "○"} {prefLanguage === "tagalog" ? "8+ na letra" : "8+ characters"}
+                            </span>
+                            <span className={`flex items-center gap-1 ${/[0-9]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                              {/[0-9]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "May numero (0-9)" : "Includes numbers"}
+                            </span>
+                            <span className={`flex items-center gap-1 ${/[A-Z]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                              {/[A-Z]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "May malaking letra (A-Z)" : "Capital letters"}
+                            </span>
+                            <span className={`flex items-center gap-1 ${/[^A-Za-z0-9]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                              {/[^A-Za-z0-9]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "Special symbol (!@#$)" : "Special symbol"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 2: Two-Factor Authentication (2FA) */}
+                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl shrink-0">
+                          <Smartphone className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-stone-900 block truncate">
+                            {prefLanguage === "tagalog" ? "Two-Factor Authentication (2FA)" : "Two-Factor Authentication"}
+                          </span>
+                          <span className="text-[10px] text-stone-500 block leading-tight">
+                            {prefLanguage === "tagalog"
+                              ? "Hihingi ng SMS / Email OTP verification bago mag-login sa bagong cellphone o computer."
+                              : "Require SMS or Email OTP verification when logging in from new devices."}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextState = !is2FAEnabled;
+                          setIs2FAEnabled(nextState);
+                          localStorage.setItem("casafinder_2fa", JSON.stringify(nextState));
+                          setSecurityMsg(
+                            nextState
+                              ? (prefLanguage === "tagalog" ? "Naka-ON na ang Two-Factor Authentication (2FA)! 🔒" : "2-Factor Authentication enabled! 🔒")
+                              : (prefLanguage === "tagalog" ? "Naka-OFF na ang Two-Factor Authentication." : "2-Factor Authentication disabled.")
+                          );
+                        }}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          is2FAEnabled ? "bg-indigo-600" : "bg-stone-300"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            is2FAEnabled ? "translate-x-5" : "translate-x-0"
+                          }`}
                         />
+                      </button>
+                    </div>
+
+                    {/* Section 3: 4-Digit Quick Security PIN */}
+                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Fingerprint className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <span className="text-xs font-bold text-stone-900">
+                            {prefLanguage === "tagalog" ? "4-Digit Security PIN" : "4-Digit Security PIN"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-medium">
+                          {prefLanguage === "tagalog" ? "Para sa mabilis na Kumpirmasyon" : "For Fast Confirmation"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={showSecurityPin ? "text" : "password"}
+                            maxLength={4}
+                            value={securityPin}
+                            onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ""))}
+                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-stone-800 outline-none"
+                            placeholder="****"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSecurityPin(!showSecurityPin)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          >
+                            {showSecurityPin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-stone-500 font-light">
+                        {prefLanguage === "tagalog"
+                          ? "Gamitin ang 4-digit PIN na ito para sa mabilis na pag-verify sa booking at reservation."
+                          : "Use this 4-digit PIN for quick booking & landlord action verification."}
+                      </p>
+                    </div>
+
+                    {/* Section 4: Active Devices & Session Log */}
+                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-stone-200/60 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Laptop className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <span className="text-xs font-bold text-stone-900">
+                            {prefLanguage === "tagalog" ? "Mga Naka-login na Device (Active Sessions)" : "Active Device Sessions"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-stone-500 font-medium">
+                          {activeSessions.length} {prefLanguage === "tagalog" ? "Device" : "Device(s)"}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {activeSessions.map((session) => (
+                          <div key={session.id} className="p-2.5 bg-white border border-stone-200/70 rounded-xl flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              {session.device.includes("Mobile") || session.device.includes("iPhone") ? (
+                                <Smartphone className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                              ) : (
+                                <Laptop className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                              )}
+                              <div className="min-w-0">
+                                <span className="font-bold text-stone-800 text-[11px] block truncate">{session.device}</span>
+                                <span className="text-[10px] text-stone-500 block truncate">{session.location} ({session.ip})</span>
+                              </div>
+                            </div>
+
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                              session.current ? "bg-emerald-100 text-emerald-800" : "bg-stone-100 text-stone-600"
+                            }`}>
+                              {session.current
+                                ? (prefLanguage === "tagalog" ? "Kasalukuyan 🟢" : "Active Now 🟢")
+                                : session.time}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {activeSessions.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => setShowProfilePassword(!showProfilePassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                          onClick={() => {
+                            setActiveSessions(prev => prev.filter(s => s.current));
+                            setSecurityMsg(
+                              prefLanguage === "tagalog"
+                                ? "Na-logout na ang lahat ng ibang mga lumang device!"
+                                : "Successfully logged out all other device sessions!"
+                            );
+                          }}
+                          className="w-full mt-1 py-2 px-3 bg-stone-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-stone-200 text-stone-700 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                         >
-                          {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <LogOut className="h-3.5 w-3.5" />
+                          <span>
+                            {prefLanguage === "tagalog" ? "I-logout sa Lahat ng Ibang Device" : "Log Out All Other Devices"}
+                          </span>
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
