@@ -158,7 +158,7 @@ export default function PropertyCard({
             <div className="flex items-center gap-1 truncate">
               <GraduationCap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-600 shrink-0" />
               <span className="truncate text-[9px] sm:text-[11px]">
-                <strong>{nearestSchool.distanceKm.toFixed(1)}km</strong> {nearestSchool.name.split(" ")[0]}
+                <strong>{nearestSchool.distanceKm.toFixed(1)}km</strong> {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')}
               </span>
             </div>
             <span className="text-[8px] sm:text-[10px] bg-indigo-600 group-hover/school:bg-indigo-700 text-white font-mono font-bold px-1 py-0.5 rounded-md shrink-0">

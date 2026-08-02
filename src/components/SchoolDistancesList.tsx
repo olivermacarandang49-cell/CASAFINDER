@@ -7,14 +7,17 @@ interface SchoolDistancesListProps {
   propertyName?: string;
   neighborhood?: string;
   onViewSchoolOnMap?: (schoolLat: number, schoolLng: number, schoolName: string, schoolId: string) => void;
+  language?: string;
 }
 
 export function SchoolDistancesList({
   coordinates,
   propertyName,
   neighborhood,
-  onViewSchoolOnMap
+  onViewSchoolOnMap,
+  language = "tagalog"
 }: SchoolDistancesListProps) {
+  const isTagalog = language === "tagalog";
   // Parse accurate Lat/Lng from coordinates or neighborhood fallback
   const [lat, lng] = parsePropertyLatLng(coordinates, neighborhood);
 
@@ -29,15 +32,17 @@ export function SchoolDistancesList({
           </div>
           <div>
             <h4 className="font-display text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
-              Layo sa mga Paaralan sa Gumaca, Quezon 🏫
+              {isTagalog ? "Layo sa mga Paaralan sa Gumaca, Quezon 🏫" : "Distance to Schools in Gumaca, Quezon 🏫"}
             </h4>
             <p className="text-[10px] text-stone-500 font-light">
-              Kinalkula mula sa {propertyName || "boarding house / apartment"}
+              {isTagalog
+                ? `Kinalkula mula sa ${propertyName || "boarding house / apartment"}`
+                : `Calculated from ${propertyName || "boarding house / apartment"}`}
             </p>
           </div>
         </div>
         <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
-          Distance in KM
+          {isTagalog ? "Layo sa KM" : "Distance in KM"}
         </span>
       </div>
 
@@ -67,18 +72,18 @@ export function SchoolDistancesList({
                     </span>
                     {isNearest && (
                       <span className="bg-amber-500 text-stone-950 text-[9px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                        Pinakamalapit 🌟
+                        {isTagalog ? "Pinakamalapit 🌟" : "Nearest 🌟"}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-[10px] text-stone-500 font-medium">
                     <span className="flex items-center gap-0.5 text-indigo-700">
                       <Footprints className="h-3 w-3 text-indigo-600" />
-                      ~{item.walkingMinutes} min lakad
+                      ~{item.walkingMinutes} {isTagalog ? "min lakad" : "min walk"}
                     </span>
                     <span className="flex items-center gap-0.5 text-emerald-700">
                       <Navigation className="h-3 w-3 text-emerald-600" />
-                      ~{item.tricycleMinutes} min trike
+                      ~{item.tricycleMinutes} {isTagalog ? "min trike" : "min trike"}
                     </span>
                   </div>
                 </div>
@@ -96,10 +101,10 @@ export function SchoolDistancesList({
                     type="button"
                     onClick={() => onViewSchoolOnMap(item.lat, item.lng, item.name, item.id)}
                     className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-                    title="Tingnan ang linya papuntang paaralang ito sa mapa"
+                    title={isTagalog ? "Tingnan sa mapa" : "View on map"}
                   >
                     <Compass className="h-3.5 w-3.5" />
-                    <span className="hidden xs:inline">Mapa</span>
+                    <span className="hidden xs:inline">{isTagalog ? "Mapa" : "Map"}</span>
                   </button>
                 )}
               </div>

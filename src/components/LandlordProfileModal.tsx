@@ -302,7 +302,7 @@ export default function LandlordProfileModal({
                           <div className="pt-1.5 border-t border-stone-100 flex items-center justify-between text-[10px]">
                             <span className="text-indigo-700 font-bold flex items-center gap-1 truncate">
                               <GraduationCap className="h-3 w-3 text-indigo-600 shrink-0" />
-                              {nearest.distanceKm.toFixed(2)} km {isTagalog ? "sa" : "to"} {nearest.name.split(" ")[0]}
+                              {nearest.distanceKm.toFixed(2)} km {isTagalog ? "sa" : "to"} {nearest.shortName || nearest.name.replace(/ [🎓🏫🏛️]/g, '')}
                             </span>
 
                             {onViewOnMap && (
@@ -331,14 +331,14 @@ export default function LandlordProfileModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-stone-50 border-t border-stone-200 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs py-2 px-5 rounded-xl transition-all cursor-pointer"
-          >
-            {isTagalog ? "Isara ang Profile" : "Close Profile"}
-          </button>
+        <div className="px-5 py-3.5 bg-stone-50 border-t border-stone-200/80 flex items-center justify-between text-xs text-stone-500">
+          <span className="flex items-center gap-1.5 font-medium text-[11px] text-stone-500">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+            {isTagalog ? "Verified Landlord Profile • CasaFinder Gumaca" : "Verified Landlord Profile • CasaFinder Gumaca"}
+          </span>
+          <span className="text-[10px] text-stone-400 font-mono">
+            {landlordProperties.length} {isTagalog ? "lisensyadong post" : "active listings"}
+          </span>
         </div>
       </motion.div>
     </div>

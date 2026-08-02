@@ -200,6 +200,81 @@ export default function NeighborhoodMap({
   const [drawColor, setDrawColor] = useState<string>("#2563eb"); // Vivid Blue
   const [mousePos, setMousePos] = useState<{ lat: number; lng: number } | null>(null);
   const [drawnPoints, setDrawnPoints] = useState<{ lat: number; lng: number }[]>([]);
+  const DEFAULT_GUMACA_BOUNDARIES = [
+    {
+      id: "b1",
+      barangayName: "Barangay Tabing Dagat",
+      color: "#10b981",
+      points: [[13.9230, 122.0990], [13.9258, 122.0980], [13.9262, 122.1025], [13.9235, 122.1030]] as [number, number][]
+    },
+    {
+      id: "b2",
+      barangayName: "Barangay Villa Nava",
+      color: "#6366f1",
+      points: [[13.9150, 122.0970], [13.9185, 122.0965], [13.9190, 122.1005], [13.9155, 122.1010]] as [number, number][]
+    },
+    {
+      id: "b3",
+      barangayName: "Barangay San Diego",
+      color: "#f59e0b",
+      points: [[13.9210, 122.1030], [13.9240, 122.1035], [13.9235, 122.1070], [13.9205, 122.1065]] as [number, number][]
+    },
+    {
+      id: "b4",
+      barangayName: "Barangay Bagong Buhay",
+      color: "#0ea5e9",
+      points: [[13.9200, 122.0980], [13.9220, 122.0980], [13.9220, 122.1005], [13.9200, 122.1005]] as [number, number][]
+    },
+    {
+      id: "b5",
+      barangayName: "Barangay Rizal",
+      color: "#8b5cf6",
+      points: [[13.9180, 122.0930], [13.9210, 122.0930], [13.9210, 122.0970], [13.9180, 122.0970]] as [number, number][]
+    },
+    {
+      id: "b6",
+      barangayName: "Barangay Rosario",
+      color: "#f43f5e",
+      points: [[13.9150, 122.1020], [13.9180, 122.1020], [13.9180, 122.1060], [13.9150, 122.1060]] as [number, number][]
+    },
+    {
+      id: "b7",
+      barangayName: "Barangay Pipisik",
+      color: "#14b8a6",
+      points: [[13.9215, 122.0990], [13.9235, 122.0990], [13.9235, 122.1020], [13.9215, 122.1020]] as [number, number][]
+    },
+    {
+      id: "b8",
+      barangayName: "Barangay Buensuceso",
+      color: "#f97316",
+      points: [[13.9230, 122.1050], [13.9260, 122.1050], [13.9260, 122.1090], [13.9230, 122.1090]] as [number, number][]
+    },
+    {
+      id: "b9",
+      barangayName: "Barangay Mabini",
+      color: "#84cc16",
+      points: [[13.9170, 122.0950], [13.9200, 122.0950], [13.9200, 122.0980], [13.9170, 122.0980]] as [number, number][]
+    },
+    {
+      id: "b10",
+      barangayName: "Barangay Peñafrancia",
+      color: "#06b6d4",
+      points: [[13.9250, 122.1000], [13.9280, 122.1000], [13.9280, 122.1040], [13.9250, 122.1040]] as [number, number][]
+    },
+    {
+      id: "b11",
+      barangayName: "Barangay Progreso Purok 1",
+      color: "#7c3aed",
+      points: [[13.9130, 122.0940], [13.9160, 122.0940], [13.9160, 122.0980], [13.9130, 122.0980]] as [number, number][]
+    },
+    {
+      id: "b12",
+      barangayName: "Barangay Maunlad",
+      color: "#ec4899",
+      points: [[13.9200, 122.1005], [13.9225, 122.1005], [13.9225, 122.1035], [13.9200, 122.1035]] as [number, number][]
+    }
+  ];
+
   const [drawnBarangayBoundaries, setDrawnBarangayBoundaries] = useState<{
     id: string;
     barangayName: string;
@@ -208,14 +283,14 @@ export default function NeighborhoodMap({
   }[]>(() => {
     try {
       const saved = localStorage.getItem("barangay_drawn_boundaries");
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error("Failed to parse saved boundaries from localStorage:", e);
     }
-    return [];
+    return DEFAULT_GUMACA_BOUNDARIES;
   });
 
   // Automatically persist saved barangay boundaries to LocalStorage
@@ -468,9 +543,8 @@ export default function NeighborhoodMap({
       doubleClickZoom: true,
       touchZoom: true,
       dragging: true,
-      tap: false,
       bounceAtZoom: false
-    });
+    } as any);
 
     leafletMapRef.current = map;
 
@@ -793,8 +867,24 @@ export default function NeighborhoodMap({
 
   const handleDeleteAllSavedBoundaries = () => {
     setDrawnBarangayBoundaries([]);
+    try {
+      localStorage.setItem("barangay_drawn_boundaries", JSON.stringify([]));
+    } catch (e) {
+      console.error(e);
+    }
     setCopySuccessMsg("🗑️ Na-burang lahat ang mga na-save na boundary!");
     setTimeout(() => setCopySuccessMsg(""), 3000);
+  };
+
+  const handleRestoreDefaultBoundaries = () => {
+    setDrawnBarangayBoundaries(DEFAULT_GUMACA_BOUNDARIES);
+    try {
+      localStorage.setItem("barangay_drawn_boundaries", JSON.stringify(DEFAULT_GUMACA_BOUNDARIES));
+    } catch (e) {
+      console.error(e);
+    }
+    setCopySuccessMsg("✨ Na-restore ang default 12 Barangay Boundaries ng Gumaca!");
+    setTimeout(() => setCopySuccessMsg(""), 3500);
   };
 
   // Drawing Layer Render Effect
@@ -2317,17 +2407,16 @@ export default function NeighborhoodMap({
                   >
                     <option value="Barangay Tabing Dagat">Barangay Tabing Dagat</option>
                     <option value="Barangay Villa Nava">Barangay Villa Nava</option>
-                    <option value="Barangay Peñafrancia">Barangay Peñafrancia</option>
-                    <option value="Barangay Pipisik">Barangay Pipisik</option>
                     <option value="Barangay San Diego">Barangay San Diego</option>
-                    <option value="Barangay Mabini">Barangay Mabini</option>
+                    <option value="Barangay Bagong Buhay">Barangay Bagong Buhay</option>
                     <option value="Barangay Rizal">Barangay Rizal</option>
                     <option value="Barangay Rosario">Barangay Rosario</option>
-                    <option value="Barangay Luna">Barangay Luna</option>
-                    <option value="Barangay Burgos">Barangay Burgos</option>
-                    <option value="Barangay Castillo">Barangay Castillo</option>
-                    <option value="Barangay Gayagayaan">Barangay Gayagayaan</option>
-                    <option value="Barangay Hagakhakin">Barangay Hagakhakin</option>
+                    <option value="Barangay Pipisik">Barangay Pipisik</option>
+                    <option value="Barangay Buensuceso">Barangay Buensuceso</option>
+                    <option value="Barangay Mabini">Barangay Mabini</option>
+                    <option value="Barangay Peñafrancia">Barangay Peñafrancia</option>
+                    <option value="Barangay Progreso Purok 1">Barangay Progreso Purok 1</option>
+                    <option value="Barangay Maunlad">Barangay Maunlad</option>
                   </select>
 
                   <button
@@ -2352,7 +2441,7 @@ export default function NeighborhoodMap({
                           type="button"
                           onClick={() => {
                             setDrawnBarangayBoundaries([]);
-                            localStorage.removeItem("barangay_drawn_boundaries");
+                            localStorage.setItem("barangay_drawn_boundaries", JSON.stringify([]));
                             setSelectedBarangayBoundaryFilter("");
                             setShowConfirmDeleteAll(false);
                             setCopySuccessMsg("🗑️ Matagumpay na nabura ang LAHAT ng na-save na barangay boundary!");
@@ -2387,8 +2476,17 @@ export default function NeighborhoodMap({
                   )}
 
                   {drawnBarangayBoundaries.length === 0 ? (
-                    <div className="text-[10px] text-stone-400 italic bg-stone-800/40 p-2.5 rounded-xl text-center">
-                      Wala pang nai-save na barangay boundary. Iguhit ang iyong unang boundary sa mapa!
+                    <div className="bg-stone-800/40 p-3 rounded-xl text-center space-y-2 border border-stone-700/50">
+                      <p className="text-[10px] text-stone-400 italic">
+                        Wala pang nai-save na barangay boundary. Iguhit ang iyong unang boundary sa mapa o i-restore ang default list!
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleRestoreDefaultBoundaries}
+                        className="text-[10px] bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700/80 text-indigo-200 font-bold px-2.5 py-1 rounded-lg cursor-pointer transition-all active:scale-95"
+                      >
+                        ✨ Restore Default 12 Barangay Boundaries
+                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -2527,7 +2625,7 @@ export default function NeighborhoodMap({
 
                   {nearestSchool && (
                     <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-500">
-                      <span className="truncate">🎓 {nearestSchool.name.split(" ")[0]} ({nearestSchool.distanceKm.toFixed(2)} km)</span>
+                      <span className="truncate">🎓 {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')} ({nearestSchool.distanceKm.toFixed(2)} km)</span>
                       <span className="font-bold text-indigo-600 font-mono shrink-0">{nearestSchool.walkingMinutes}m lakad</span>
                     </div>
                   )}

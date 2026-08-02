@@ -4,6 +4,7 @@ import { studentDemoProperties } from "./data/studentDemos";
 import PropertyCard from "./components/PropertyCard";
 import PropertyModal from "./components/PropertyModal";
 import LandlordProfileModal from "./components/LandlordProfileModal";
+import AboutModal from "./components/AboutModal";
 import NeighborhoodMap from "./components/NeighborhoodMap";
 import { PostingLocationMap, getNeighborhoodDefaultLatLng } from "./components/PostingLocationMap";
 import { getTranslation, Language } from "./utils/translations";
@@ -37,6 +38,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   FileText,
+  Info,
   Award,
   ChevronDown,
   ChevronUp,
@@ -157,9 +159,10 @@ export default function App() {
   const [forgotSuccessMsg, setForgotSuccessMsg] = useState("");
 
   // Profile & Settings Modal & Dropdown Menu State
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [profileTab, setProfileTab] = useState<"profile" | "settings" | "notifications">("profile");
+  const [profileTab, setProfileTab] = useState<"profile" | "settings" | "notifications" | "about">("profile");
   const [profileEditName, setProfileEditName] = useState("");
   const [profileEditEmail, setProfileEditEmail] = useState("");
   const [profileEditMobile, setProfileEditMobile] = useState("");
@@ -181,10 +184,38 @@ export default function App() {
     return localStorage.getItem("casafinder_pin") || "1234";
   });
   const [showSecurityPin, setShowSecurityPin] = useState(false);
-  const [activeSessions, setActiveSessions] = useState([
-    { id: 1, device: "Chrome / Windows 11 Desktop", location: "Poblacion, Gumaca, Quezon", ip: "112.204.18.92", time: "Active Now", current: true },
-    { id: 2, device: "Safari / iPhone Mobile", location: "SLSU Campus, Gumaca", ip: "112.204.19.14", time: "2 hours ago", current: false }
-  ]);
+  const [activeSessions, setActiveSessions] = useState(() => {
+    const saved = localStorage.getItem("casafinder_active_sessions");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    // Dynamically detect user's current real device/browser
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    let browser = "Web Browser";
+    if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
+    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+    else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
+    else if (ua.includes("Chrome")) browser = "Chrome";
+    else if (ua.includes("Safari")) browser = "Safari";
+
+    let os = "Desktop";
+    if (/Android/i.test(ua)) os = "Android Mobile";
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = "iPhone / iOS";
+    else if (/Windows/i.test(ua)) os = "Windows PC";
+    else if (/Macintosh|Mac OS X/i.test(ua)) os = "Mac Desktop";
+    else if (/Linux/i.test(ua)) os = "Linux PC";
+
+    const realDevice = `${browser} / ${os}`;
+
+    return [
+      { id: 1, device: realDevice, location: "Gumaca, Quezon (Current)", ip: "Current Connection", time: "Active Now", current: true }
+    ];
+  });
   const [securityMsg, setSecurityMsg] = useState("");
   const [securityErrorMsg, setSecurityErrorMsg] = useState("");
   const [prefEmailNotifications, setPrefEmailNotifications] = useState(() => {
@@ -576,7 +607,7 @@ export default function App() {
     setProfileEditPermitNo(current.permitNo || "");
     setProfileEditPermitFile(current.permitFile || "");
     setProfileEditPermitStatus(current.permitStatus || "");
-    setProfileEditPassword(current.password || "");
+    setProfileEditPassword("");
     setProfileCurrentPassword("");
     setProfileConfirmPassword("");
     setSecurityMsg("");
@@ -586,7 +617,7 @@ export default function App() {
     setShowProfileModal(true);
   };
 
-  const handleOpenProfileTab = (tab: "profile" | "settings" | "notifications" = "profile") => {
+  const handleOpenProfileTab = (tab: "profile" | "settings" | "notifications" | "about" = "profile") => {
     handleOpenProfile();
     setProfileTab(tab);
   };
@@ -859,7 +890,15 @@ export default function App() {
   // Delete a specific landlord-created property listing
   const handleDeleteProperty = (id: string) => {
     setPropertiesList(prev => prev.filter(p => p.id !== id));
-    setSelectedProperty(null);
+    if (selectedProperty?.id === id) {
+      setSelectedProperty(null);
+    }
+    if (detailModalProperty?.id === id) {
+      setDetailModalProperty(null);
+    }
+    if (landlordProfileProperty?.id === id) {
+      setLandlordProfileProperty(null);
+    }
   };
 
   // Student rating & review handler
@@ -1655,6 +1694,18 @@ export default function App() {
                         <span>{t("tabPreferences")}</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleOpenProfileTab("about");
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        <Info className="h-3.5 w-3.5 text-indigo-600" />
+                        <span>{t("tabAbout")}</span>
+                      </button>
+
                       <div className="border-t border-stone-100 my-1 pt-1">
                         <button
                           type="button"
@@ -1749,6 +1800,18 @@ export default function App() {
                       >
                         <Bell className="h-3.5 w-3.5 text-indigo-600" />
                         <span>{t("tabPreferences")}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleOpenProfileTab("about");
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        <Info className="h-3.5 w-3.5 text-indigo-600" />
+                        <span>{t("tabAbout")}</span>
                       </button>
 
                       <div className="border-t border-stone-100 my-1 pt-1">
@@ -2094,12 +2157,27 @@ export default function App() {
               </motion.div>
             </div>
           )}
+
       </main>
 
-      {/* Footer credits */}
-      <footer className="mt-auto py-8 bg-white border-t border-stone-200 text-center text-xs text-stone-400 font-light flex flex-col items-center justify-center gap-4 px-4">
+      {/* Footer credits & About button */}
+      <footer className="mt-auto py-8 bg-white border-t border-stone-200 text-center text-xs text-stone-500 font-light flex flex-col items-center justify-center gap-3 px-4">
+        <button
+          type="button"
+          onClick={() => setShowAboutModal(true)}
+          className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-stone-300/70 active:scale-95"
+        >
+          <span>ℹ️ {prefLanguage === "tagalog" ? "Tungkol sa CasaFinder" : "About CasaFinder"}</span>
+        </button>
         <p>&copy; {new Date().getFullYear()} CasaFinder Inc. Gumaca College & High School Housing Network. All rights reserved.</p>
       </footer>
+
+      {/* About CasaFinder Modal */}
+      <AboutModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+        prefLanguage={prefLanguage}
+      />
 
       {/* Pop-up detail modal */}
       <AnimatePresence>
@@ -2153,10 +2231,34 @@ export default function App() {
             sanitaryPermit: propPermits?.sanitaryPermit || ""
           };
 
-          const matchedProperties = propertiesList.filter(
-            (p) => (p.landlordUsername && actualUsername && p.landlordUsername.toLowerCase() === actualUsername.toLowerCase()) ||
-                   (p.landlordName && actualName && p.landlordName.toLowerCase() === actualName.toLowerCase())
-          );
+          let matchedProperties = propertiesList.filter((p) => {
+            if (p.id === landlordProfileProperty.id) return true;
+
+            const pUsername = (p.landlordUsername || "").toLowerCase();
+            const u1 = (actualUsername || "").toLowerCase();
+            const u2 = (propUsername || "").toLowerCase();
+            if (pUsername && ((u1 && pUsername === u1) || (u2 && pUsername === u2))) return true;
+
+            const pName = (p.landlordName || "").toLowerCase();
+            const n1 = (actualName || "").toLowerCase();
+            const n2 = (propName || "").toLowerCase();
+            if (pName && ((n1 && pName === n1) || (n2 && pName === n2))) return true;
+
+            const pEmail = (p.landlordEmail || "").toLowerCase();
+            const e1 = (actualEmail || "").toLowerCase();
+            const e2 = (landlordProfileProperty.landlordEmail || "").toLowerCase();
+            if (pEmail && ((e1 && pEmail === e1) || (e2 && pEmail === e2))) return true;
+
+            const pMobile = p.landlordMobile || "";
+            const m1 = actualMobile || "";
+            const m2 = landlordProfileProperty.landlordMobile || "";
+            if (pMobile && ((m1 && pMobile === m1) || (m2 && pMobile === m2))) return true;
+
+            return false;
+          });
+          if (!matchedProperties.some(p => p.id === landlordProfileProperty.id)) {
+            matchedProperties = [landlordProfileProperty, ...matchedProperties];
+          }
 
           return (
             <LandlordProfileModal
@@ -2816,6 +2918,18 @@ export default function App() {
                   <Bell className="h-3 w-3" />
                   <span>{t("tabPreferences")}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileTab("about")}
+                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    profileTab === "about"
+                      ? "border-indigo-600 text-indigo-600"
+                      : "border-transparent text-stone-500 hover:text-stone-800"
+                  }`}
+                >
+                  <Info className="h-3 w-3" />
+                  <span>{t("tabAbout")}</span>
+                </button>
               </div>
 
               {/* Modal Body & Form */}
@@ -2858,7 +2972,7 @@ export default function App() {
                             <Lock className="h-3 w-3 text-stone-400" />
                             Username
                           </span>
-                          <span className="text-[9px] text-stone-400 font-normal">Fixed ID</span>
+                          <span className="text-[9px] text-stone-400 font-normal">{prefLanguage === "tagalog" ? "Hindi Mababago" : "Fixed ID"}</span>
                         </label>
                         <input
                           type="text"
@@ -2889,7 +3003,7 @@ export default function App() {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
                           <Phone className="h-3 w-3 text-stone-400" />
-                          {prefLanguage === "tagalog" ? "Mobiile Number / Telepono" : "Mobile Number"}
+                          {prefLanguage === "tagalog" ? "Numero ng Telepono / Mobile" : "Mobile Number"}
                         </label>
                         <input
                           type="tel"
@@ -3065,17 +3179,17 @@ export default function App() {
                       <div className="grid grid-cols-3 gap-2 pt-1 border-t border-stone-800/80 text-[10px]">
                         <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
                           <span className="text-stone-400 block text-[9px] uppercase font-bold">{prefLanguage === "tagalog" ? "Password" : "Password"}</span>
-                          <span className="font-bold text-emerald-400">{profileEditPassword ? "Na-set na 🔒" : "Aktibo 🟢"}</span>
+                          <span className="font-bold text-emerald-400">{profileEditPassword ? (prefLanguage === "tagalog" ? "Naka-set 🔒" : "Configured 🔒") : (prefLanguage === "tagalog" ? "Aktibo 🟢" : "Active 🟢")}</span>
                         </div>
                         <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
                           <span className="text-stone-400 block text-[9px] uppercase font-bold">2FA (SMS/OTP)</span>
                           <span className={`font-bold ${is2FAEnabled ? "text-emerald-400" : "text-amber-400"}`}>
-                            {is2FAEnabled ? "Naka-ON 🟢" : "Naka-OFF ⚪"}
+                            {is2FAEnabled ? (prefLanguage === "tagalog" ? "Naka-ON 🟢" : "ON 🟢") : (prefLanguage === "tagalog" ? "Naka-OFF ⚪" : "OFF ⚪")}
                           </span>
                         </div>
                         <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
                           <span className="text-stone-400 block text-[9px] uppercase font-bold">4-Digit PIN</span>
-                          <span className="font-bold text-indigo-300">{securityPin ? "Naka-set 🔑" : "Wala pa"}</span>
+                          <span className="font-bold text-indigo-300">{securityPin ? (prefLanguage === "tagalog" ? "Naka-set 🔑" : "Set 🔑") : (prefLanguage === "tagalog" ? "Wala pa" : "Not Set")}</span>
                         </div>
                       </div>
                     </div>
@@ -3351,7 +3465,9 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
-                            setActiveSessions(prev => prev.filter(s => s.current));
+                            const filtered = activeSessions.filter(s => s.current);
+                            setActiveSessions(filtered);
+                            localStorage.setItem("casafinder_active_sessions", JSON.stringify(filtered));
                             setSecurityMsg(
                               prefLanguage === "tagalog"
                                 ? "Na-logout na ang lahat ng ibang mga lumang device!"
@@ -3470,6 +3586,67 @@ export default function App() {
                   </div>
                 )}
 
+                {/* About CasaFinder Tab Content */}
+                {profileTab === "about" && (
+                  <div className="space-y-4 font-sans text-xs">
+                    <div className="bg-stone-900 text-white rounded-2xl p-4 sm:p-5 space-y-3 relative overflow-hidden shadow-inner">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-500/20 text-amber-300 rounded-lg text-sm font-bold">🏠</span>
+                        <div>
+                          <h3 className="font-display font-extrabold text-sm text-amber-400">CasaFinder Gumaca</h3>
+                          <p className="text-[10px] text-stone-300">{prefLanguage === "tagalog" ? "Housing Directory ng Gumaca, Quezon" : "Gumaca Housing & Boarding Directory"}</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-stone-300 font-light leading-relaxed">
+                        {prefLanguage === "tagalog"
+                          ? "Ang opisyal na Housing at Boarding House Directory sa bayan ng Gumaca, Quezon. Idinisenyo upang tulungan ang mga estudyante, guro, at magulang na makahanap ng ligtas, abot-kaya, at kumportableng tirahan malapit sa kanilang paaralan."
+                          : "The official Housing & Boarding House Directory of Gumaca, Quezon. Built to empower students, teachers, and parents in finding safe, affordable, and comfortable homes near local schools."}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
+                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
+                          <span>🎓</span> {prefLanguage === "tagalog" ? "Estudyante" : "Students"}
+                        </p>
+                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                          {prefLanguage === "tagalog" ? "Kalkulado ang oras ng lakad at biyahe sa trike papuntang eskwelahan." : "Calculates walk & trike time to nearby campuses."}
+                        </p>
+                      </div>
+                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
+                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
+                          <span>🔑</span> {prefLanguage === "tagalog" ? "Landlords" : "Landlords"}
+                        </p>
+                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                          {prefLanguage === "tagalog" ? "Libreng pag-post at pag-upload ng Mayor's Permit at BFP Safety Certificates." : "Free listing and permit verification uploads."}
+                        </p>
+                      </div>
+                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
+                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
+                          <span>🛡️</span> {prefLanguage === "tagalog" ? "Rehistrado" : "Verified"}
+                        </p>
+                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                          {prefLanguage === "tagalog" ? "May transparent reviews, ratings, at interactive barangay map." : "Verified ratings, reviews, and interactive maps."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2 text-[11px]">
+                      <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-amber-600" />
+                        <span>{prefLanguage === "tagalog" ? "Mga Nakasasakop na Paaralan sa Gumaca:" : "Schools Covered in Gumaca, Quezon:"}</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-stone-700">
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 SLSU Gumaca</span>
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🎓 Eastern Quezon College (EQC)</span>
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">⛪ Mount Carmel College (MCC)</span>
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Gumaca National High School (GNHS)</span>
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Holy Child Jesus College</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Modal Footer Buttons */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
                   <button
@@ -3479,7 +3656,7 @@ export default function App() {
                   >
                     {t("close")}
                   </button>
-                  {profileTab !== "notifications" && (
+                  {profileTab !== "notifications" && profileTab !== "about" && (
                     <button
                       type="submit"
                       className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"

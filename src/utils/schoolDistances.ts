@@ -1,6 +1,7 @@
 export interface SchoolDistance {
   id: string;
   name: string;
+  shortName?: string;
   type: 'University' | 'College' | 'High School' | 'Elementary';
   lat: number;
   lng: number;
@@ -105,6 +106,7 @@ export function getSchoolDistancesForProperty(lat: number, lng: number): SchoolD
     return {
       id: school.id,
       name: school.name,
+      shortName: school.shortName,
       type: school.type,
       lat: school.lat,
       lng: school.lng,

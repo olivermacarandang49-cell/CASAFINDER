@@ -74,6 +74,7 @@ export const translations = {
     tabProfileInfo: "Profile Info 👤",
     tabSecurity: "Security & Password 🔒",
     tabPreferences: "Preferences & Display ⚙️",
+    tabAbout: "Tungkol sa App ℹ️",
     
     fullName: "Pangalan",
     username: "Username",
@@ -200,6 +201,7 @@ export const translations = {
     tabProfileInfo: "Profile Info 👤",
     tabSecurity: "Security & Password 🔒",
     tabPreferences: "Preferences & Display ⚙️",
+    tabAbout: "About CasaFinder ℹ️",
 
     fullName: "Full Name",
     username: "Username",

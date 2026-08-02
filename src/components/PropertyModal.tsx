@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Property } from "../data/properties";
 import { AiMatch } from "../types";
 import { motion } from "motion/react";
-import { X, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation } from "lucide-react";
+import { X, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation, AlertTriangle } from "lucide-react";
 import { SchoolDistancesList } from "./SchoolDistancesList";
 import { getTranslation, Language } from "../utils/translations";
 
@@ -33,6 +33,7 @@ export default function PropertyModal({
   onAddReply,
   language = "tagalog"
 }: PropertyModalProps) {
+  const isTagalog = language === "tagalog";
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(language, key);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -42,6 +43,7 @@ export default function PropertyModal({
   // Reply state
   const [activeReplyReviewId, setActiveReplyReviewId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const reviews = property.reviews || [];
   const avgRating = reviews.length > 0
@@ -99,17 +101,17 @@ export default function PropertyModal({
               </span>
               {property.genderPolicy === "Girls Only" && (
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                  👧 Girls Only
+                  👧 {isTagalog ? "Mga Babae Lamang" : "Girls Only"}
                 </span>
               )}
               {property.genderPolicy === "Boys Only" && (
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
-                  👦 Boys Only
+                  👦 {isTagalog ? "Mga Lalaki Lamang" : "Boys Only"}
                 </span>
               )}
               {property.genderPolicy === "Both" && (
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  👫 Both (Co-ed)
+                  👫 {isTagalog ? "Lalaki at Babae (Co-ed)" : "Both (Co-ed)"}
                 </span>
               )}
             </div>
@@ -128,7 +130,7 @@ export default function PropertyModal({
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 w-fit"
                 >
                   <Map className="h-4 w-4" />
-                  <span>Tingnan sa Interactive Map 🗺️</span>
+                  <span>{isTagalog ? "Tingnan sa Interactive Map 🗺️" : "View on Interactive Map 🗺️"}</span>
                 </button>
               )}
             </div>
@@ -147,7 +149,7 @@ export default function PropertyModal({
           {/* Description Section */}
           <div className="mb-8">
             <h4 className="font-display text-sm font-semibold uppercase tracking-wider text-stone-400 mb-2">
-              Property Overview
+              {isTagalog ? "Pangkalahatang Detalye ng Tuluyan" : "Property Overview"}
             </h4>
             <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-line font-light">
               {property.description}
@@ -161,7 +163,7 @@ export default function PropertyModal({
                 <Home className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-semibold text-stone-400">Type</p>
+                <p className="text-[10px] uppercase font-semibold text-stone-400">{isTagalog ? "Uri" : "Type"}</p>
                 <p className="text-xs font-semibold text-stone-800">{property.type}</p>
               </div>
             </div>
@@ -171,7 +173,7 @@ export default function PropertyModal({
                 <Calendar className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-semibold text-stone-400">Year Built</p>
+                <p className="text-[10px] uppercase font-semibold text-stone-400">{isTagalog ? "Taon ng Pagtatayo" : "Year Built"}</p>
                 <p className="text-xs font-semibold text-stone-800">{property.yearBuilt}</p>
               </div>
             </div>
@@ -181,7 +183,7 @@ export default function PropertyModal({
                 <Car className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-semibold text-stone-400">Parking</p>
+                <p className="text-[10px] uppercase font-semibold text-stone-400">{isTagalog ? "Aparaduhan" : "Parking"}</p>
                 <p className="text-xs font-semibold text-stone-800 truncate max-w-[80px]">{property.parking}</p>
               </div>
             </div>
@@ -191,7 +193,7 @@ export default function PropertyModal({
                 <Flame className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-semibold text-stone-400">Cooling</p>
+                <p className="text-[10px] uppercase font-semibold text-stone-400">{isTagalog ? "Palamig" : "Cooling"}</p>
                 <p className="text-xs font-semibold text-stone-800 truncate max-w-[80px]">{property.heating}</p>
               </div>
             </div>
@@ -200,7 +202,7 @@ export default function PropertyModal({
           {/* Core Features list */}
           <div className="mb-6">
             <h4 className="font-display text-sm font-semibold uppercase tracking-wider text-stone-400 mb-3">
-              Premium Interior & Amenities
+              {isTagalog ? "Mga Pasilidad at Amenidad" : "Interior & Amenities"}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {property.features.map((feature, idx) => (
@@ -218,6 +220,7 @@ export default function PropertyModal({
               coordinates={property.coordinates}
               propertyName={property.title}
               neighborhood={property.neighborhood}
+              language={language}
               onViewSchoolOnMap={(lat, lng, name, schoolId) => {
                 if (onViewOnMap) onViewOnMap(property, schoolId);
               }}
@@ -230,10 +233,14 @@ export default function PropertyModal({
               <div>
                 <h4 className="font-display text-sm font-bold uppercase tracking-wider text-stone-800 flex items-center gap-1.5">
                   <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
-                  Student Ratings & Reviews 🎓
+                  {isTagalog ? "Mga Rating at Review ng Estudyante 🎓" : "Student Ratings & Reviews 🎓"}
                 </h4>
                 <p className="text-xs text-stone-500 font-light mt-0.5">
-                  {avgRating ? `${avgRating} out of 5 stars (${reviews.length} ${reviews.length === 1 ? 'review' : 'reviews'})` : "No student ratings yet. Be the first to rate!"}
+                  {avgRating
+                    ? (isTagalog
+                        ? `${avgRating} mula sa 5 bituin (${reviews.length} ${reviews.length === 1 ? 'review' : 'mga review'})`
+                        : `${avgRating} out of 5 stars (${reviews.length} ${reviews.length === 1 ? 'review' : 'reviews'})`)
+                    : (isTagalog ? "Wala pang rating. Maging una sa pag-rate!" : "No student ratings yet. Be the first to rate!")}
                 </p>
               </div>
 
@@ -249,13 +256,13 @@ export default function PropertyModal({
             {userSession?.role === "student" ? (
               <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 mb-6 space-y-3">
                 <p className="text-xs font-bold text-stone-800">
-                  Rate this Boarding House / Apartment (1-5 Stars):
+                  {isTagalog ? "Maglagay ng Rating sa Tuluyan na ito (1-5 Bituin):" : "Rate this Boarding House / Apartment (1-5 Stars):"}
                 </p>
 
                 {submitted ? (
                   <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-3 text-xs font-semibold flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>Nailagay na ang iyong rating! Maraming salamat. 🎉</span>
+                    <span>{isTagalog ? "Nailagay na ang iyong rating! Maraming salamat. 🎉" : "Your rating has been submitted! Thank you. 🎉"}</span>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitReview} className="space-y-3">
@@ -280,7 +287,7 @@ export default function PropertyModal({
                         </button>
                       ))}
                       <span className="ml-2 text-xs font-bold text-stone-700 font-mono">
-                        {hoverRating || rating} / 5 Stars
+                        {hoverRating || rating} / 5 {isTagalog ? "Bituin" : "Stars"}
                       </span>
                     </div>
 
@@ -289,7 +296,7 @@ export default function PropertyModal({
                       rows={2}
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder="Mag-iwan ng comment o feedback para sa ibang estudyante (optional)..."
+                      placeholder={isTagalog ? "Mag-iwan ng komento o feedback para sa ibang estudyante (opsyonal)..." : "Leave a comment or feedback for other students (optional)..."}
                       className="w-full bg-white border border-stone-200 rounded-xl p-2.5 text-xs text-stone-800 focus:outline-hidden focus:border-amber-500 resize-none font-light"
                     />
 
@@ -298,14 +305,18 @@ export default function PropertyModal({
                       className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                     >
                       <Star className="h-3.5 w-3.5 fill-white" />
-                      Submit Student Rating ⭐️
+                      {isTagalog ? "I-submit ang Rating ⭐️" : "Submit Student Rating ⭐️"}
                     </button>
                   </form>
                 )}
               </div>
             ) : (
               <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 mb-6 text-[11px] text-amber-900 leading-relaxed">
-                💡 Mag-login bilang <strong>Student</strong> account upang makapaglagay ng 1-5 star rating at review para sa property na ito!
+                {isTagalog ? (
+                  <span>💡 Mag-log in bilang <strong>Student</strong> account upang makapaglagay ng 1-5 star rating at review para sa tuluyan na ito!</span>
+                ) : (
+                  <span>💡 Log in with a <strong>Student</strong> account to leave a 1-5 star rating and review for this property!</span>
+                )}
               </div>
             )}
 
@@ -313,7 +324,7 @@ export default function PropertyModal({
             <div className="space-y-4">
               {reviews.length === 0 ? (
                 <p className="text-xs text-stone-400 italic text-center py-4 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-                  Wala pang mga review o rating para sa property na ito.
+                  {isTagalog ? "Wala pang mga review o rating para sa tuluyan na ito." : "No reviews or ratings yet for this property."}
                 </p>
               ) : (
                 reviews.map((rev) => (
@@ -390,7 +401,7 @@ export default function PropertyModal({
                           className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                         >
                           <Reply className="h-3 w-3" />
-                          <span>Sumagot / Reply sa review na ito</span>
+                          <span>{isTagalog ? "Sumagot sa review na ito" : "Reply to this review"}</span>
                         </button>
                       )}
                     </div>
@@ -400,13 +411,13 @@ export default function PropertyModal({
                       <div className="mt-2 bg-white border border-indigo-200 rounded-xl p-3 space-y-2 shadow-xs">
                         <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-900">
                           <MessageSquare className="h-3.5 w-3.5 text-indigo-600" />
-                          <span>Iyong Tugon o Reply (naka-login bilang {userSession?.name || "User"}):</span>
+                          <span>{isTagalog ? `Iyong Tugon / Reply (naka-login bilang ${userSession?.name || "User"}):` : `Your Reply (logged in as ${userSession?.name || "User"}):`}</span>
                         </div>
                         <textarea
                           rows={2}
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Isulat ang iyong klaripikasyon o sagot sa review na ito..."
+                          placeholder={isTagalog ? "Isulat ang iyong klaripikasyon o sagot sa review na ito..." : "Write your response or clarification for this review..."}
                           className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-lg p-2 text-xs text-stone-800 focus:outline-hidden resize-none"
                         />
                         <div className="flex items-center justify-end gap-2">
@@ -418,7 +429,7 @@ export default function PropertyModal({
                             }}
                             className="px-3 py-1 text-[11px] font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
                           >
-                            Kanselahin
+                            {isTagalog ? "Kanselahin" : "Cancel"}
                           </button>
                           <button
                             type="button"
@@ -426,7 +437,7 @@ export default function PropertyModal({
                             className="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold py-1 px-3 rounded-lg transition-all cursor-pointer shadow-xs flex items-center gap-1"
                           >
                             <Reply className="h-3 w-3" />
-                            <span>Ipadala ang Reply 🚀</span>
+                            <span>{isTagalog ? "Ipadala ang Reply 🚀" : "Send Reply 🚀"}</span>
                           </button>
                         </div>
                       </div>
@@ -444,25 +455,23 @@ export default function PropertyModal({
             {/* Real Price Display */}
             <div className="mb-6 p-4 bg-white rounded-2xl border border-stone-200/80 shadow-xs space-y-3">
               <div>
-                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Monthly Rent</p>
+                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">{isTagalog ? "Buwanang Upa" : "Monthly Rent"}</p>
                 <p className="font-display text-3xl font-bold text-stone-950 mt-1">
                   ₱{property.price.toLocaleString()}
-                  <span className="text-sm font-sans font-normal text-stone-500 ml-1">/ month</span>
+                  <span className="text-sm font-sans font-normal text-stone-500 ml-1">{isTagalog ? "/ buwan" : "/ month"}</span>
                 </p>
               </div>
 
               <div className="pt-2 border-t border-stone-100 grid grid-cols-2 text-center text-stone-600 font-mono text-xs">
                 <div>
                   <p className="font-bold text-stone-800">{property.beds}</p>
-                  <p className="text-[10px] text-stone-400">Beds</p>
+                  <p className="text-[10px] text-stone-400">{isTagalog ? "Kama" : "Beds"}</p>
                 </div>
                 <div className="border-l border-stone-100">
                   <p className="font-bold text-stone-800">{property.baths}</p>
-                  <p className="text-[10px] text-stone-400">Baths</p>
+                  <p className="text-[10px] text-stone-400">{isTagalog ? "Banyo" : "Baths"}</p>
                 </div>
               </div>
-
-
             </div>
 
             {/* Landlord & Permit Card */}
@@ -486,10 +495,10 @@ export default function PropertyModal({
                 </div>
                 <div>
                   <h5 className="text-xs font-bold text-stone-900 flex items-center gap-1 group-hover:text-indigo-600 transition-colors">
-                    {property.landlordName || "Go to profile of the landlord"}
+                    {property.landlordName || (isTagalog ? "Pumunta sa profile ng landlord" : "Go to landlord profile")}
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                   </h5>
-                  <p className="text-[10px] text-stone-400">Verified Boarding Operator • Click for profile 👤</p>
+                  <p className="text-[10px] text-stone-400">{isTagalog ? "Rehistradong Operator • I-click para sa profile 👤" : "Verified Boarding Operator • Click for profile 👤"}</p>
                 </div>
               </div>
 
@@ -497,7 +506,7 @@ export default function PropertyModal({
               {property.landlordPermits && (
                 <div className="pt-2 border-t border-stone-100 space-y-1.5">
                   <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
-                    Verified LGU & BFP Permits:
+                    {isTagalog ? "Mga Rehistradong Permit sa LGU at BFP:" : "Verified LGU & BFP Permits:"}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {property.landlordPermits.businessPermit && (
@@ -536,7 +545,7 @@ export default function PropertyModal({
                   className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl py-2 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                 >
                   <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>Go to profile of the landlord 👤</span>
+                  <span>{isTagalog ? "Tingnan ang Profile ng Landlord 👤" : "View Landlord Profile 👤"}</span>
                 </button>
               )}
             </div>
@@ -562,19 +571,51 @@ export default function PropertyModal({
                     onClick={() => onEdit(property)}
                     className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                   >
-                    <span>I-edit ang Listing na Ito ✏️</span>
+                    <span>{isTagalog ? "I-edit ang Listing na Ito ✏️" : "Edit This Listing ✏️"}</span>
                   </button>
                 )}
 
                 {onDelete && (
-                  <button
-                    type="button"
-                    onClick={() => onDelete(property.id)}
-                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl py-2 px-3 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Burahin ang Listing 🗑️</span>
-                  </button>
+                  showConfirmDelete ? (
+                    <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl space-y-2.5 animate-fadeIn">
+                      <div className="text-xs font-bold text-red-800 flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                        <span>{isTagalog ? "Sigurado ka bang gusto mong burahin ang listing na ito?" : "Are you sure you want to delete this listing?"}</span>
+                      </div>
+                      <p className="text-[11px] text-red-600/90 leading-tight">
+                        {isTagalog ? "Hindi na ito mababawi kapag tuluyang nabura sa sistema." : "This action cannot be undone once deleted from the system."}
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowConfirmDelete(false);
+                            onDelete(property.id);
+                            onClose();
+                          }}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-all cursor-pointer shadow-xs active:scale-95"
+                        >
+                          {isTagalog ? "Oo, Burahin Na 🗑️" : "Yes, Delete Now 🗑️"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmDelete(false)}
+                          className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold py-1.5 px-3 rounded-lg text-xs transition-all cursor-pointer active:scale-95"
+                        >
+                          {isTagalog ? "Kanselahin" : "Cancel"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmDelete(true)}
+                      className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl py-2 px-3 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>{isTagalog ? "Burahin ang Listing 🗑️" : "Delete Listing 🗑️"}</span>
+                    </button>
+                  )
                 )}
               </div>
             )}
