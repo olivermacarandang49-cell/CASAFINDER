@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import { motion } from "motion/react";
-import { GUMACA_SCHOOLS, getSchoolDistancesForProperty } from "../utils/schoolDistances";
+import { GUMACA_SCHOOLS, getSchoolDistancesForProperty, getGumacaSchools, saveCustomSchoolCoord, resetCustomSchoolCoords } from "../utils/schoolDistances";
 import { AiMatch } from "../types";
 import { Property } from "../data/properties";
 import { Map, MapPin, Navigation, Layers, Compass, ExternalLink, School, Info, Search, Maximize2, Minimize2, Pencil, Trash2, Copy, Check, RotateCcw, Save, Ruler, Shapes, Footprints, GripHorizontal } from "lucide-react";
@@ -84,7 +84,6 @@ const GUMACA_LANDMARKS = [
   { name: "Gumaca National High School (GNHS) 🏫", lat: 13.920500, lng: 122.094000, type: "High School", desc: "Gumaca NHS, Mabini/Poblacion" },
   { name: "Gumaca West & East Central Schools 🏫", lat: 13.918000, lng: 122.099000, type: "School", desc: "M.H. Del Pilar St. / Capisonda St." },
   { name: "Holy Child Academy / Sacred Heart 🏫", lat: 13.921500, lng: 122.099500, type: "High School", desc: "Holy Child Academy, Town Proper" },
-  { name: "Quezon West Academy 🏫", lat: 13.921000, lng: 122.097000, type: "High School", desc: "Quezon West Academy, Gumaca" },
   { name: "San Diego de Alcala Cathedral ⛪", lat: 13.921587, lng: 122.099428, type: "Church", desc: "Historic Parish Church, Town Proper" },
   { name: "Kutang San Diego 🏰", lat: 13.9238, lng: 122.0975, type: "Heritage", desc: "Historical Fort, Brgy. Tabing Dagat" },
   { name: "BIR District Office Gumaca 🏢", lat: 13.9188, lng: 122.0945, type: "Government", desc: "M.H. Del Pilar St." },
@@ -184,12 +183,6 @@ export default function NeighborhoodMap({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapMode, setMapMode] = useState<"streets" | "satellite">("satellite");
   const [showLandmarks, setShowLandmarks] = useState(false);
-  const [showCoordAdjustModal, setShowCoordAdjustModal] = useState(false);
-  const [targetPropertyToAdjust, setTargetPropertyToAdjust] = useState<Property | null>(null);
-  const [inputLat, setInputLat] = useState("");
-  const [inputLng, setInputLng] = useState("");
-  const [inputGoogleLink, setInputGoogleLink] = useState("");
-  const [adjustSuccessMsg, setAdjustSuccessMsg] = useState("");
 
   const [showGrid, setShowGrid] = useState(false);
 
@@ -305,6 +298,7 @@ export default function NeighborhoodMap({
   const [selectedBarangayBoundaryFilter, setSelectedBarangayBoundaryFilter] = useState<string>("");
   const [copySuccessMsg, setCopySuccessMsg] = useState("");
   const [showBoundariesOnMap, setShowBoundariesOnMap] = useState(true);
+  const [showSchoolsOnMap, setShowSchoolsOnMap] = useState(false);
   const [showConfirmDeleteAll, setShowConfirmDeleteAll] = useState(false);
 
   const [userExactGps, setUserExactGps] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
@@ -323,9 +317,24 @@ export default function NeighborhoodMap({
 
   const [activeSchoolRouteFilter, setActiveSchoolRouteFilter] = useState<string>("all");
 
+  const [schoolRevision, setSchoolRevision] = useState(0);
+
   useEffect(() => {
-    if (selectedSchoolId) {
+    const handleUpdate = () => {
+      setSchoolRevision(r => r + 1);
+    };
+    window.addEventListener("casafinder_school_coords_updated", handleUpdate);
+
+    return () => {
+      window.removeEventListener("casafinder_school_coords_updated", handleUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedSchoolId && selectedSchoolId !== "all" && selectedSchoolId !== "none") {
       setActiveSchoolRouteFilter(selectedSchoolId);
+    } else {
+      setActiveSchoolRouteFilter("none");
     }
   }, [selectedSchoolId, selectedProperty]);
 
@@ -436,22 +445,6 @@ export default function NeighborhoodMap({
     }
   }, [isDrawingMode]);
 
-  // Helper to parse Google Maps link or coordinates
-  const handleParseGoogleLink = (link: string) => {
-    // Try matching @lat,lng or ?q=lat,lng or ll=lat,lng or query=lat,lng
-    const match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                  link.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                  link.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                  link.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (match) {
-      setInputLat(match[1]);
-      setInputLng(match[2]);
-      setAdjustSuccessMsg("✅ GPS Coordinates extracted from Google Maps link!");
-    } else {
-      setAdjustSuccessMsg("❌ Could not parse coordinates automatically. Please copy the lat, lng manually.");
-    }
-  };
-
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
     setTimeout(() => {
@@ -475,7 +468,6 @@ export default function NeighborhoodMap({
     { name: "Gumaca National High School (GNHS) 🏫", lat: 13.920500, lng: 122.094000, detail: "High School, Mabini/Poblacion" },
     { name: "Gumaca West & East Central Elementary 🏫", lat: 13.918000, lng: 122.099000, detail: "Elementary School, M.H. Del Pilar St." },
     { name: "Holy Child Academy 🏫", lat: 13.921500, lng: 122.099500, detail: "High School / Academy, Town Proper" },
-    { name: "Quezon West Academy 🏫", lat: 13.921000, lng: 122.097000, detail: "High School / Academy, Gumaca" },
     // All 13 Gumaca Barangays with precise GPS Coordinates
     { name: "📍 Barangay Tabing Dagat", lat: 13.923258, lng: 122.101460, detail: "Coastal Quayside, Nava Blvd & SLSU Campus Area" },
     { name: "📍 Barangay Villa Nava", lat: 13.912125, lng: 122.104057, detail: "Maharlika Hwy East & SLSU Villa Nava Campus" },
@@ -593,7 +585,7 @@ export default function NeighborhoodMap({
     // Pointer-based fallback click handler (handles touchpad micro-drifts that suppress Leaflet's map click event)
     let pointerStartX = 0;
     let pointerStartY = 0;
-    let pointerStartTime = 0;
+    let pointerStartTime = Date.now();
 
     const handlePointerDown = (e: PointerEvent) => {
       pointerStartX = e.clientX;
@@ -1168,6 +1160,49 @@ export default function NeighborhoodMap({
       });
     }
 
+    // Add School Markers when showSchoolsOnMap is enabled
+    if (showSchoolsOnMap) {
+      const activeSchools = getGumacaSchools();
+      activeSchools.forEach((sch) => {
+        const schoolIcon = L.divIcon({
+          className: "custom-school-marker-pin !bg-transparent !border-none",
+          html: `
+            <div class="cursor-pointer group flex flex-col items-center transition-transform hover:scale-110">
+              <div class="bg-indigo-950 text-amber-300 font-extrabold text-[10px] px-2.5 py-1 rounded-full shadow-xl border-2 border-amber-400 flex items-center gap-1.5 whitespace-nowrap">
+                <span>🎓 ${sch.shortName || sch.name}</span>
+              </div>
+              <div class="w-3.5 h-3.5 bg-indigo-900 border-b-2 border-r-2 border-amber-400 rotate-45 -mt-1 shadow-md"></div>
+            </div>
+          `,
+          iconSize: [180, 42],
+          iconAnchor: [90, 36]
+        });
+
+        const marker = L.marker([sch.lat, sch.lng], {
+          icon: schoolIcon
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div class="p-2 font-sans min-w-[200px]">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="text-sm">🎓</span>
+              <strong class="text-xs font-bold text-stone-900">${sch.name}</strong>
+            </div>
+            <p class="text-[11px] text-stone-600 m-0 mb-1.5">${sch.desc}</p>
+            <div class="bg-indigo-50 border border-indigo-200 p-1.5 rounded-lg text-[10px] text-indigo-900 font-mono flex items-center justify-between">
+              <span>📍 GPS: ${sch.lat.toFixed(6)}, ${sch.lng.toFixed(6)}</span>
+            </div>
+          </div>
+        `);
+
+        marker.on("click", () => {
+          triggerArrowHighlight(sch.lat, sch.lng, sch.name, sch.desc, 17);
+        });
+
+        markersRef.current.push(marker);
+      });
+    }
+
     // Add Property Markers
     properties.forEach(property => {
       const [lat, lng] = getLatLngForProperty(property);
@@ -1191,7 +1226,9 @@ export default function NeighborhoodMap({
         iconAnchor: [35, 32]
       });
 
-      const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+      const marker = L.marker([lat, lng], {
+        icon: markerIcon
+      }).addTo(map);
 
       // Custom popup HTML matching user's requested map popup layout
       const popupDiv = document.createElement("div");
@@ -1250,104 +1287,179 @@ export default function NeighborhoodMap({
       markersRef.current.push(marker);
     });
 
-    // Manage Route Layer for connecting lines from Selected Property to Schools
-    if (!routeLayerRef.current) {
-      routeLayerRef.current = L.layerGroup().addTo(map);
-    } else {
-      routeLayerRef.current.clearLayers();
+    // Manage Route Layer for connecting lines from Selected Property to Schools / Selected School Pinpoint
+    if (routeLayerRef.current) {
+      try {
+        routeLayerRef.current.clearLayers();
+        routeLayerRef.current.remove();
+      } catch (e) {}
     }
+    routeLayerRef.current = L.layerGroup().addTo(map);
 
-    if (selectedProperty) {
-      const [sLat, sLng] = getLatLngForProperty(selectedProperty);
-      const schoolDistances = getSchoolDistancesForProperty(sLat, sLng);
+    const targetSchoolId = (selectedSchoolId && selectedSchoolId !== "none" && selectedSchoolId !== "all")
+      ? selectedSchoolId
+      : (activeSchoolRouteFilter && activeSchoolRouteFilter !== "none" && activeSchoolRouteFilter !== "all")
+        ? activeSchoolRouteFilter
+        : null;
 
-      const targetSchools = activeSchoolRouteFilter === "all"
-        ? schoolDistances
-        : schoolDistances.filter(s => s.id === activeSchoolRouteFilter);
+    if (targetSchoolId) {
+      const activeSchools = getGumacaSchools();
+      const selectedSchoolObj = activeSchools.find(s =>
+        s.id === targetSchoolId ||
+        s.id.includes(targetSchoolId) ||
+        targetSchoolId.includes(s.id) ||
+        s.name.toLowerCase().includes(targetSchoolId.toLowerCase())
+      );
 
-      const routeColorMap: Record<string, string> = {
-        "slsu-main": "#4f46e5",
-        "slsu-villa-nava": "#059669",
-        "eqc-college": "#d97706",
-        "gnhs-high": "#e11d48",
-        "central-elementary": "#0284c7",
-        "holy-child": "#7c3aed",
-        "qwa-high": "#ea580c"
-      };
+      if (selectedSchoolObj) {
+        const lineStrokeColor = "#2563eb"; // Vibrant Blue Route Line as requested
 
-      targetSchools.forEach((schoolItem) => {
-        const lineStrokeColor = routeColorMap[schoolItem.id] || "#3b82f6";
-
-        // Outer glow line
-        const shadowPolyline = L.polyline([[sLat, sLng], [schoolItem.lat, schoolItem.lng]], {
-          color: "#0f172a",
-          weight: activeSchoolRouteFilter === "all" ? 5 : 7,
-          opacity: 0.25,
-          interactive: false
-        });
-        routeLayerRef.current?.addLayer(shadowPolyline);
-
-        // Dashed animated route line
-        const routePolyline = L.polyline([[sLat, sLng], [schoolItem.lat, schoolItem.lng]], {
-          color: lineStrokeColor,
-          weight: activeSchoolRouteFilter === "all" ? 3.5 : 5,
-          dashArray: activeSchoolRouteFilter === "all" ? "6, 8" : "10, 8",
-          opacity: 0.95,
-          interactive: false
-        });
-        routeLayerRef.current?.addLayer(routePolyline);
-
-        // Midpoint badge callout
-        const midLat = (sLat + schoolItem.lat) / 2;
-        const midLng = (sLng + schoolItem.lng) / 2;
-        const midBadgeIcon = L.divIcon({
-          className: "custom-route-mid-badge !bg-transparent !border-none",
+        // 1. Add Prominent School Bouncing Arrow Pinpoint Marker
+        const schoolIcon = L.divIcon({
+          className: "custom-selected-school-arrow-pin !bg-transparent !border-none",
           html: `
-            <div class="pointer-events-none flex items-center justify-center">
-              <div class="bg-stone-900/90 text-white font-sans text-[10px] font-bold px-2.5 py-1 rounded-xl shadow-2xl border border-stone-600 flex items-center gap-1.5 whitespace-nowrap">
-                <span style="color: ${lineStrokeColor}">📏 ${schoolItem.distanceKm.toFixed(2)} km</span>
-                <span class="text-stone-300 font-normal">(${schoolItem.walkingMinutes}m lakad)</span>
+            <div class="cursor-pointer group flex flex-col items-center z-50 transition-transform hover:scale-110 active:scale-95">
+              <!-- Title Badge Above Pin -->
+              <div class="mb-1.5 whitespace-nowrap bg-indigo-950 text-amber-300 font-black text-[11px] sm:text-xs px-3 py-1.5 rounded-full shadow-2xl border-2 border-amber-400 flex items-center gap-1.5 tracking-wide">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.7 2.21a1.25 1.25 0 0 1 1.6 0l9.25 7.4a1.25 1.25 0 0 1-.22 2.05l-2.08.99v4.6a2.25 2.25 0 0 1-1.35 2.07l-5.65 2.38a2.25 2.25 0 0 1-1.7 0l-5.65-2.38A2.25 2.25 0 0 1 4.5 17.25v-4.6l-2.08-.99a1.25 1.25 0 0 1-.22-2.05l9.5-7.4Z" />
+                </svg>
+                <span>${selectedSchoolObj.shortName || selectedSchoolObj.name}</span>
+                <span class="bg-amber-400 text-stone-950 font-black text-[9px] px-1.5 py-0.5 rounded uppercase">PAARALAN</span>
               </div>
+              
+              <!-- Distinct SVG School Pinhead Badge with Pulsing Ring -->
+              <div class="relative flex items-center justify-center">
+                <!-- Pulsing Outer Ring -->
+                <div class="absolute -inset-2 bg-indigo-500/50 rounded-full animate-ping"></div>
+                
+                <!-- Circle SVG Pin Container -->
+                <div class="relative w-12 h-12 bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-2xl flex items-center justify-center p-2">
+                  <!-- Graduation Cap SVG Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-amber-300 drop-shadow-md animate-bounce" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.7 2.21a1.25 1.25 0 0 1 1.6 0l9.25 7.4a1.25 1.25 0 0 1-.22 2.05l-2.08.99v4.6a2.25 2.25 0 0 1-1.35 2.07l-5.65 2.38a2.25 2.25 0 0 1-1.7 0l-5.65-2.38A2.25 2.25 0 0 1 4.5 17.25v-4.6l-2.08-.99a1.25 1.25 0 0 1-.22-2.05l9.5-7.4Z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Pointer Tip -->
+              <div class="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-amber-400 -mt-0.5 drop-shadow-md"></div>
             </div>
           `,
-          iconSize: [150, 26],
-          iconAnchor: [75, 13]
+          iconSize: [220, 85],
+          iconAnchor: [110, 85]
         });
-        const midBadgeMarker = L.marker([midLat, midLng], { icon: midBadgeIcon, interactive: false });
-        routeLayerRef.current?.addLayer(midBadgeMarker);
 
-        // Destination School Pin
-        const destIcon = L.divIcon({
-          className: "custom-school-dest-pin !bg-transparent !border-none",
-          html: `
-            <div class="cursor-pointer group flex flex-col items-center">
-              <div class="bg-stone-900 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-full shadow-2xl border-2 border-white flex items-center gap-1 whitespace-nowrap group-hover:scale-110 transition-transform">
-                <span>🎓 ${schoolItem.name}</span>
-                <span class="bg-amber-400 text-stone-950 font-mono font-black text-[9px] px-1 rounded">${schoolItem.distanceKm.toFixed(2)}km</span>
-              </div>
-              <div class="w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg animate-ping mt-0.5" style="background-color: ${lineStrokeColor}"></div>
+        const schoolMarker = L.marker([selectedSchoolObj.lat, selectedSchoolObj.lng], {
+          icon: schoolIcon,
+          zIndexOffset: 2000
+        });
+
+        schoolMarker.bindPopup(`
+          <div class="p-2 font-sans min-w-[200px]">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="text-sm">🎓</span>
+              <strong class="text-xs font-bold text-stone-900">${selectedSchoolObj.name}</strong>
             </div>
-          `,
-          iconSize: [180, 42],
-          iconAnchor: [90, 21]
-        });
-        const destMarker = L.marker([schoolItem.lat, schoolItem.lng], { icon: destIcon });
-        destMarker.on("click", () => {
-          setActiveSchoolRouteFilter(schoolItem.id);
-        });
-        routeLayerRef.current?.addLayer(destMarker);
-      });
+            <p class="text-[11px] text-stone-600 m-0 mb-1.5">${selectedSchoolObj.desc || 'School in Gumaca, Quezon'}</p>
+            <div class="bg-blue-50 border border-blue-200 p-1.5 rounded-lg text-[10px] text-blue-900 font-mono flex items-center justify-between">
+              <span>📍 GPS: ${selectedSchoolObj.lat.toFixed(6)}, ${selectedSchoolObj.lng.toFixed(6)}</span>
+            </div>
+          </div>
+        `);
 
-      // Fit bounds if single school selected
-      if (activeSchoolRouteFilter !== "all" && targetSchools.length > 0) {
-        const target = targetSchools[0];
-        const bounds = L.latLngBounds([[sLat, sLng], [target.lat, target.lng]]);
-        map.fitBounds(bounds, { padding: [70, 70], animate: true, duration: 1 });
-      } else {
-        map.flyTo([sLat, sLng], 15, { animate: true, duration: 1 });
+        routeLayerRef.current?.addLayer(schoolMarker);
+
+        // 2. If Property is selected, draw Connecting Blue Route Line & Distance Badge
+        if (selectedProperty) {
+          const [sLat, sLng] = getLatLngForProperty(selectedProperty);
+          const schoolDistances = getSchoolDistancesForProperty(sLat, sLng, selectedProperty.neighborhood);
+          const distObj = schoolDistances.find(s => s.id === selectedSchoolObj.id) || {
+            distanceKm: 0.5,
+            walkingMinutes: 6
+          };
+
+          const initialStraightCoords: [number, number][] = [[sLat, sLng], [selectedSchoolObj.lat, selectedSchoolObj.lng]];
+
+          // Outer shadow glow line
+          const shadowPolyline = L.polyline(initialStraightCoords, {
+            color: "#1e3a8a",
+            weight: 8,
+            opacity: 0.35,
+            interactive: false
+          });
+          routeLayerRef.current?.addLayer(shadowPolyline);
+
+          // Dashed animated route line in vibrant blue
+          const routePolyline = L.polyline(initialStraightCoords, {
+            color: lineStrokeColor,
+            weight: 5,
+            dashArray: "10, 8",
+            opacity: 0.95,
+            interactive: false
+          });
+          routeLayerRef.current?.addLayer(routePolyline);
+
+          // Midpoint distance badge callout
+          const midLat = (sLat + selectedSchoolObj.lat) / 2;
+          const midLng = (sLng + selectedSchoolObj.lng) / 2;
+          const midBadgeIcon = L.divIcon({
+            className: "custom-route-mid-badge !bg-transparent !border-none",
+            html: `
+              <div class="pointer-events-none flex items-center justify-center">
+                <div class="bg-blue-950 text-white font-sans text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-2xl border-2 border-blue-400 flex items-center gap-1.5 whitespace-nowrap">
+                  <span class="text-amber-300">📏 ${distObj.distanceKm.toFixed(2)} km</span>
+                  <span class="text-blue-100 font-normal">(${distObj.walkingMinutes}m lakad)</span>
+                </div>
+              </div>
+            `,
+            iconSize: [180, 32],
+            iconAnchor: [90, 16]
+          });
+          const midBadgeMarker = L.marker([midLat, midLng], { icon: midBadgeIcon, interactive: false, zIndexOffset: 1500 });
+          routeLayerRef.current?.addLayer(midBadgeMarker);
+
+          // Fit bounds to show both property and school pinpoint initially
+          const bounds = L.latLngBounds(initialStraightCoords);
+          map.fitBounds(bounds, { padding: [90, 90], maxZoom: 17, animate: true, duration: 1 });
+
+          // Asynchronously fetch actual street road route from OSRM
+          const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${sLng},${sLat};${selectedSchoolObj.lng},${selectedSchoolObj.lat}?overview=full&geometries=geojson`;
+          fetch(osrmUrl)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.code === "Ok" && data.routes && data.routes[0]?.geometry?.coordinates) {
+                const roadCoords: [number, number][] = data.routes[0].geometry.coordinates.map(
+                  ([lng, lat]: [number, number]) => [lat, lng]
+                );
+                if (roadCoords.length > 1) {
+                  shadowPolyline.setLatLngs(roadCoords);
+                  routePolyline.setLatLngs(roadCoords);
+
+                  // Update badge to sit along the middle of the actual road route
+                  const midIndex = Math.floor(roadCoords.length / 2);
+                  const [mLat, mLng] = roadCoords[midIndex];
+                  midBadgeMarker.setLatLng([mLat, mLng]);
+
+                  // Re-fit bounds to cleanly fit the actual road path
+                  const roadBounds = L.latLngBounds(roadCoords);
+                  map.fitBounds(roadBounds, { padding: [90, 90], maxZoom: 17, animate: true });
+                }
+              }
+            })
+            .catch((err) => {
+              console.warn("OSRM road route fetch fallback:", err);
+            });
+        } else {
+          // Pan directly to school pinpoint
+          map.flyTo([selectedSchoolObj.lat, selectedSchoolObj.lng], 17, { animate: true, duration: 1 });
+        }
       }
+    } else if (selectedProperty) {
+      const [sLat, sLng] = getLatLngForProperty(selectedProperty);
+      map.flyTo([sLat, sLng], 15, { animate: true, duration: 1 });
     }
-  }, [properties, selectedProperty, aiMatches, onSelectProperty, showLandmarks, villaNavaCoords, tabingDagatCoords, activeArrowLocation, activeSchoolRouteFilter]);
+  }, [properties, selectedProperty, aiMatches, onSelectProperty, showLandmarks, showSchoolsOnMap, villaNavaCoords, tabingDagatCoords, activeArrowLocation, activeSchoolRouteFilter, selectedSchoolId, schoolRevision]);
 
   // Quick pan functions
   const panToArea = (lat: number, lng: number, zoom: number = 16) => {
@@ -1507,6 +1619,10 @@ export default function NeighborhoodMap({
           >
             <span>{showBoundariesOnMap ? "🗺️ Overlay ON" : "🗺️ Overlay OFF"}</span>
           </button>
+
+
+
+
 
           <div className="flex items-center gap-0.5 bg-stone-200/80 p-0.5 rounded-xl text-[10px] sm:text-[11px] font-medium">
             <button
@@ -1702,6 +1818,19 @@ export default function NeighborhoodMap({
           >
             <School className="h-3 w-3 text-teal-600" />
             SLSU Villa Nava 🎓
+          </button>
+
+          <button
+            onClick={() => {
+              const slsu = getGumacaSchools().find(s => s.id === "slsu-main");
+              const slsuLat = slsu?.lat || 13.923258;
+              const slsuLng = slsu?.lng || 122.101460;
+              triggerArrowHighlight(slsuLat, slsuLng, "SLSU Tabing Dagat Campus 🎓🌊", "Southern Luzon State University - Tabing Dagat Campus, Gumaca", 17);
+            }}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
+          >
+            <School className="h-3 w-3 text-emerald-600" />
+            SLSU Tabing Dagat 🎓
           </button>
 
           <button
@@ -2569,7 +2698,7 @@ export default function NeighborhoodMap({
               const displayProp = hoveredProperty || selectedProperty!;
               const score = getMatchScore(displayProp.id);
               const [lat, lng] = getLatLngForProperty(displayProp);
-              const schoolDistances = getSchoolDistancesForProperty(lat, lng);
+              const schoolDistances = getSchoolDistancesForProperty(lat, lng, displayProp.neighborhood);
               const nearestSchool = schoolDistances[0];
 
               return (
@@ -2631,19 +2760,9 @@ export default function NeighborhoodMap({
                   )}
 
                   <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
-                    <button
-                      onClick={() => {
-                        setTargetPropertyToAdjust(displayProp);
-                        setInputLat(lat.toString());
-                        setInputLng(lng.toString());
-                        setInputGoogleLink("");
-                        setAdjustSuccessMsg("");
-                        setShowCoordAdjustModal(true);
-                      }}
-                      className="text-stone-600 hover:text-stone-900 font-bold bg-stone-100 hover:bg-stone-200 px-2 py-0.5 rounded-lg transition-colors cursor-pointer text-[9.5px]"
-                    >
-                      📍 Adjust Coordinates
-                    </button>
+                    <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/80 font-bold text-[9.5px]">
+                      ✋ I-drag ang pin sa mapa para ilipat
+                    </span>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                       target="_blank"
@@ -2660,108 +2779,9 @@ export default function NeighborhoodMap({
         )}
       </div>
 
-      {/* MODAL: Adjust Exact Property Coordinates Modal */}
-      {showCoordAdjustModal && targetPropertyToAdjust && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-4 animate-scale-up font-sans">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="font-display font-bold text-base text-stone-900">
-                  📍 Adjust Exact Location Coordinates
-                </h3>
-                <p className="text-xs text-stone-500 font-medium">
-                  {targetPropertyToAdjust.title}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCoordAdjustModal(false)}
-                className="text-stone-400 hover:text-stone-700 text-sm font-bold p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-stone-800 mb-1">
-                  Paste Google Maps Link:
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="https://maps.google.com/?q=13.9218,122.0988..."
-                    value={inputGoogleLink}
-                    onChange={(e) => setInputGoogleLink(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-                  />
-                  <button
-                    onClick={() => handleParseGoogleLink(inputGoogleLink)}
-                    className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl font-bold cursor-pointer shrink-0"
-                  >
-                    Extract GPS
-                  </button>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-stone-800 mb-1">
-                    Latitude (e.g. 13.9252):
-                  </label>
-                  <input
-                    type="text"
-                    value={inputLat}
-                    onChange={(e) => setInputLat(e.target.value)}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-stone-800 mb-1">
-                    Longitude (e.g. 122.0975):
-                  </label>
-                  <input
-                    type="text"
-                    value={inputLng}
-                    onChange={(e) => setInputLng(e.target.value)}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-                  />
-                </div>
-              </div>
 
-              {adjustSuccessMsg && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold">
-                  {adjustSuccessMsg}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
-              <button
-                onClick={() => setShowCoordAdjustModal(false)}
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const latNum = parseFloat(inputLat);
-                  const lngNum = parseFloat(inputLng);
-                  if (!isNaN(latNum) && !isNaN(lngNum)) {
-                    targetPropertyToAdjust.coordinates = { x: latNum, y: lngNum };
-                    setAdjustSuccessMsg("✅ Location updated successfully!");
-                    setTimeout(() => {
-                      setShowCoordAdjustModal(false);
-                    }, 800);
-                  }
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Save Exact Coordinates
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

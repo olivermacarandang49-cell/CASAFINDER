@@ -260,8 +260,8 @@ export default function LandlordProfileModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {landlordProperties.map((prop) => {
                   const nearest = getSchoolDistancesForProperty(
-                    prop.coordinates?.x ?? 13.9232,
-                    prop.coordinates?.y ?? 122.1014
+                    prop.coordinates,
+                    prop.neighborhood
                   )[0];
 
                   return (

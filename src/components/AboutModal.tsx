@@ -119,7 +119,7 @@ export default function AboutModal({
                 🎓 Eastern Quezon College (EQC)
               </span>
               <span className="px-2.5 py-1 bg-stone-800/90 border border-stone-700/80 rounded-lg text-[11px] font-medium text-stone-300">
-                ⛪ Mount Carmel College (MCC)
+                🎓 Philippine Institute of Arts and Technology (PIAT)
               </span>
               <span className="px-2.5 py-1 bg-stone-800/90 border border-stone-700/80 rounded-lg text-[11px] font-medium text-stone-300">
                 🏫 Gumaca National High School (GNHS)

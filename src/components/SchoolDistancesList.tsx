@@ -18,10 +18,22 @@ export function SchoolDistancesList({
   language = "tagalog"
 }: SchoolDistancesListProps) {
   const isTagalog = language === "tagalog";
+  const [schoolRevision, setSchoolRevision] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setSchoolRevision(r => r + 1);
+    };
+    window.addEventListener("casafinder_school_coords_updated", handleUpdate);
+    return () => window.removeEventListener("casafinder_school_coords_updated", handleUpdate);
+  }, []);
+
   // Parse accurate Lat/Lng from coordinates or neighborhood fallback
   const [lat, lng] = parsePropertyLatLng(coordinates, neighborhood);
 
-  const distances: SchoolDistance[] = getSchoolDistancesForProperty(lat, lng);
+  const distances: SchoolDistance[] = React.useMemo(() => {
+    return getSchoolDistancesForProperty(lat, lng);
+  }, [lat, lng, schoolRevision]);
 
   return (
     <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 space-y-3">

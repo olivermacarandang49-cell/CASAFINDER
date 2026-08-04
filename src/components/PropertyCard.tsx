@@ -39,8 +39,8 @@ export default function PropertyCard({
 
   // Nearest school distance calculation
   const schoolDistances = getSchoolDistancesForProperty(
-    property.coordinates?.x ?? 13.9232,
-    property.coordinates?.y ?? 122.1014
+    property.coordinates,
+    property.neighborhood
   );
   const nearestSchool = schoolDistances[0];
 

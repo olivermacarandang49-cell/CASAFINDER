@@ -315,12 +315,13 @@ export default function App() {
   const [landlordProfileProperty, setLandlordProfileProperty] = useState<Property | null>(null);
 
   // Selected School Filter for Map Route Line
-  const [selectedSchoolIdForMap, setSelectedSchoolIdForMap] = useState<string>("all");
+  const [selectedSchoolIdForMap, setSelectedSchoolIdForMap] = useState<string>("none");
 
   const handleViewOnMap = (prop: Property, schoolId?: string) => {
     setSelectedProperty(prop);
-    setSelectedSchoolIdForMap(schoolId || "all");
+    setSelectedSchoolIdForMap(schoolId || "none");
     setShowMapPage(true);
+    setMobileMapTab("map");
   };
 
   // Search Option Inputs State (User's selections before clicking Search)
@@ -3639,7 +3640,7 @@ export default function App() {
                       <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-stone-700">
                         <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 SLSU Gumaca</span>
                         <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🎓 Eastern Quezon College (EQC)</span>
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">⛪ Mount Carmel College (MCC)</span>
+                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🎨 PIAT College</span>
                         <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Gumaca National High School (GNHS)</span>
                         <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Holy Child Jesus College</span>
                       </div>
