@@ -2826,7 +2826,12 @@ export default function App() {
                   <NeighborhoodMap
                     properties={processedProperties}
                     selectedProperty={selectedProperty}
-                    onSelectProperty={(prop) => setSelectedProperty(prop)}
+                    onSelectProperty={(prop) => {
+                      setSelectedProperty(prop);
+                      if (!prop) {
+                        setSelectedSchoolIdForMap("none");
+                      }
+                    }}
                     onOpenDetails={(prop) => {
                       setSelectedProperty(prop);
                       setDetailModalProperty(prop);

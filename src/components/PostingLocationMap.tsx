@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import { getGumacaSchools } from "../utils/schoolDistances";
 import {
   Navigation,
   MapPin,
@@ -49,11 +50,13 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
   const propertyMarkerRef = useRef<L.Marker | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
+  const schoolsLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullView, setIsFullView] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isGpsSuccess, setIsGpsSuccess] = useState(false);
+  const [showSchoolsOnMap, setShowSchoolsOnMap] = useState(true);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -200,6 +203,59 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
       userAccuracyCircleRef.current.setRadius(Math.max(userLocation.accuracy, 15));
     }
   }, [userLocation]);
+
+  // Render all school pinpoints on PostingLocationMap if enabled
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+
+    if (!schoolsLayerRef.current) {
+      schoolsLayerRef.current = L.layerGroup().addTo(map);
+    } else {
+      schoolsLayerRef.current.clearLayers();
+    }
+
+    if (!showSchoolsOnMap) return;
+
+    const schools = getGumacaSchools();
+    schools.forEach((sch) => {
+      const schoolIcon = L.divIcon({
+        className: "custom-posting-school-marker !bg-transparent !border-none",
+        html: `
+          <div class="cursor-pointer group flex flex-col items-center transition-transform hover:scale-110 active:scale-95">
+            <div class="relative flex items-center justify-center">
+              <div class="w-7 h-7 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-lg flex items-center justify-center">
+                <span class="text-[10px]">🎓</span>
+              </div>
+            </div>
+            <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-amber-400 -mt-0.5"></div>
+            <div class="bg-indigo-950/90 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow mt-0.5 border border-amber-400/40 whitespace-nowrap">
+              ${sch.shortName || sch.name}
+            </div>
+          </div>
+        `,
+        iconSize: [100, 45],
+        iconAnchor: [50, 25]
+      });
+
+      const marker = L.marker([sch.lat, sch.lng], {
+        icon: schoolIcon,
+        title: sch.name
+      });
+
+      marker.bindPopup(`
+        <div class="p-2 font-sans min-w-[180px]">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-sm">🎓</span>
+            <strong class="text-xs font-bold text-stone-900">${sch.name}</strong>
+          </div>
+          <p class="text-[10px] text-stone-600 m-0">${sch.desc}</p>
+        </div>
+      `);
+
+      schoolsLayerRef.current?.addLayer(marker);
+    });
+  }, [showSchoolsOnMap]);
 
   const [gpsNotice, setGpsNotice] = useState<{
     type: "warning" | "info";

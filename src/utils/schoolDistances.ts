@@ -5,9 +5,84 @@ export interface SchoolDistance {
   type: 'University' | 'College' | 'High School' | 'Elementary';
   lat: number;
   lng: number;
+  entranceLat?: number;
+  entranceLng?: number;
+  isEntranceInvisible?: boolean;
   distanceKm: number; // calculated distance in km
   walkingMinutes: number; // estimated walking time
   tricycleMinutes: number; // estimated tricycle time
+}
+
+export interface CustomSchoolConfig {
+  lat: number;
+  lng: number;
+  entranceLat?: number;
+  entranceLng?: number;
+  isEntranceInvisible?: boolean;
+}
+
+export interface AddedSchoolItem {
+  id: string;
+  name: string;
+  shortName: string;
+  type: 'University' | 'College' | 'High School' | 'Elementary';
+  lat: number;
+  lng: number;
+  entranceLat: number;
+  entranceLng: number;
+  isEntranceInvisible?: boolean;
+  desc?: string;
+  isCustom?: boolean;
+}
+
+const LOCAL_STORAGE_KEY_ADDED_SCHOOLS = "casafinder_added_custom_schools";
+
+export function getAddedCustomSchools(): AddedSchoolItem[] {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_ADDED_SCHOOLS);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function addCustomSchoolItem(newSchool: Omit<AddedSchoolItem, "id"> & { id?: string }) {
+  try {
+    const schools = getAddedCustomSchools();
+    const id = newSchool.id || `custom-school-${Date.now()}`;
+    const item: AddedSchoolItem = {
+      ...newSchool,
+      id,
+      isCustom: true,
+      entranceLat: newSchool.entranceLat ?? newSchool.lat,
+      entranceLng: newSchool.entranceLng ?? newSchool.lng,
+      isEntranceInvisible: newSchool.isEntranceInvisible ?? false
+    };
+    // If ID exists, replace, else append
+    const existingIndex = schools.findIndex(s => s.id === id);
+    if (existingIndex >= 0) {
+      schools[existingIndex] = item;
+    } else {
+      schools.push(item);
+    }
+    localStorage.setItem(LOCAL_STORAGE_KEY_ADDED_SCHOOLS, JSON.stringify(schools));
+    window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
+    return item;
+  } catch (e) {
+    console.error("Failed to add custom school", e);
+    return null;
+  }
+}
+
+export function deleteCustomSchoolItem(id: string) {
+  try {
+    const schools = getAddedCustomSchools().filter(s => s.id !== id);
+    localStorage.setItem(LOCAL_STORAGE_KEY_ADDED_SCHOOLS, JSON.stringify(schools));
+    resetCustomSchoolCoords(id);
+    window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
+  } catch (e) {
+    console.error("Failed to delete custom school", e);
+  }
 }
 
 export const DEFAULT_GUMACA_SCHOOLS = [
@@ -18,6 +93,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "University" as const,
     lat: 13.923258,
     lng: 122.101460,
+    entranceLat: 13.922850,
+    entranceLng: 122.101350,
+    isEntranceInvisible: false,
     desc: "Southern Luzon State University - Main/Tabing Dagat Campus"
   },
   {
@@ -27,6 +105,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "University" as const,
     lat: 13.912125,
     lng: 122.104057,
+    entranceLat: 13.911900,
+    entranceLng: 122.104100,
+    isEntranceInvisible: false,
     desc: "Southern Luzon State University - Villa Nava Campus"
   },
   {
@@ -36,6 +117,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "High School" as const,
     lat: 13.920500,
     lng: 122.094000,
+    entranceLat: 13.920500,
+    entranceLng: 122.094200,
+    isEntranceInvisible: false,
     desc: "Gumaca National High School, Mabini/Poblacion"
   },
   {
@@ -45,6 +129,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "Elementary" as const,
     lat: 13.921200,
     lng: 122.099200,
+    entranceLat: 13.921200,
+    entranceLng: 122.099000,
+    isEntranceInvisible: false,
     desc: "Plaza Rizal Elementary School, Town Proper"
   },
   {
@@ -54,6 +141,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "Elementary" as const,
     lat: 13.918500,
     lng: 122.098500,
+    entranceLat: 13.918600,
+    entranceLng: 122.098500,
+    isEntranceInvisible: false,
     desc: "Gumaca West Central Elementary School, M.H. Del Pilar St."
   },
   {
@@ -63,6 +153,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "Elementary" as const,
     lat: 13.917800,
     lng: 122.099500,
+    entranceLat: 13.917900,
+    entranceLng: 122.099500,
+    isEntranceInvisible: false,
     desc: "Gumaca East Central Elementary School, Capisonda St."
   },
   {
@@ -72,6 +165,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "College" as const,
     lat: 13.923315,
     lng: 122.097557,
+    entranceLat: 13.922800,
+    entranceLng: 122.097500,
+    isEntranceInvisible: false,
     desc: "Eastern Quezon College, Gumaca"
   },
   {
@@ -81,6 +177,9 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "College" as const,
     lat: 13.921889,
     lng: 122.099639,
+    entranceLat: 13.921800,
+    entranceLng: 122.099600,
+    isEntranceInvisible: false,
     desc: "Holy Child Jesus College, Town Proper"
   },
   {
@@ -90,16 +189,58 @@ export const DEFAULT_GUMACA_SCHOOLS = [
     type: "College" as const,
     lat: 13.921300,
     lng: 122.098200,
+    entranceLat: 13.921300,
+    entranceLng: 122.098300,
+    isEntranceInvisible: false,
     desc: "Philippine Institute of Arts and Technology, Gumaca"
   }
 ];
 
 const LOCAL_STORAGE_KEY_SCHOOL_COORDS = "casafinder_custom_school_coords_v1";
+const LOCAL_STORAGE_KEY_PROPERTY_COORDS = "casafinder_custom_property_coords_v1";
+
+/**
+ * Retrieves custom saved property coordinates from localStorage.
+ */
+export function getCustomPropertyCoords(): Record<string, { lat: number; lng: number }> {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PROPERTY_COORDS);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Saves or updates custom coordinates for a specific property.
+ */
+export function saveCustomPropertyCoord(id: string, lat: number, lng: number) {
+  try {
+    const current = getCustomPropertyCoords();
+    current[id] = { lat, lng };
+    localStorage.setItem(LOCAL_STORAGE_KEY_PROPERTY_COORDS, JSON.stringify(current));
+    window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
+  } catch (e) {
+    console.error("Failed to save custom property coord", e);
+  }
+}
+
+/**
+ * Resets custom property coordinates back to default.
+ */
+export function resetCustomPropertyCoords() {
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_KEY_PROPERTY_COORDS);
+    window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
+  } catch (e) {
+    console.error("Failed to reset custom property coords", e);
+  }
+}
 
 /**
  * Retrieves custom saved school coordinates from localStorage.
  */
-export function getCustomSchoolCoords(): Record<string, { lat: number; lng: number }> {
+export function getCustomSchoolCoords(): Record<string, CustomSchoolConfig> {
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SCHOOL_COORDS);
     return saved ? JSON.parse(saved) : {};
@@ -109,12 +250,26 @@ export function getCustomSchoolCoords(): Record<string, { lat: number; lng: numb
 }
 
 /**
- * Saves or updates custom coordinates for a specific school.
+ * Saves or updates custom campus & entrance coordinates for a specific school.
  */
-export function saveCustomSchoolCoord(id: string, lat: number, lng: number) {
+export function saveCustomSchoolCoord(
+  id: string,
+  lat: number,
+  lng: number,
+  entranceLat?: number,
+  entranceLng?: number,
+  isEntranceInvisible: boolean = false
+) {
   try {
     const current = getCustomSchoolCoords();
-    current[id] = { lat, lng };
+    const existing: Partial<CustomSchoolConfig> = current[id] || {};
+    current[id] = {
+      lat: lat ?? existing.lat,
+      lng: lng ?? existing.lng,
+      entranceLat: entranceLat ?? (existing.entranceLat ?? lat),
+      entranceLng: entranceLng ?? (existing.entranceLng ?? lng),
+      isEntranceInvisible: isEntranceInvisible ?? (existing.isEntranceInvisible ?? false)
+    };
     localStorage.setItem(LOCAL_STORAGE_KEY_SCHOOL_COORDS, JSON.stringify(current));
     // Trigger window event so reactive map updates immediately
     window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
@@ -126,9 +281,15 @@ export function saveCustomSchoolCoord(id: string, lat: number, lng: number) {
 /**
  * Resets custom school coordinates back to default.
  */
-export function resetCustomSchoolCoords() {
+export function resetCustomSchoolCoords(id?: string) {
   try {
-    localStorage.removeItem(LOCAL_STORAGE_KEY_SCHOOL_COORDS);
+    if (id) {
+      const current = getCustomSchoolCoords();
+      delete current[id];
+      localStorage.setItem(LOCAL_STORAGE_KEY_SCHOOL_COORDS, JSON.stringify(current));
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_KEY_SCHOOL_COORDS);
+    }
     window.dispatchEvent(new CustomEvent("casafinder_school_coords_updated"));
   } catch (e) {
     console.error("Failed to reset custom school coords", e);
@@ -136,19 +297,32 @@ export function resetCustomSchoolCoords() {
 }
 
 /**
- * Get active list of Gumaca schools with custom or default coordinates.
+ * Get active list of Gumaca schools with custom or default coordinates and entrance pinpoints.
  */
 export function getGumacaSchools() {
   const custom = getCustomSchoolCoords();
-  return DEFAULT_GUMACA_SCHOOLS.map((school) => {
+  const added = getAddedCustomSchools();
+  const allBase = [...DEFAULT_GUMACA_SCHOOLS, ...added];
+  return allBase.map((school) => {
     if (custom[school.id]) {
+      const c = custom[school.id];
+      const campusLat = c.lat ?? school.lat;
+      const campusLng = c.lng ?? school.lng;
       return {
         ...school,
-        lat: custom[school.id].lat,
-        lng: custom[school.id].lng
+        lat: campusLat,
+        lng: campusLng,
+        entranceLat: campusLat,
+        entranceLng: campusLng,
+        isEntranceInvisible: false
       };
     }
-    return school;
+    return {
+      ...school,
+      entranceLat: school.lat,
+      entranceLng: school.lng,
+      isEntranceInvisible: false
+    };
   });
 }
 
@@ -159,6 +333,14 @@ export const GUMACA_SCHOOLS = getGumacaSchools();
  * Safely parses any property's coordinates object or falls back to neighborhood default.
  */
 export function parsePropertyLatLng(coords: any, neighborhood?: string, propertyId?: string): [number, number] {
+  const pId = propertyId || (coords && typeof coords === 'object' ? coords.id : null);
+  if (pId) {
+    const customProps = getCustomPropertyCoords();
+    if (customProps[pId]) {
+      return [customProps[pId].lat, customProps[pId].lng];
+    }
+  }
+
   if (propertyId === "slsu-elite-dorm") return [13.9252, 122.0975];
   if (propertyId === "dagat-bay-coliving") return [13.9258, 122.0965];
   if (propertyId === "la-villa-estudiante") return [13.912125, 122.104057];
@@ -234,12 +416,14 @@ export function getSchoolDistancesForProperty(
   const R = 6371; // Earth's radius in kilometers
 
   return getGumacaSchools().map((school) => {
-    const dLat = (school.lat - lat) * (Math.PI / 180);
-    const dLon = (school.lng - lng) * (Math.PI / 180);
+    const targetLat = school.entranceLat ?? school.lat;
+    const targetLng = school.entranceLng ?? school.lng;
+    const dLat = (targetLat - lat) * (Math.PI / 180);
+    const dLon = (targetLng - lng) * (Math.PI / 180);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat * (Math.PI / 180)) *
-        Math.cos(school.lat * (Math.PI / 180)) *
+        Math.cos(targetLat * (Math.PI / 180)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -261,6 +445,9 @@ export function getSchoolDistancesForProperty(
       type: school.type,
       lat: school.lat,
       lng: school.lng,
+      entranceLat: targetLat,
+      entranceLng: targetLng,
+      isEntranceInvisible: school.isEntranceInvisible,
       distanceKm: roadKm,
       walkingMinutes: walkingMins,
       tricycleMinutes: tricycleMins,

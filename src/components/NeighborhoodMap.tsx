@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import { motion } from "motion/react";
-import { GUMACA_SCHOOLS, getSchoolDistancesForProperty, getGumacaSchools, saveCustomSchoolCoord, resetCustomSchoolCoords } from "../utils/schoolDistances";
+import { GUMACA_SCHOOLS, getSchoolDistancesForProperty, getGumacaSchools, saveCustomSchoolCoord, resetCustomSchoolCoords, addCustomSchoolItem, deleteCustomSchoolItem, saveCustomPropertyCoord, getCustomPropertyCoords, resetCustomPropertyCoords, parsePropertyLatLng } from "../utils/schoolDistances";
 import { AiMatch } from "../types";
 import { Property } from "../data/properties";
 import { Map, MapPin, Navigation, Layers, Compass, ExternalLink, School, Info, Search, Maximize2, Minimize2, Pencil, Trash2, Copy, Check, RotateCcw, Save, Ruler, Shapes, Footprints, GripHorizontal } from "lucide-react";
@@ -17,49 +17,8 @@ interface NeighborhoodMapProps {
 
 // Convert percentage coordinates or fallback to real Gumaca Lat/Lng
 const getLatLngForProperty = (p: Property): [number, number] => {
-  if (!p || !p.coordinates) return [13.9220, 122.0995];
-
-  const x = Number((p.coordinates as any).x ?? (p.coordinates as any).lat ?? 0);
-  const y = Number((p.coordinates as any).y ?? (p.coordinates as any).lng ?? 0);
-
-  // If x is Lat (~10-20) and y is Lng (~100-140)
-  if (x >= 10 && x <= 20 && y >= 100 && y <= 140) {
-    return [x, y];
-  }
-
-  // If x is Lng (~100-140) and y is Lat (~10-20)
-  if (x >= 100 && x <= 140 && y >= 10 && y <= 20) {
-    return [y, x];
-  }
-
-  // Fallback for known demo IDs
-  if (p.id === "slsu-elite-dorm") return [13.9252, 122.0975];
-  if (p.id === "dagat-bay-coliving") return [13.9258, 122.0965];
-  if (p.id === "la-villa-estudiante") return [13.912125, 122.104057];
-  if (p.id === "green-eco-apts") return [13.9188, 122.0945];
-
-  // Neighborhood fallback if coordinates are percentages or invalid
-  const n = (p.neighborhood || p.address || "").toLowerCase();
-  if (n.includes("villa nava")) return [13.912125, 122.104057];
-  if (n.includes("tabing dagat")) return [13.923258, 122.101460];
-  if (n.includes("peñafrancia") || n.includes("penafrancia")) return [13.924800, 122.095500];
-  if (n.includes("pipisik")) return [13.925200, 122.097500];
-  if (n.includes("san diego")) return [13.920200, 122.103800];
-  if (n.includes("bagong buhay")) return [13.919000, 122.098000];
-  if (n.includes("mabini")) return [13.922000, 122.098500];
-  if (n.includes("maunlad")) return [13.921000, 122.096500];
-  if (n.includes("butaguin")) return [13.926000, 122.102000];
-  if (n.includes("salvacion")) return [13.905000, 122.107000];
-  if (n.includes("buensuceso")) return [13.928000, 122.095000];
-  if (n.includes("progreso")) return [13.918000, 122.101000];
-  if (n.includes("rosario")) return [13.924000, 122.099000];
-
-  // Derive from percentage coordinates around Gumaca Poblacion center (13.9220, 122.0995)
-  const baseLat = 13.9220;
-  const baseLng = 122.0995;
-  const latOffset = ((y - 50) / 100) * 0.012;
-  const lngOffset = ((x - 50) / 100) * 0.012;
-  return [baseLat - latOffset, baseLng + lngOffset];
+  if (!p) return [13.9220, 122.0995];
+  return parsePropertyLatLng(p.coordinates, p.neighborhood, p.id);
 };
 
 // Key Landmarks in Gumaca, Quezon - Major Institutions, Barangays & Campus Hubs
@@ -165,6 +124,7 @@ export default function NeighborhoodMap({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const propertyCardRef = useRef<HTMLDivElement>(null);
 
   const [clickedStreet, setClickedStreet] = useState<{
     street: string;
@@ -296,6 +256,7 @@ export default function NeighborhoodMap({
   }, [drawnBarangayBoundaries]);
   const [selectedBarangayToSave, setSelectedBarangayToSave] = useState("Barangay Tabing Dagat");
   const [selectedBarangayBoundaryFilter, setSelectedBarangayBoundaryFilter] = useState<string>("");
+  const [isMobileQuickJumpOpen, setIsMobileQuickJumpOpen] = useState(false);
   const [copySuccessMsg, setCopySuccessMsg] = useState("");
   const [showBoundariesOnMap, setShowBoundariesOnMap] = useState(true);
   const [showSchoolsOnMap, setShowSchoolsOnMap] = useState(false);
@@ -316,9 +277,71 @@ export default function NeighborhoodMap({
   } | null>(null);
 
   const [activeSchoolRouteFilter, setActiveSchoolRouteFilter] = useState<string>("all");
+  const [dismissedSchoolId, setDismissedSchoolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDismissedSchoolId(null);
+  }, [selectedSchoolId, selectedProperty]);
 
   const [schoolRevision, setSchoolRevision] = useState(0);
 
+  // School Pinpoint Editing System state
+  const [isEntranceEditingMode, setIsEntranceEditingMode] = useState(false);
+  const isEntranceEditingModeRef = useRef(isEntranceEditingMode);
+  isEntranceEditingModeRef.current = isEntranceEditingMode;
+
+  const [selectedEditingSchoolId, setSelectedEditingSchoolId] = useState("slsu-main");
+  const [editingCampusLat, setEditingCampusLat] = useState<number>(13.923258);
+  const [editingCampusLng, setEditingCampusLng] = useState<number>(122.101460);
+  const [entranceSaveToast, setEntranceSaveToast] = useState<string | null>(null);
+  const isDraggingMarkerRef = useRef(false);
+
+  // System Box Tabs & Add School Form State
+  const [systemTab, setSystemTab] = useState<"edit" | "add">("edit");
+  const [newSchoolName, setNewSchoolName] = useState("");
+  const [newSchoolShortName, setNewSchoolShortName] = useState("");
+  const [newSchoolType, setNewSchoolType] = useState<'University' | 'College' | 'High School' | 'Elementary'>("College");
+  const [newSchoolDesc, setNewSchoolDesc] = useState("");
+  const [newSchoolCampusLat, setNewSchoolCampusLat] = useState<number>(13.922000);
+  const [newSchoolCampusLng, setNewSchoolCampusLng] = useState<number>(122.099500);
+
+  // System Box Scroll References & Functions
+  const systemBoxScrollRef = useRef<HTMLDivElement | null>(null);
+  const addFormSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToTopSystemBox = () => {
+    systemBoxScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const scrollToBottomSystemBox = () => {
+    if (systemBoxScrollRef.current) {
+      systemBoxScrollRef.current.scrollTo({
+        top: systemBoxScrollRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  };
+
+  const scrollToAddSectionSystemBox = () => {
+    setSystemTab("add");
+    setTimeout(() => {
+      addFormSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 120);
+  };
+
+  const entranceLayerRef = useRef<L.LayerGroup | null>(null);
+  const campusMarkerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    const activeSchools = getGumacaSchools();
+    const sch = activeSchools.find(s => s.id === selectedEditingSchoolId) || activeSchools[0];
+    if (sch) {
+      setEditingCampusLat(sch.lat);
+      setEditingCampusLng(sch.lng);
+    }
+  }, [selectedEditingSchoolId, schoolRevision]);
+
+  // Removed outside click listener so card stays visible until X button is clicked
   useEffect(() => {
     const handleUpdate = () => {
       setSchoolRevision(r => r + 1);
@@ -344,7 +367,6 @@ export default function NeighborhoodMap({
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const isDrawingModeRef = useRef(isDrawingMode);
   const pinnedMarkerRef = useRef<L.Marker | null>(null);
-  const campusMarkerRef = useRef<L.Marker | null>(null);
   const lastAddedTimeRef = useRef<number>(0);
 
   const [pixelPoints, setPixelPoints] = useState<{ x: number; y: number; lat: number; lng: number }[]>([]);
@@ -569,13 +591,18 @@ export default function NeighborhoodMap({
 
     tileLayerRef.current = layer;
 
-    // Click on map to inspect street or add drawing point
+    // Click on map to inspect street, add drawing point, or set school pinpoint
     map.on("click", (e: L.LeafletMouseEvent) => {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
 
       if (isDrawingModeRef.current) {
         addPointIfNew(lat, lng);
+      } else if (isEntranceEditingModeRef.current) {
+        const fixedLat = Number(lat.toFixed(6));
+        const fixedLng = Number(lng.toFixed(6));
+        setEditingCampusLat(fixedLat);
+        setEditingCampusLng(fixedLng);
       } else {
         const info = getStreetInfoForCoordinates(lat, lng);
         setClickedStreet(info);
@@ -599,7 +626,7 @@ export default function NeighborhoodMap({
 
       if (dist < 12 && elapsed < 600) {
         const target = e.target as HTMLElement;
-        if (target && target.closest(".leaflet-control, button, input, select, .leaflet-popup, .z-30, .z-40")) {
+        if (target && target.closest(".leaflet-control, button, input, select, .leaflet-popup, .z-30, .z-40, .leaflet-marker-icon, .custom-school-editor-pin, .custom-school-marker-pin")) {
           return;
         }
 
@@ -607,6 +634,11 @@ export default function NeighborhoodMap({
         if (latlng && latlng.lat && latlng.lng) {
           if (isDrawingModeRef.current) {
             addPointIfNew(latlng.lat, latlng.lng);
+          } else if (isEntranceEditingModeRef.current) {
+            const fixedLat = Number(latlng.lat.toFixed(6));
+            const fixedLng = Number(latlng.lng.toFixed(6));
+            setEditingCampusLat(fixedLat);
+            setEditingCampusLng(fixedLng);
           } else {
             const info = getStreetInfoForCoordinates(latlng.lat, latlng.lng);
             setClickedStreet(info);
@@ -1092,6 +1124,115 @@ export default function NeighborhoodMap({
     }
   }, [drawnPoints, drawShapeType, drawColor, drawnBarangayBoundaries, showBoundariesOnMap, isDrawingMode, mousePos]);
 
+  // Render Interactive Draggable School Pins on Map when editing mode is active
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+
+    if (!entranceLayerRef.current) {
+      entranceLayerRef.current = L.layerGroup().addTo(map);
+    } else {
+      entranceLayerRef.current.clearLayers();
+    }
+
+    if (isEntranceEditingMode) {
+      const activeSchools = getGumacaSchools();
+      activeSchools.forEach((sch) => {
+        const isSelected = (sch.id === selectedEditingSchoolId);
+        const currentLat = sch.lat;
+        const currentLng = sch.lng;
+
+        const schoolIcon = L.divIcon({
+          className: `custom-school-editor-pin !bg-transparent !border-none ${isSelected ? 'z-50' : 'z-30'}`,
+          html: `
+            <div class="cursor-grab active:cursor-grabbing group flex flex-col items-center select-none pointer-events-auto">
+              <div class="relative flex items-center justify-center">
+                ${isSelected ? '<div class="absolute -inset-2 bg-amber-400/50 rounded-full animate-ping pointer-events-none"></div>' : ''}
+                <div class="w-10 h-10 ${isSelected ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 text-stone-950 border-3 border-stone-950 scale-110 shadow-2xl' : 'bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-amber-300 border-2 border-amber-400 shadow-xl'} rounded-full flex items-center justify-center font-black text-lg">
+                  🎓
+                </div>
+              </div>
+              <div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${isSelected ? 'border-t-amber-500' : 'border-t-amber-400'} -mt-0.5 drop-shadow-md"></div>
+              <div class="${isSelected ? 'bg-amber-400 text-stone-950 font-black ring-2 ring-stone-950 scale-105' : 'bg-stone-950/90 text-amber-300 font-bold'} text-[10px] px-2.5 py-0.5 rounded-full border border-amber-400 shadow-xl mt-1 whitespace-nowrap flex items-center gap-1">
+                <span>🎓 ${sch.shortName || sch.name}</span>
+                ${isSelected ? '<span class="text-[8px] bg-stone-950 text-amber-300 px-1 rounded font-mono font-black">I-DRAG</span>' : ''}
+              </div>
+            </div>
+          `,
+          iconSize: [160, 56],
+          iconAnchor: [80, 42]
+        });
+
+        const marker = L.marker([currentLat, currentLng], {
+          icon: schoolIcon,
+          draggable: true,
+          autoPan: true,
+          title: `I-drag upang palitan ang lokasyon ng ${sch.name}`,
+          zIndexOffset: isSelected ? 10000 : 5000
+        });
+
+        marker.on("add", () => {
+          const markerIcon = (marker as any)._icon;
+          if (markerIcon) {
+            L.DomEvent.disableClickPropagation(markerIcon);
+            L.DomEvent.disableScrollPropagation(markerIcon);
+          }
+        });
+
+        marker.on("dragstart", () => {
+          isDraggingMarkerRef.current = true;
+          map.dragging.disable();
+          setSelectedEditingSchoolId(sch.id);
+        });
+
+        marker.on("drag", (e: any) => {
+          const latlng = e.target.getLatLng();
+          const newLat = Number(latlng.lat.toFixed(6));
+          const newLng = Number(latlng.lng.toFixed(6));
+          setEditingCampusLat(newLat);
+          setEditingCampusLng(newLng);
+        });
+
+        marker.on("dragend", (e: any) => {
+          isDraggingMarkerRef.current = false;
+          map.dragging.enable();
+          const latlng = e.target.getLatLng();
+          const newLat = Number(latlng.lat.toFixed(6));
+          const newLng = Number(latlng.lng.toFixed(6));
+          saveCustomSchoolCoord(sch.id, newLat, newLng);
+          setEditingCampusLat(newLat);
+          setEditingCampusLng(newLng);
+          setSchoolRevision(r => r + 1);
+          setEntranceSaveToast(`Na-drag at na-update ang lokasyon ng ${sch.shortName || sch.name}! ✨`);
+          setTimeout(() => setEntranceSaveToast(null), 3000);
+        });
+
+        marker.on("click", () => {
+          setSelectedEditingSchoolId(sch.id);
+          setEditingCampusLat(sch.lat);
+          setEditingCampusLng(sch.lng);
+        });
+
+        if (isSelected) {
+          campusMarkerRef.current = marker;
+        }
+
+        entranceLayerRef.current?.addLayer(marker);
+      });
+    } else {
+      campusMarkerRef.current = null;
+    }
+  }, [isEntranceEditingMode, selectedEditingSchoolId, schoolRevision]);
+
+  // Keep selected marker position synchronized when state coordinates update from inputs or map click (but not while dragging)
+  useEffect(() => {
+    if (isEntranceEditingMode && campusMarkerRef.current && !isDraggingMarkerRef.current) {
+      campusMarkerRef.current.setLatLng([editingCampusLat, editingCampusLng]);
+    }
+  }, [editingCampusLat, editingCampusLng, isEntranceEditingMode]);
+
+
+
 
   // Update Markers whenever properties, selectedProperty, or campus coordinates change
   useEffect(() => {
@@ -1131,7 +1272,6 @@ export default function NeighborhoodMap({
       });
 
       const campusMarker = L.marker([activeArrowLocation.lat, activeArrowLocation.lng], { icon: campusIcon }).addTo(map);
-      campusMarkerRef.current = campusMarker;
       markersRef.current.push(campusMarker);
     }
 
@@ -1164,22 +1304,32 @@ export default function NeighborhoodMap({
     if (showSchoolsOnMap) {
       const activeSchools = getGumacaSchools();
       activeSchools.forEach((sch) => {
+        // Skip standard school markers in school editor mode as all schools are rendered as draggable pins
+        if (isEntranceEditingMode) {
+          return;
+        }
         const schoolIcon = L.divIcon({
           className: "custom-school-marker-pin !bg-transparent !border-none",
           html: `
-            <div class="cursor-pointer group flex flex-col items-center transition-transform hover:scale-110">
-              <div class="bg-indigo-950 text-amber-300 font-extrabold text-[10px] px-2.5 py-1 rounded-full shadow-xl border-2 border-amber-400 flex items-center gap-1.5 whitespace-nowrap">
+            <div class="cursor-pointer group flex flex-col items-center transition-transform hover:scale-110 active:scale-95">
+              <div class="relative flex items-center justify-center">
+                <div class="w-8 h-8 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-xl flex items-center justify-center font-bold">
+                  <span class="text-xs">🎓</span>
+                </div>
+              </div>
+              <div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-amber-400 -mt-0.5 drop-shadow-sm"></div>
+              <div class="bg-indigo-950/95 text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-400 shadow-xl mt-0.5 whitespace-nowrap flex items-center gap-1">
                 <span>🎓 ${sch.shortName || sch.name}</span>
               </div>
-              <div class="w-3.5 h-3.5 bg-indigo-900 border-b-2 border-r-2 border-amber-400 rotate-45 -mt-1 shadow-md"></div>
             </div>
           `,
-          iconSize: [180, 42],
-          iconAnchor: [90, 36]
+          iconSize: [160, 52],
+          iconAnchor: [80, 42]
         });
 
         const marker = L.marker([sch.lat, sch.lng], {
-          icon: schoolIcon
+          icon: schoolIcon,
+          title: sch.name
         }).addTo(map);
 
         marker.bindPopup(`
@@ -1227,7 +1377,8 @@ export default function NeighborhoodMap({
       });
 
       const marker = L.marker([lat, lng], {
-        icon: markerIcon
+        icon: markerIcon,
+        title: property.title
       }).addTo(map);
 
       // Custom popup HTML matching user's requested map popup layout
@@ -1266,6 +1417,7 @@ export default function NeighborhoodMap({
       });
 
       marker.on("popupopen", () => {
+        setClickedStreet(null);
         onSelectProperty(property);
         setTimeout(() => {
           const btn = document.getElementById(`leaflet-popup-btn-${property.id}`);
@@ -1281,6 +1433,7 @@ export default function NeighborhoodMap({
       });
 
       marker.on("click", () => {
+        setClickedStreet(null);
         onSelectProperty(property);
       });
 
@@ -1296,11 +1449,17 @@ export default function NeighborhoodMap({
     }
     routeLayerRef.current = L.layerGroup().addTo(map);
 
-    const targetSchoolId = (selectedSchoolId && selectedSchoolId !== "none" && selectedSchoolId !== "all")
-      ? selectedSchoolId
-      : (activeSchoolRouteFilter && activeSchoolRouteFilter !== "none" && activeSchoolRouteFilter !== "all")
-        ? activeSchoolRouteFilter
+    const rawSchoolId = (activeSchoolRouteFilter && activeSchoolRouteFilter !== "none" && activeSchoolRouteFilter !== "all")
+      ? activeSchoolRouteFilter
+      : (selectedSchoolId && selectedSchoolId !== "none" && selectedSchoolId !== "all")
+        ? selectedSchoolId
         : null;
+
+    const targetSchoolId = (
+      rawSchoolId &&
+      rawSchoolId !== dismissedSchoolId &&
+      (selectedProperty || hoveredProperty || (activeSchoolRouteFilter && activeSchoolRouteFilter !== "none"))
+    ) ? rawSchoolId : null;
 
     if (targetSchoolId) {
       const activeSchools = getGumacaSchools();
@@ -1319,24 +1478,15 @@ export default function NeighborhoodMap({
           className: "custom-selected-school-arrow-pin !bg-transparent !border-none",
           html: `
             <div class="cursor-pointer group flex flex-col items-center z-50 transition-transform hover:scale-110 active:scale-95">
-              <!-- Title Badge Above Pin -->
-              <div class="mb-1.5 whitespace-nowrap bg-indigo-950 text-amber-300 font-black text-[11px] sm:text-xs px-3 py-1.5 rounded-full shadow-2xl border-2 border-amber-400 flex items-center gap-1.5 tracking-wide">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11.7 2.21a1.25 1.25 0 0 1 1.6 0l9.25 7.4a1.25 1.25 0 0 1-.22 2.05l-2.08.99v4.6a2.25 2.25 0 0 1-1.35 2.07l-5.65 2.38a2.25 2.25 0 0 1-1.7 0l-5.65-2.38A2.25 2.25 0 0 1 4.5 17.25v-4.6l-2.08-.99a1.25 1.25 0 0 1-.22-2.05l9.5-7.4Z" />
-                </svg>
-                <span>${selectedSchoolObj.shortName || selectedSchoolObj.name}</span>
-                <span class="bg-amber-400 text-stone-950 font-black text-[9px] px-1.5 py-0.5 rounded uppercase">PAARALAN</span>
-              </div>
-              
               <!-- Distinct SVG School Pinhead Badge with Pulsing Ring -->
               <div class="relative flex items-center justify-center">
                 <!-- Pulsing Outer Ring -->
                 <div class="absolute -inset-2 bg-indigo-500/50 rounded-full animate-ping"></div>
                 
                 <!-- Circle SVG Pin Container -->
-                <div class="relative w-12 h-12 bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-2xl flex items-center justify-center p-2">
+                <div class="relative w-11 h-11 bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-2xl flex items-center justify-center p-2">
                   <!-- Graduation Cap SVG Icon -->
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-amber-300 drop-shadow-md animate-bounce" viewBox="0 0 24 24" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-amber-300 drop-shadow-md animate-bounce" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M11.7 2.21a1.25 1.25 0 0 1 1.6 0l9.25 7.4a1.25 1.25 0 0 1-.22 2.05l-2.08.99v4.6a2.25 2.25 0 0 1-1.35 2.07l-5.65 2.38a2.25 2.25 0 0 1-1.7 0l-5.65-2.38A2.25 2.25 0 0 1 4.5 17.25v-4.6l-2.08-.99a1.25 1.25 0 0 1-.22-2.05l9.5-7.4Z" />
                   </svg>
                 </div>
@@ -1346,12 +1496,13 @@ export default function NeighborhoodMap({
               <div class="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-amber-400 -mt-0.5 drop-shadow-md"></div>
             </div>
           `,
-          iconSize: [220, 85],
-          iconAnchor: [110, 85]
+          iconSize: [48, 56],
+          iconAnchor: [24, 56]
         });
 
         const schoolMarker = L.marker([selectedSchoolObj.lat, selectedSchoolObj.lng], {
           icon: schoolIcon,
+          title: selectedSchoolObj.name,
           zIndexOffset: 2000
         });
 
@@ -1379,10 +1530,16 @@ export default function NeighborhoodMap({
             walkingMinutes: 6
           };
 
-          const initialStraightCoords: [number, number][] = [[sLat, sLng], [selectedSchoolObj.lat, selectedSchoolObj.lng]];
+          // Initial direct line from Property to School Campus Pinpoint
+          const targetSchLat = selectedSchoolObj.lat;
+          const targetSchLng = selectedSchoolObj.lng;
+          const initialStreetCoords: [number, number][] = [
+            [sLat, sLng],
+            [targetSchLat, targetSchLng]
+          ];
 
           // Outer shadow glow line
-          const shadowPolyline = L.polyline(initialStraightCoords, {
+          const shadowPolyline = L.polyline(initialStreetCoords, {
             color: "#1e3a8a",
             weight: 8,
             opacity: 0.35,
@@ -1391,7 +1548,7 @@ export default function NeighborhoodMap({
           routeLayerRef.current?.addLayer(shadowPolyline);
 
           // Dashed animated route line in vibrant blue
-          const routePolyline = L.polyline(initialStraightCoords, {
+          const routePolyline = L.polyline(initialStreetCoords, {
             color: lineStrokeColor,
             weight: 5,
             dashArray: "10, 8",
@@ -1401,8 +1558,8 @@ export default function NeighborhoodMap({
           routeLayerRef.current?.addLayer(routePolyline);
 
           // Midpoint distance badge callout
-          const midLat = (sLat + selectedSchoolObj.lat) / 2;
-          const midLng = (sLng + selectedSchoolObj.lng) / 2;
+          const midIndex = Math.floor(initialStreetCoords.length / 2);
+          const [midLat, midLng] = initialStreetCoords[midIndex];
           const midBadgeIcon = L.divIcon({
             className: "custom-route-mid-badge !bg-transparent !border-none",
             html: `
@@ -1419,31 +1576,67 @@ export default function NeighborhoodMap({
           const midBadgeMarker = L.marker([midLat, midLng], { icon: midBadgeIcon, interactive: false, zIndexOffset: 1500 });
           routeLayerRef.current?.addLayer(midBadgeMarker);
 
-          // Fit bounds to show both property and school pinpoint initially
-          const bounds = L.latLngBounds(initialStraightCoords);
+          // Fit bounds to show both property and school entrance pinpoint cleanly
+          const bounds = L.latLngBounds([
+            [sLat, sLng],
+            [targetSchLat, targetSchLng]
+          ]);
           map.fitBounds(bounds, { padding: [90, 90], maxZoom: 17, animate: true, duration: 1 });
 
-          // Asynchronously fetch actual street road route from OSRM
-          const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${sLng},${sLat};${selectedSchoolObj.lng},${selectedSchoolObj.lat}?overview=full&geometries=geojson`;
-          fetch(osrmUrl)
-            .then((res) => res.json())
+          // Asynchronously fetch actual street road route from OSRM (trying foot, then driving)
+          const fetchRoute = (profile: "foot" | "driving") => {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${sLng},${sLat};${targetSchLng},${targetSchLat}?overview=full&geometries=geojson`;
+            return fetch(osrmUrl)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.code === "Ok" && data.routes && data.routes[0]?.geometry?.coordinates?.length > 1) {
+                  return data;
+                }
+                throw new Error(`OSRM ${profile} empty`);
+              });
+          };
+
+          fetchRoute("foot")
+            .catch(() => fetchRoute("driving"))
             .then((data) => {
-              if (data.code === "Ok" && data.routes && data.routes[0]?.geometry?.coordinates) {
+              if (data && data.routes && data.routes[0]?.geometry?.coordinates) {
                 const roadCoords: [number, number][] = data.routes[0].geometry.coordinates.map(
                   ([lng, lat]: [number, number]) => [lat, lng]
                 );
-                if (roadCoords.length > 1) {
-                  shadowPolyline.setLatLngs(roadCoords);
-                  routePolyline.setLatLngs(roadCoords);
 
-                  // Update badge to sit along the middle of the actual road route
-                  const midIndex = Math.floor(roadCoords.length / 2);
-                  const [mLat, mLng] = roadCoords[midIndex];
+                if (roadCoords.length > 0) {
+                  const fullRouteCoords: [number, number][] = [
+                    [sLat, sLng],
+                    ...roadCoords,
+                    [targetSchLat, targetSchLng]
+                  ];
+
+                  shadowPolyline.setLatLngs(fullRouteCoords);
+                  routePolyline.setLatLngs(fullRouteCoords);
+
+                  if (data.routes[0].distance) {
+                    const osrmDistKm = data.routes[0].distance / 1000;
+                    const osrmWalkMins = Math.max(1, Math.round((osrmDistKm / 4.5) * 60));
+
+                    const updatedIcon = L.divIcon({
+                      className: "custom-route-mid-badge !bg-transparent !border-none",
+                      html: `
+                        <div class="pointer-events-none flex items-center justify-center">
+                          <div class="bg-blue-950 text-white font-sans text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-2xl border-2 border-blue-400 flex items-center gap-1.5 whitespace-nowrap">
+                            <span class="text-amber-300">📏 ${osrmDistKm.toFixed(2)} km</span>
+                            <span class="text-blue-100 font-normal">(${osrmWalkMins}m lakad)</span>
+                          </div>
+                        </div>
+                      `,
+                      iconSize: [180, 32],
+                      iconAnchor: [90, 16]
+                    });
+                    midBadgeMarker.setIcon(updatedIcon);
+                  }
+
+                  const mIdx = Math.floor(fullRouteCoords.length / 2);
+                  const [mLat, mLng] = fullRouteCoords[mIdx];
                   midBadgeMarker.setLatLng([mLat, mLng]);
-
-                  // Re-fit bounds to cleanly fit the actual road path
-                  const roadBounds = L.latLngBounds(roadCoords);
-                  map.fitBounds(roadBounds, { padding: [90, 90], maxZoom: 17, animate: true });
                 }
               }
             })
@@ -1457,7 +1650,7 @@ export default function NeighborhoodMap({
       }
     } else if (selectedProperty) {
       const [sLat, sLng] = getLatLngForProperty(selectedProperty);
-      map.flyTo([sLat, sLng], 15, { animate: true, duration: 1 });
+      map.panTo([sLat, sLng], { animate: true });
     }
   }, [properties, selectedProperty, aiMatches, onSelectProperty, showLandmarks, showSchoolsOnMap, villaNavaCoords, tabingDagatCoords, activeArrowLocation, activeSchoolRouteFilter, selectedSchoolId, schoolRevision]);
 
@@ -1579,6 +1772,7 @@ export default function NeighborhoodMap({
 
         {/* Header Right Controls: Layer Switcher, Boundary Drawer Toggle & Fullscreen */}
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs">
+
           {/* Interactive Barangay Boundary Drawer Button */}
           <button
             onClick={() => {
@@ -1752,7 +1946,7 @@ export default function NeighborhoodMap({
 
       {/* Quick Jump Buttons for Laptop View when Fullscreen */}
       {mapMode !== "google_embed" && isFullscreen && (
-        <div className="hidden sm:flex bg-stone-100/70 border-b border-stone-200 px-3 py-2 items-center gap-1.5 overflow-x-auto text-[10px] no-scrollbar">
+        <div className="hidden sm:flex bg-stone-100/70 border-b border-stone-200 px-3 py-2 items-center gap-2 overflow-x-auto text-[10px] no-scrollbar">
           <span className="text-stone-400 font-mono shrink-0 mr-1 flex items-center gap-1">
             <Compass className="h-3 w-3 text-stone-400" />
             Quick Jump:
@@ -1812,6 +2006,7 @@ export default function NeighborhoodMap({
             </select>
           </div>
 
+          {/* Quick Jump Buttons for Laptop View when Fullscreen */}
           <button
             onClick={() => triggerSLSUHighlight(17)}
             className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
@@ -1859,13 +2054,6 @@ export default function NeighborhoodMap({
             className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
           >
             🛍️ Novo Dept Store
-          </button>
-
-          <button
-            onClick={() => triggerArrowHighlight(13.923258, 122.101460, "SLSU Tabing Dagat Campus 🎓🌊", "Southern Luzon State University - Tabing Dagat Campus, Gumaca", 17)}
-            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2.5 py-1 rounded-lg font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1"
-          >
-            🎓 SLSU Tabing Dagat
           </button>
 
           <button
@@ -1960,128 +2148,135 @@ export default function NeighborhoodMap({
                 </div>
               </div>
 
-              {/* Mobile Quick Jump Bar Overlay */}
+              {/* Mobile Quick Jump Circular Button & Floating Popover Overlay */}
               {mapMode !== "google_embed" && (
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar rounded-2xl">
-                  <span className="text-stone-500 font-extrabold shrink-0 flex items-center gap-1 text-[10px] uppercase tracking-wider">
-                    <Compass className="h-3.5 w-3.5 text-indigo-600 animate-spin-slow" />
-                    Jump:
-                  </span>
-
-                  {/* Barangay Filter Dropdown */}
-                  <div className="flex items-center gap-1 bg-indigo-50/90 border border-indigo-200/80 px-2 py-0.5 rounded-xl shrink-0 shadow-2xs">
-                    <span className="font-bold text-indigo-900 text-[10px]">📍 Brgy:</span>
-                    <select
-                      value={selectedBarangayBoundaryFilter}
-                      onChange={(e) => {
-                        const bName = e.target.value;
-                        setSelectedBarangayBoundaryFilter(bName);
-                        if (!bName) {
-                          setShowBoundariesOnMap(false);
-                          return;
-                        }
-                        setShowBoundariesOnMap(true);
-
-                        if (bName === "ALL_BARANGAYS") {
-                          triggerArrowHighlight(13.9220, 122.0995, "📍 Lahat ng Gumaca Barangays", "Ipinapakita ang lahat ng saved barangay boundaries sa Gumaca", 15);
-                          if (leafletMapRef.current) {
-                            leafletMapRef.current.flyTo([13.9220, 122.0995], 15);
-                          }
-                          return;
-                        }
-
-                        const boundary = drawnBarangayBoundaries.find(b => b.barangayName === bName);
-                        if (boundary && boundary.points.length > 0) {
-                          const lats = boundary.points.map(p => p[0]);
-                          const lngs = boundary.points.map(p => p[1]);
-                          const cLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-                          const cLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
-
-                          triggerArrowHighlight(cLat, cLng, `📍 Boundary: ${boundary.barangayName}`, `Kumpletong Na-guhit na Boundary (${boundary.points.length} tuldok)`, 16);
-                          const info = getStreetInfoForCoordinates(cLat, cLng);
-                          setClickedStreet(info);
-
-                          if (leafletMapRef.current) {
-                            const bounds = L.latLngBounds(boundary.points);
-                            leafletMapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
-                          }
-                        }
-                      }}
-                      className="bg-white text-indigo-950 text-[10px] font-bold py-0.5 px-1 rounded-lg border border-indigo-200 focus:outline-none cursor-pointer"
+                <div className="pointer-events-auto relative">
+                  {!isMobileQuickJumpOpen ? (
+                    <button
+                      onClick={() => setIsMobileQuickJumpOpen(true)}
+                      className="bg-stone-900/90 hover:bg-stone-950 text-white backdrop-blur-md shadow-2xl border border-stone-700/80 px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                      title="Quick Jump"
                     >
-                      <option value="">-- Brgy --</option>
-                      <option value="ALL_BARANGAYS">✨ Lahat</option>
-                      {drawnBarangayBoundaries.map((b) => (
-                        <option key={b.id} value={b.barangayName}>
-                          {b.barangayName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <div className="w-5 h-5 rounded-full bg-indigo-600/90 flex items-center justify-center shrink-0 shadow-xs">
+                        <Compass className="h-3.5 w-3.5 text-white animate-spin-slow" />
+                      </div>
+                      <span className="text-[11px] tracking-wide font-extrabold text-amber-300">Quick Jump 🚀</span>
+                    </button>
+                  ) : (
+                    <div className="bg-stone-900/95 backdrop-blur-md border border-stone-700 shadow-2xl p-2.5 rounded-2xl flex flex-col gap-2 max-w-[280px] w-full text-xs animate-fade-in font-sans text-white">
+                      <div className="flex items-center justify-between pb-1 border-b border-stone-800">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-extrabold text-[11px]">
+                          <Compass className="h-4 w-4 text-indigo-400 animate-spin-slow" />
+                          <span>Quick Jump Navigation</span>
+                        </div>
+                        <button
+                          onClick={() => setIsMobileQuickJumpOpen(false)}
+                          className="text-stone-400 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded-md hover:bg-stone-800 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
 
-                  <button
-                    onClick={() => triggerSLSUHighlight(17)}
-                    className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    <School className="h-3 w-3 text-teal-600" />
-                    SLSU 🎓
-                  </button>
+                      {/* Barangay Filter Dropdown */}
+                      <div className="flex items-center justify-between gap-2 bg-stone-800/90 border border-stone-700 px-2 py-1 rounded-xl">
+                        <span className="font-bold text-indigo-300 text-[10px] shrink-0">📍 Brgy:</span>
+                        <select
+                          value={selectedBarangayBoundaryFilter}
+                          onChange={(e) => {
+                            const bName = e.target.value;
+                            setSelectedBarangayBoundaryFilter(bName);
+                            if (!bName) {
+                              setShowBoundariesOnMap(false);
+                              return;
+                            }
+                            setShowBoundariesOnMap(true);
 
-                  <button
-                    onClick={() => triggerArrowHighlight(13.920523, 122.099064, "Jollibee Gumaca 🍔🐝", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
-                    className="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🍔 Jollibee
-                  </button>
+                            if (bName === "ALL_BARANGAYS") {
+                              triggerArrowHighlight(13.9220, 122.0995, "📍 Lahat ng Gumaca Barangays", "Ipinapakita ang lahat ng saved barangay boundaries sa Gumaca", 15);
+                              if (leafletMapRef.current) {
+                                leafletMapRef.current.flyTo([13.9220, 122.0995], 15);
+                              }
+                              setIsMobileQuickJumpOpen(false);
+                              return;
+                            }
 
-                  <button
-                    onClick={() => triggerArrowHighlight(13.920751, 122.100299, "McDonald's Gumaca 🍟🍔", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
-                    className="bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🍟 McDonald's
-                  </button>
+                            const boundary = drawnBarangayBoundaries.find(b => b.barangayName === bName);
+                            if (boundary && boundary.points.length > 0) {
+                              const lats = boundary.points.map(p => p[0]);
+                              const lngs = boundary.points.map(p => p[1]);
+                              const cLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                              const cLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
 
-                  <button
-                    onClick={() => triggerArrowHighlight(13.920489, 122.098769, "Chowking Gumaca 🥢🥟", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17)}
-                    className="bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🥢 Chowking
-                  </button>
+                              triggerArrowHighlight(cLat, cLng, `📍 Boundary: ${boundary.barangayName}`, `Kumpletong Na-guhit na Boundary (${boundary.points.length} tuldok)`, 16);
+                              const info = getStreetInfoForCoordinates(cLat, cLng);
+                              setClickedStreet(info);
 
-                  <button
-                    onClick={() => triggerArrowHighlight(13.920196, 122.097666, "Novo Department Store 🛍️🏢", "Department Store & Shopping, Maharlika Highway, Gumaca", 17)}
-                    className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🛍️ Novo
-                  </button>
+                              if (leafletMapRef.current) {
+                                const bounds = L.latLngBounds(boundary.points);
+                                leafletMapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+                              }
+                            }
+                            setIsMobileQuickJumpOpen(false);
+                          }}
+                          className="bg-stone-900 text-white text-[10px] font-bold py-0.5 px-1 rounded-lg border border-stone-700 focus:outline-none cursor-pointer min-w-0 flex-1"
+                        >
+                          <option value="">-- Piliin ang Barangay --</option>
+                          <option value="ALL_BARANGAYS">✨ Lahat ng Barangay</option>
+                          {drawnBarangayBoundaries.map((b) => (
+                            <option key={b.id} value={b.barangayName}>
+                              {b.barangayName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                  <button
-                    onClick={() => triggerArrowHighlight(13.923258, 122.101460, "SLSU Tabing Dagat Campus 🎓🌊", "Southern Luzon State University - Tabing Dagat Campus, Gumaca", 17)}
-                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🎓 Tabing Dagat
-                  </button>
-
-                  <button
-                    onClick={() => triggerArrowHighlight(13.920509, 122.101597, "Gumaca Public Market 🛒🐟", "Public Market & Commercial Hub, Poblacion", 17)}
-                    className="bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🛒 Market
-                  </button>
-
-                  <button
-                    onClick={() => triggerArrowHighlight(13.921103, 122.105650, "Puregold Gumaca 🟡🛒", "Puregold Supermarket, Maharlika Highway / San Diego", 17)}
-                    className="bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🟡 Puregold
-                  </button>
-
-                  <button
-                    onClick={() => triggerArrowHighlight(13.919680, 122.100656, "Jeep Terminal (Macalelon, Unisan, Lopez) 🚐", "Jeepney Terminal for Macalelon, Unisan & Lopez", 17)}
-                    className="bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 px-2.5 py-1 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                  >
-                    🚐 Jeep Terminal
-                  </button>
+                      {/* Landmark Quick Jump Option Field Dropdown */}
+                      <div className="flex items-center justify-between gap-2 bg-stone-800/90 border border-stone-700 px-2 py-1 rounded-xl">
+                        <span className="font-bold text-amber-300 text-[10px] shrink-0">🏢 Lugar:</span>
+                        <select
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) return;
+                            if (val === "slsu_villas") triggerSLSUHighlight(17);
+                            else if (val === "slsu_main") {
+                              const slsu = getGumacaSchools().find(s => s.id === "slsu-main");
+                              triggerArrowHighlight(slsu?.lat || 13.923258, slsu?.lng || 122.101460, "SLSU Tabing Dagat Campus 🎓🌊", "Southern Luzon State University - Tabing Dagat Campus, Gumaca", 17);
+                            }
+                            else if (val === "jollibee") triggerArrowHighlight(13.920523, 122.099064, "Jollibee Gumaca 🍔🐝", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17);
+                            else if (val === "mcdonalds") triggerArrowHighlight(13.920751, 122.100299, "McDonald's Gumaca 🍟🍔", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17);
+                            else if (val === "chowking") triggerArrowHighlight(13.920489, 122.098769, "Chowking Gumaca 🥢🥟", "Fast Food Restaurant, Maharlika Highway, Gumaca", 17);
+                            else if (val === "novo") triggerArrowHighlight(13.920196, 122.097666, "Novo Department Store 🛍️🏢", "Department Store & Shopping, Maharlika Highway, Gumaca", 17);
+                            else if (val === "market") triggerArrowHighlight(13.920509, 122.101597, "Gumaca Public Market 🛒🐟", "Public Market & Commercial Hub, Poblacion", 17);
+                            else if (val === "puregold") triggerArrowHighlight(13.921103, 122.105650, "Puregold Gumaca 🟡🛒", "Puregold Supermarket, Maharlika Highway / San Diego", 17);
+                            else if (val === "jeep_terminal") triggerArrowHighlight(13.919680, 122.100656, "Jeep Terminal (Macalelon, Unisan, Lopez) 🚐", "Jeepney Terminal for Macalelon, Unisan & Lopez", 17);
+                            else if (val === "heritage") triggerArrowHighlight(13.923430, 122.100694, "Heritage Site 🏛️", "Gumaca Heritage / Historical Landmark, Tabing Dagat", 17);
+                            else if (val === "eqc") triggerArrowHighlight(13.923315, 122.097557, "Eastern Quezon College (EQC) 🏛️", "College & Educational Institution, Gumaca", 17);
+                            else if (val === "gnhs") triggerArrowHighlight(13.920500, 122.094000, "Gumaca National High School (GNHS) 🏫", "Gumaca NHS, Mabini/Poblacion, Gumaca", 17);
+                            else if (val === "whole_gumaca") triggerArrowHighlight(13.9220, 122.0995, "Whole Gumaca Overview 🔍", "Gumaca Municipality Overview", 14);
+                            e.target.value = "";
+                            setIsMobileQuickJumpOpen(false);
+                          }}
+                          defaultValue=""
+                          className="bg-stone-900 text-white text-[10px] font-bold py-0.5 px-1 rounded-lg border border-stone-700 focus:outline-none cursor-pointer min-w-0 flex-1"
+                        >
+                          <option value="">-- Piliin ang Lugar --</option>
+                          <option value="slsu_villas">🎓 SLSU Villa Nava</option>
+                          <option value="slsu_main">🎓 SLSU Tabing Dagat</option>
+                          <option value="jollibee">🍔 Jollibee</option>
+                          <option value="mcdonalds">🍟 McDonald's</option>
+                          <option value="chowking">🥢 Chowking</option>
+                          <option value="novo">🛍️ Novo Store</option>
+                          <option value="market">🛒 Public Market</option>
+                          <option value="puregold">🟡 Puregold</option>
+                          <option value="jeep_terminal">🚐 Jeep Terminal</option>
+                          <option value="heritage">🏛️ Heritage Site</option>
+                          <option value="eqc">🏫 EQC</option>
+                          <option value="gnhs">🏫 GNHS</option>
+                          <option value="whole_gumaca">🔍 Buong Gumaca</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2307,45 +2502,478 @@ export default function NeighborhoodMap({
 
         {/* Street Inspector Card (When user clicks anywhere on the Leaflet map) */}
         {clickedStreet && (
-          <div className="fixed sm:absolute bottom-3 sm:bottom-auto sm:top-3 left-2 right-2 sm:left-3 sm:right-auto z-30 bg-stone-900/95 backdrop-blur-md text-white p-3 sm:p-3.5 rounded-2xl border border-stone-700 shadow-2xl max-w-sm font-sans animate-fade-in">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
-                <Search className="h-3.5 w-3.5" />
-                <span>Street Inspector 📍</span>
+          <div className="fixed sm:absolute bottom-3 sm:bottom-auto sm:top-3 left-2 sm:left-3 right-auto z-30 bg-stone-900/95 backdrop-blur-md text-white p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-stone-700 shadow-2xl max-w-[200px] sm:max-w-sm font-sans animate-fade-in select-none">
+            <div className="flex items-center justify-between gap-1 pb-0.5 sm:pb-0 border-b border-stone-800 sm:border-none">
+              <div className="flex items-center gap-1 sm:gap-1.5 text-amber-400 font-bold text-[10px] sm:text-xs">
+                <Search className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                <span className="truncate">Street Inspector 📍</span>
               </div>
               <button
                 onClick={() => setClickedStreet(null)}
-                className="text-stone-400 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded-md hover:bg-stone-800 cursor-pointer"
+                className="text-stone-400 hover:text-white text-[10px] sm:text-xs font-bold px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded-md hover:bg-stone-800 cursor-pointer"
+                title="Isara"
               >
                 ✕
               </button>
             </div>
 
-            <div className="mt-1.5 space-y-1 text-xs">
-              <p className="font-bold text-white text-sm leading-snug">
+            <div className="mt-1 sm:mt-1.5 space-y-0.5 sm:space-y-1 text-xs">
+              <p className="font-bold text-white text-[11px] sm:text-sm leading-tight sm:leading-snug truncate sm:whitespace-normal">
                 {clickedStreet.street}
               </p>
-              <p className="text-stone-300 text-xs">
+              <p className="text-stone-300 text-[9px] sm:text-xs truncate sm:whitespace-normal">
                 {clickedStreet.barangay}
               </p>
 
-              <div className="pt-2 mt-2 border-t border-stone-800 space-y-1.5 text-[11px] font-mono">
-                <div className="bg-stone-800/80 p-2 rounded-xl border border-stone-700/60 flex items-center justify-between">
-                  <span className="text-stone-400 text-[10px]">Villa Nava Area:</span>
-                  <span className="font-bold text-teal-400 text-xs">
-                    ~{clickedStreet.distVillaNava}m ({clickedStreet.walkVillaNava} mins walk 🚶)
+              <div className="pt-1 sm:pt-2 mt-1 sm:mt-2 border-t border-stone-800 space-y-1 sm:space-y-1.5 text-[9px] sm:text-[11px] font-mono">
+                <div className="bg-stone-800/80 px-1.5 py-1 sm:p-2 rounded-lg sm:rounded-xl border border-stone-700/60 flex items-center justify-between">
+                  <span className="text-stone-400 text-[8px] sm:text-[10px]">Villa Nava:</span>
+                  <span className="font-bold text-teal-400 text-[9px] sm:text-xs">
+                    ~{clickedStreet.distVillaNava}m ({clickedStreet.walkVillaNava}m 🚶)
                   </span>
                 </div>
-                <div className="pt-1 flex items-center justify-end text-[10px] text-stone-300 font-sans">
+                <div className="pt-0.5 sm:pt-1 flex items-center justify-end text-[8px] sm:text-[10px] text-stone-300 font-sans">
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${clickedStreet.lat},${clickedStreet.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-amber-400 hover:underline font-bold flex items-center gap-1"
+                    className="text-amber-400 hover:underline font-bold flex items-center gap-0.5 sm:gap-1"
                   >
                     Open Google Maps ↗
                   </a>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* School Pinpoint Editor Floating Panel - Disabled */}
+        {false && (
+          <div className="fixed sm:absolute bottom-2 sm:bottom-auto sm:top-3 left-2 right-2 sm:left-auto sm:right-3 z-30 bg-stone-900/95 backdrop-blur-md text-white rounded-2xl border border-amber-500/40 shadow-2xl max-w-md w-full sm:w-96 font-sans animate-fade-in flex flex-col max-h-[82vh]">
+            {/* Sticky Header */}
+            <div className="p-3 sm:p-3.5 border-b border-stone-800 bg-stone-950/80 rounded-t-2xl shrink-0 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h4 className="font-display text-xs sm:text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>🎓 School Pinpoint System</span>
+                  </h4>
+                  <p className="text-[10px] text-stone-300 leading-tight">
+                    Magdagdag o mag-adjust ng School Pinpoints sa Gumaca.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Map Visibility Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowSchoolsOnMap(prev => !prev)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                      showSchoolsOnMap
+                        ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/50"
+                        : "bg-stone-800 text-stone-400 border-stone-700"
+                    }`}
+                    title="I-toggle ang visibility ng school pins sa mapa"
+                  >
+                    <span>{showSchoolsOnMap ? "👁️ Pins: ON" : "🙈 Pins: OFF"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsEntranceEditingMode(false)}
+                    className="text-stone-400 hover:text-white text-xs font-bold px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* System Navigation Tabs */}
+              <div className="flex items-center gap-1 bg-stone-800/90 p-1 rounded-xl border border-stone-700/80">
+                <button
+                  type="button"
+                  onClick={() => setSystemTab("edit")}
+                  className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    systemTab === "edit"
+                      ? "bg-amber-500 text-stone-950 shadow-md"
+                      : "text-stone-300 hover:text-white hover:bg-stone-700/50"
+                  }`}
+                >
+                  <span>✏️ Edit & Drag School Pin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToAddSectionSystemBox}
+                  className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    systemTab === "add"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "text-stone-300 hover:text-white hover:bg-stone-700/50"
+                  }`}
+                >
+                  <span>➕ Add New School</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable System Content Box */}
+            <div
+              ref={systemBoxScrollRef}
+              className="p-3.5 sm:p-4 overflow-y-auto space-y-3.5 scroll-smooth max-h-[60vh] sm:max-h-[65vh] pr-2 scrollbar-thin scrollbar-thumb-stone-700 scrollbar-track-stone-900"
+            >
+              {systemTab === "edit" ? (
+                <>
+                  {/* School Dropdown Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-200 flex items-center justify-between">
+                      <span>Pumili ng Paaralan sa Gumaca:</span>
+                      <span className="text-[10px] text-amber-400 font-mono">
+                        ({getGumacaSchools().length} Total)
+                      </span>
+                    </label>
+                    <select
+                      value={selectedEditingSchoolId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setSelectedEditingSchoolId(newId);
+                        const active = getGumacaSchools().find(s => s.id === newId);
+                        if (active) {
+                          setEditingCampusLat(active.lat);
+                          setEditingCampusLng(active.lng);
+                          if (leafletMapRef.current) {
+                            leafletMapRef.current.flyTo([active.lat, active.lng], 18);
+                          }
+                        }
+                      }}
+                      className="w-full bg-stone-800 border border-stone-700 text-white rounded-xl p-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                    >
+                      {getGumacaSchools().map((sch) => (
+                        <option key={sch.id} value={sch.id}>
+                          🎓 {sch.shortName || sch.name} {sch.isCustom ? "⭐ (Custom)" : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Quick Shortcut Buttons for Schools */}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {getGumacaSchools().map((sch) => {
+                        const isCurr = sch.id === selectedEditingSchoolId;
+                        return (
+                          <button
+                            key={sch.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedEditingSchoolId(sch.id);
+                              setEditingCampusLat(sch.lat);
+                              setEditingCampusLng(sch.lng);
+                              if (leafletMapRef.current) {
+                                leafletMapRef.current.flyTo([sch.lat, sch.lng], 18);
+                              }
+                            }}
+                            className={`text-[10px] px-2 py-1 rounded-lg border font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                              isCurr
+                                ? "bg-amber-400 text-stone-950 border-amber-300 font-extrabold shadow-md scale-105"
+                                : "bg-stone-800 hover:bg-stone-700 text-stone-300 border-stone-700"
+                            }`}
+                          >
+                            <span>🎓 {sch.shortName || sch.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Campus Location Pin Card */}
+                  <div className="p-2.5 rounded-xl border bg-indigo-950/50 border-indigo-500/60 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-indigo-300 flex items-center gap-1">
+                        🎓 School Campus Pinpoint
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (leafletMapRef.current) {
+                              const center = leafletMapRef.current.getCenter();
+                              const newLat = Number(center.lat.toFixed(6));
+                              const newLng = Number(center.lng.toFixed(6));
+                              setEditingCampusLat(newLat);
+                              setEditingCampusLng(newLng);
+                            }
+                          }}
+                          className="text-[10px] text-indigo-300 hover:text-indigo-200 bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-500/30 cursor-pointer"
+                          title="Set campus coordinates to map center"
+                        >
+                          📍 Map Center
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (leafletMapRef.current) {
+                              leafletMapRef.current.flyTo([editingCampusLat, editingCampusLng], 18);
+                            }
+                          }}
+                          className="text-[10px] text-indigo-300 hover:text-indigo-200 underline font-semibold cursor-pointer"
+                        >
+                          🔍 Zoom
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-1 text-[10px] font-mono text-stone-300">
+                      GPS: {editingCampusLat.toFixed(6)}, {editingCampusLng.toFixed(6)}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          saveCustomSchoolCoord(
+                            selectedEditingSchoolId,
+                            editingCampusLat,
+                            editingCampusLng,
+                            editingCampusLat,
+                            editingCampusLng,
+                            false
+                          );
+                          setSchoolRevision(r => r + 1);
+                          setEntranceSaveToast("Na-save nang matagumpay ang School Pinpoint! ✨");
+                          setTimeout(() => setEntranceSaveToast(null), 3000);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-stone-950 font-extrabold text-xs py-2 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <span>💾 I-save ang School Pinpoint</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetCustomSchoolCoords(selectedEditingSchoolId);
+                          setSchoolRevision(r => r + 1);
+                          const active = getGumacaSchools().find(s => s.id === selectedEditingSchoolId);
+                          if (active) {
+                            setEditingCampusLat(active.lat);
+                            setEditingCampusLng(active.lng);
+                          }
+                          setEntranceSaveToast("Na-reset ang school pinpoint sa default! 🔄");
+                          setTimeout(() => setEntranceSaveToast(null), 3000);
+                        }}
+                        className="bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs px-3 py-2 rounded-xl border border-stone-700 transition-all cursor-pointer"
+                        title="Reset sa default coordinates"
+                      >
+                        🔄 Reset
+                      </button>
+                    </div>
+
+                    {/* Delete Custom School option if custom */}
+                    {(() => {
+                      const activeSch = getGumacaSchools().find(s => s.id === selectedEditingSchoolId);
+                      if (activeSch && (activeSch as any).isCustom) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteCustomSchoolItem(selectedEditingSchoolId);
+                              setSchoolRevision(r => r + 1);
+                              setSelectedEditingSchoolId("slsu-main");
+                              setEntranceSaveToast("Naalis nang matagumpay ang custom school pinpoint! 🗑️");
+                              setTimeout(() => setEntranceSaveToast(null), 3000);
+                            }}
+                            className="w-full bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-200 font-bold text-xs py-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <span>🗑️ Alisin ang Custom School Pinpoint</span>
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                </>
+              ) : (
+                /* Add New School Pinpoint Form */
+                <div ref={addFormSectionRef} className="space-y-3 animate-fade-in">
+                  <div className="bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-500/40">
+                    <h5 className="font-bold text-emerald-300 text-xs flex items-center gap-1.5">
+                      <span>➕ Magdagdag ng Bagong School Pinpoint</span>
+                    </h5>
+                    <p className="text-[10px] text-stone-300 mt-0.5 leading-tight">
+                      Ilagay ang pangalan, uri, at lokasyon ng panibagong paaralan o campus sa Gumaca para mai-plot sa mapa.
+                    </p>
+                  </div>
+
+                  {/* Input Fields */}
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                        Pangalan ng Paaralan / Campus: *
+                      </label>
+                      <input
+                        type="text"
+                        value={newSchoolName}
+                        onChange={(e) => setNewSchoolName(e.target.value)}
+                        placeholder="hal. Gumaca Maritime Academy"
+                        className="w-full bg-stone-800 border border-stone-700 text-white text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                          Maikling Pangalan:
+                        </label>
+                        <input
+                          type="text"
+                          value={newSchoolShortName}
+                          onChange={(e) => setNewSchoolShortName(e.target.value)}
+                          placeholder="hal. GMA"
+                          className="w-full bg-stone-800 border border-stone-700 text-white text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                          Uri ng Paaralan:
+                        </label>
+                        <select
+                          value={newSchoolType}
+                          onChange={(e) => setNewSchoolType(e.target.value as any)}
+                          className="w-full bg-stone-800 border border-stone-700 text-white text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                        >
+                          <option value="College">College</option>
+                          <option value="University">University</option>
+                          <option value="High School">High School</option>
+                          <option value="Elementary">Elementary</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Coordinates Inputs & Map Capture Buttons */}
+                    <div className="p-2.5 bg-stone-800/80 rounded-xl border border-stone-700/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-amber-300">
+                          🎓 Campus Center Coordinates:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (leafletMapRef.current) {
+                              const center = leafletMapRef.current.getCenter();
+                              setNewSchoolCampusLat(Number(center.lat.toFixed(6)));
+                              setNewSchoolCampusLng(Number(center.lng.toFixed(6)));
+                            }
+                          }}
+                          className="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40 hover:bg-amber-900 font-semibold cursor-pointer"
+                        >
+                          📍 Map Center
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          step="0.000001"
+                          value={newSchoolCampusLat}
+                          onChange={(e) => setNewSchoolCampusLat(parseFloat(e.target.value) || 0)}
+                          className="bg-stone-900 border border-stone-700 text-amber-200 text-xs font-mono rounded-lg p-1.5"
+                          placeholder="Latitude"
+                        />
+                        <input
+                          type="number"
+                          step="0.000001"
+                          value={newSchoolCampusLng}
+                          onChange={(e) => setNewSchoolCampusLng(parseFloat(e.target.value) || 0)}
+                          className="bg-stone-900 border border-stone-700 text-amber-200 text-xs font-mono rounded-lg p-1.5"
+                          placeholder="Longitude"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                        Paglalarawan / Landmark:
+                      </label>
+                      <input
+                        type="text"
+                        value={newSchoolDesc}
+                        onChange={(e) => setNewSchoolDesc(e.target.value)}
+                        placeholder="hal. Poblacion, Gumaca, Quezon"
+                        className="w-full bg-stone-800 border border-stone-700 text-white text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Add Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newSchoolName.trim()) {
+                        setEntranceSaveToast("⚠️ Mangyaring maglagay ng Pangalan ng Paaralan.");
+                        setTimeout(() => setEntranceSaveToast(null), 3000);
+                        return;
+                      }
+
+                      const addedItem = addCustomSchoolItem({
+                        name: newSchoolName.trim(),
+                        shortName: newSchoolShortName.trim() || newSchoolName.trim(),
+                        type: newSchoolType,
+                        lat: newSchoolCampusLat,
+                        lng: newSchoolCampusLng,
+                        entranceLat: newSchoolCampusLat,
+                        entranceLng: newSchoolCampusLng,
+                        desc: newSchoolDesc.trim() || `${newSchoolName.trim()}, Gumaca`,
+                        isEntranceInvisible: false
+                      });
+
+                      if (addedItem) {
+                        setSchoolRevision(r => r + 1);
+                        setSelectedEditingSchoolId(addedItem.id);
+                        setShowSchoolsOnMap(true);
+                        setSystemTab("edit");
+                        setNewSchoolName("");
+                        setNewSchoolShortName("");
+                        setNewSchoolDesc("");
+                        setEntranceSaveToast("Naidagdag nang matagumpay ang bagong School Pinpoint! 🎓✨");
+                        setTimeout(() => setEntranceSaveToast(null), 4000);
+
+                        if (leafletMapRef.current) {
+                          leafletMapRef.current.flyTo([addedItem.lat, addedItem.lng], 17);
+                        }
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>🎓 I-save at I-plot ang Bagong School Pinpoint</span>
+                  </button>
+                </div>
+              )}
+
+              {entranceSaveToast && (
+                <div className="bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-[11px] p-2.5 rounded-xl text-center font-bold animate-fade-in shadow-md">
+                  {entranceSaveToast}
+                </div>
+              )}
+            </div>
+
+            {/* Scroll Controls Footer */}
+            <div className="p-2 sm:p-2.5 bg-stone-950/90 border-t border-stone-800 rounded-b-2xl flex items-center justify-between text-[10px] text-stone-400 gap-2 shrink-0">
+              <span className="font-semibold text-amber-300 flex items-center gap-1">
+                <span>📜 Scroll Functions:</span>
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={scrollToTopSystemBox}
+                  className="bg-stone-800 hover:bg-stone-700 text-stone-200 px-2 py-1 rounded-md border border-stone-700 font-bold transition-all cursor-pointer flex items-center gap-0.5"
+                  title="Scroll system box to top"
+                >
+                  <span>⬆️ Taas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToBottomSystemBox}
+                  className="bg-stone-800 hover:bg-stone-700 text-stone-200 px-2 py-1 rounded-md border border-stone-700 font-bold transition-all cursor-pointer flex items-center gap-0.5"
+                  title="Scroll system box to bottom"
+                >
+                  <span>⬇️ Baba</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2689,10 +3317,14 @@ export default function NeighborhoodMap({
         {/* Hover / Selection Preview Card (Draggable over the map) */}
         {(hoveredProperty || selectedProperty) && mapMode !== "google_embed" && (
           <motion.div
+            ref={propertyCardRef}
             drag
             dragMomentum={false}
             dragElastic={0.1}
-            className="fixed sm:absolute bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-30 bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xl max-w-none sm:max-w-[320px] w-auto font-sans cursor-grab active:cursor-grabbing select-none"
+            className={isFullscreen
+              ? "fixed sm:absolute top-16 sm:top-3 right-2 sm:right-3 z-50 bg-white/95 backdrop-blur-md p-2 sm:p-4 rounded-xl sm:rounded-3xl border border-stone-200 shadow-2xl max-w-[170px] sm:max-w-[320px] w-auto font-sans cursor-grab active:cursor-grabbing select-none"
+              : "absolute top-2 right-2 z-50 bg-white/95 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-stone-200/90 shadow-lg max-w-[155px] sm:max-w-[185px] w-auto font-sans cursor-grab active:cursor-grabbing select-none"
+            }
           >
             {(() => {
               const displayProp = hoveredProperty || selectedProperty!;
@@ -2701,73 +3333,90 @@ export default function NeighborhoodMap({
               const schoolDistances = getSchoolDistancesForProperty(lat, lng, displayProp.neighborhood);
               const nearestSchool = schoolDistances[0];
 
+              const handleCloseCard = (e: React.SyntheticEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSelectProperty(null as any);
+                setHoveredProperty(null);
+                setActiveArrowLocation(null);
+                setActiveSchoolRouteFilter("none");
+                setDismissedSchoolId(selectedSchoolId || "none");
+                if (routeLayerRef.current) {
+                  try {
+                    routeLayerRef.current.clearLayers();
+                  } catch (err) {}
+                }
+              };
+
               return (
                 <div>
-                  {/* Drag Handle & Close */}
-                  <div className="flex items-center justify-between text-stone-400 mb-2 border-b border-stone-100 pb-1.5 cursor-grab active:cursor-grabbing">
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400 flex items-center gap-1">
-                      <GripHorizontal className="h-3.5 w-3.5 text-stone-400" />
-                      <span>I-drag para ilipat ✋</span>
+                  {/* Card Header & Close */}
+                  <div className={`flex items-center justify-between text-stone-400 border-b border-stone-100 ${isFullscreen ? "mb-1 sm:mb-2 pb-1 sm:pb-1.5" : "mb-0.5 pb-0.5"}`}>
+                    <span className={`font-bold tracking-wider uppercase text-stone-500 flex items-center gap-1 ${isFullscreen ? "text-[8px] sm:text-[10px]" : "text-[8px]"}`}>
+                      📍 Property Location
                     </span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectProperty(null as any);
-                      }}
-                      className="text-stone-400 hover:text-stone-600 text-xs font-bold px-1 py-0.5 rounded-md hover:bg-stone-100 transition-colors"
+                      type="button"
+                      onClick={handleCloseCard}
+                      onPointerDownCapture={(e) => e.stopPropagation()}
+                      onTouchStartCapture={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchEnd={handleCloseCard}
+                      className="text-stone-500 hover:text-stone-900 active:text-black font-extrabold text-xs sm:text-sm p-1 rounded-lg bg-stone-100/90 hover:bg-stone-200 active:bg-stone-300 transition-colors cursor-pointer touch-manipulation w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0 z-50 relative"
                       title="Isara"
                     >
                       ✕
                     </button>
                   </div>
 
-                  <div className="flex gap-3 items-center">
+                  <div className={`flex items-center ${isFullscreen ? "gap-1.5 sm:gap-3" : "gap-1.5"}`}>
                     <img
                       src={displayProp.image}
                       alt={displayProp.title}
                       referrerPolicy="no-referrer"
-                      className="w-16 h-16 object-cover rounded-2xl border border-stone-100 shrink-0 shadow-2xs pointer-events-none"
+                      className={`object-cover border border-stone-100 shrink-0 shadow-2xs pointer-events-none ${isFullscreen ? "w-8 h-8 sm:w-16 sm:h-16 rounded-lg sm:rounded-2xl" : "w-7 h-7 rounded-lg"}`}
                     />
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-stone-900 text-sm sm:text-base leading-snug truncate">
+                      <h4 className={`font-bold text-stone-900 leading-tight truncate ${isFullscreen ? "text-[11px] sm:text-base" : "text-[10px]"}`}>
                         {displayProp.title}
                       </h4>
-                      <p className="text-xs text-stone-500 mt-0.5 truncate font-normal">
-                        {displayProp.neighborhood || displayProp.address || "Barangay Tabing Dagat"}, {displayProp.city || "Gumaca"}
+                      <p className={`text-stone-500 truncate font-normal ${isFullscreen ? "text-[9px] sm:text-xs mt-0 sm:mt-0.5" : "text-[8px] mt-0.2"}`}>
+                        {displayProp.neighborhood || displayProp.address || "Barangay Tabing Dagat"}
                       </p>
-                      <div className="mt-1.5 inline-block bg-stone-100 text-stone-900 font-bold text-xs px-2.5 py-0.5 rounded-md border border-stone-200/60">
-                        ₱{displayProp.price.toLocaleString()} / month
+                      <div className={`inline-block bg-stone-100 text-stone-900 font-bold rounded-md border border-stone-200/60 ${isFullscreen ? "mt-0.5 sm:mt-1.5 text-[9px] sm:text-xs px-1.5 sm:px-2.5 py-0.2 sm:py-0.5" : "mt-0.5 text-[8px] px-1 py-0.2"}`}>
+                        ₱{displayProp.price.toLocaleString()} / mo
                       </div>
                     </div>
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => {
                       if (onOpenDetails) {
                         onOpenDetails(displayProp);
                       }
                     }}
-                    className="w-full mt-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-2xl py-2.5 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98 ${isFullscreen ? "mt-1.5 sm:mt-3 rounded-lg sm:rounded-2xl py-1 sm:py-2.5 px-2 sm:px-3 text-[10px] sm:text-xs" : "mt-1 rounded-lg py-0.5 px-1.5 text-[9px]"}`}
                   >
                     <span>Tingnan ang detalye</span>
                   </button>
 
                   {nearestSchool && (
-                    <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-500">
-                      <span className="truncate">🎓 {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')} ({nearestSchool.distanceKm.toFixed(2)} km)</span>
-                      <span className="font-bold text-indigo-600 font-mono shrink-0">{nearestSchool.walkingMinutes}m lakad</span>
+                    <div className={`border-t border-stone-100 flex items-center justify-between text-stone-500 ${isFullscreen ? "mt-1.5 sm:mt-2.5 pt-1 sm:pt-2 text-[9px] sm:text-[10px]" : "mt-1 pt-0.5 text-[8px]"}`}>
+                      <span className="truncate">🎓 {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')}</span>
+                      <span className="font-bold text-indigo-600 font-mono shrink-0 whitespace-nowrap ml-1">{nearestSchool.walkingMinutes}m</span>
                     </div>
                   )}
 
-                  <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
-                    <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/80 font-bold text-[9.5px]">
-                      ✋ I-drag ang pin sa mapa para ilipat
-                    </span>
+                  <div className={`border-t border-stone-100 flex items-center justify-end ${isFullscreen ? "mt-1 sm:mt-2 pt-1 sm:pt-2 text-[9px] sm:text-[10px]" : "mt-0.5 pt-0.5 text-[8px]"}`}>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-0.5 text-[9.5px]"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-0.5"
                     >
                       Google Maps ↗
                     </a>
