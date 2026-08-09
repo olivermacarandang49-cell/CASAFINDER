@@ -80,17 +80,23 @@ const IMAGE_PRESETS = [
 
 // Pre-defined student-friendly amenities/features
 const AMENITY_PRESETS = [
-  "Wi-Fi",
+  "Wi-Fi / Internet",
   "Aircon",
-  "Study Desk",
-  "Cooking Allowed",
-  "Separate Bathroom",
-  "Bed Included",
-  "No Curfew",
-  "Female Only",
-  "Male Only",
-  "Near SLSU Campus",
-  "Near Eastern Quezon College"
+  "Electric Fan",
+  "Study Desk & Chair",
+  "Cooking Allowed / Kitchen",
+  "Private Bathroom",
+  "Shared Bathroom",
+  "Bed & Mattress Included",
+  "Cabinet / Wardrobe",
+  "Submetered Electricity",
+  "Free / Submetered Water",
+  "Laundry / Washing Area",
+  "CCTV Security & Gated",
+  "No Curfew (24/7 Access)",
+  "Drinking Water Station",
+  "Refrigerator Access",
+  "Motorcycle Parking"
 ];
 
 // Complete Gumaca Barangays List
@@ -378,6 +384,27 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("gumaca_student_properties", JSON.stringify(propertiesList));
   }, [propertiesList]);
+
+  // Prevent background scrolling when any modal (Profile & Settings, About, Add Listing, Property details) is open
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      showProfileModal ||
+      showAboutModal ||
+      showAddModal ||
+      detailModalProperty ||
+      landlordProfileProperty
+    );
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showProfileModal, showAboutModal, showAddModal, detailModalProperty, landlordProfileProperty]);
 
   // Landlord tool: Seed beautiful student-friendly Gumaca listings
   const handleSeedListings = () => {
@@ -1141,166 +1168,135 @@ export default function App() {
 
   if (!userSession) {
     return (
-      <div className="h-screen h-[100dvh] w-full bg-[#faf9f6] text-stone-900 font-sans flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 antialiased relative overflow-hidden">
-        {/* Background elements */}
-        <div className="absolute top-0 left-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-indigo-200/25 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-emerald-200/25 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
+      <div className="h-screen h-[100dvh] w-full bg-gradient-to-br from-pink-50/80 via-white to-blue-50/80 text-stone-900 font-sans flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 antialiased relative overflow-hidden">
+        {/* Background ambient glowing spheres */}
+        <div className="absolute top-0 left-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-pink-300/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] bg-blue-300/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-2xl sm:rounded-3xl border border-stone-200 p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10 shadow-2xl relative z-10 my-auto overflow-y-auto max-h-[92dvh] sm:max-h-[88dvh] lg:max-h-[85dvh] flex flex-col justify-center"
+          className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-pink-100/90 p-4 sm:p-6 md:p-7 shadow-2xl shadow-pink-500/10 relative z-10 my-auto overflow-y-auto max-h-[92dvh] sm:max-h-[88dvh] flex flex-col justify-center mx-auto"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5 md:gap-6 lg:gap-10 xl:gap-12 items-center w-full">
-            {/* Left Column: Brand, Role & Quick Demo */}
-            <div className="space-y-2 sm:space-y-2.5 lg:space-y-4 flex flex-col justify-center">
-              {/* Logo & Header */}
-              <div className="text-center sm:text-left space-y-0.5 lg:space-y-1">
-                <div className="inline-flex h-9 w-9 sm:h-10 sm:w-10 lg:h-12 lg:w-12 bg-indigo-600 rounded-xl sm:rounded-2xl items-center justify-center text-white font-display font-bold text-base sm:text-lg lg:text-xl shadow-md shadow-indigo-100 mb-0.5 lg:mb-1">
-                  🎓
-                </div>
-                <h2 className="font-display text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight text-stone-950">CasaFinder Gumaca</h2>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-stone-400 max-w-xs sm:max-w-sm mx-auto sm:mx-0 font-light leading-tight lg:leading-normal">
-                  {authMode === "signup"
-                    ? t("signupSubTitle")
-                    : authMode === "forgot"
-                    ? t("forgotSubTitle")
-                    : t("loginSubTitle")}
-                </p>
+          <div className="flex flex-col space-y-3.5 sm:space-y-4 w-full">
+            {/* Header: Logo, Title, Subtitle */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-tr from-pink-500 via-pink-600 to-blue-600 rounded-2xl items-center justify-center text-white font-display font-bold text-lg sm:text-xl shadow-md shadow-pink-500/20 mb-0.5">
+                🎓
               </div>
-
-              {/* Role Choice Tabs */}
-              {authMode !== "forgot" && (
-                <div className="space-y-0.5 lg:space-y-1">
-                  <span className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 block mb-0.5 lg:mb-1">
-                    {t("selectRole")}
-                  </span>
-                  <div className="grid grid-cols-2 p-0.5 lg:p-1 bg-stone-100 rounded-xl lg:rounded-2xl">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginRole("student");
-                        setLoginError("");
-                      }}
-                      className={`py-1 sm:py-1.5 lg:py-2 px-2 sm:px-3 lg:px-4 text-[10px] sm:text-[11px] lg:text-xs font-bold rounded-lg lg:rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
-                        loginRole === "student"
-                          ? "bg-white text-indigo-700 shadow-xs"
-                          : "text-stone-500 hover:text-stone-800"
-                      }`}
-                    >
-                      <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
-                      {t("studentRole")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginRole("landlord");
-                        setLoginError("");
-                      }}
-                      className={`py-1 sm:py-1.5 lg:py-2 px-2 sm:px-3 lg:px-4 text-[10px] sm:text-[11px] lg:text-xs font-bold rounded-lg lg:rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
-                        loginRole === "landlord"
-                          ? "bg-white text-indigo-700 shadow-xs"
-                          : "text-stone-500 hover:text-stone-800"
-                      }`}
-                    >
-                      <Building className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
-                      {t("landlordRole")}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Demo Credentials */}
-              <div className="pt-1.5 sm:pt-2 lg:pt-3 border-t border-stone-100 space-y-1 lg:space-y-1.5">
-                <p className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 text-center sm:text-left">
-                  {t("quickAccessDemo")}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 lg:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("student")}
-                    className="bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-100/80 rounded-xl p-1.5 sm:p-2 lg:p-2.5 text-center transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] sm:text-xs lg:text-sm font-bold text-indigo-700 group-hover:scale-102 transition-transform">
-                      {prefLanguage === "tagalog" ? "Demo Estudyante 🎓" : "Demo Student 🎓"}
-                    </div>
-                    <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-indigo-500 font-mono mt-0.5">Quick Access</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("landlord")}
-                    className="bg-emerald-50/60 hover:bg-emerald-50 border border-emerald-100/80 rounded-xl p-1.5 sm:p-2 lg:p-2.5 text-center transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] sm:text-xs lg:text-sm font-bold text-emerald-700 group-hover:scale-102 transition-transform">
-                      {prefLanguage === "tagalog" ? "Demo Landlord 🏠" : "Demo Landlord 🏠"}
-                    </div>
-                    <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-emerald-500 font-mono mt-0.5">Property Owner</div>
-                  </button>
-                </div>
-              </div>
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl font-bold tracking-tight bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">CasaFinder Gumaca</h2>
+              <p className="text-[10px] sm:text-xs text-stone-500 max-w-xs sm:max-w-sm mx-auto font-light leading-snug">
+                {authMode === "signup"
+                  ? t("signupSubTitle")
+                  : authMode === "forgot"
+                  ? t("forgotSubTitle")
+                  : t("loginSubTitle")}
+              </p>
             </div>
 
-            {/* Right Column: Forms & Controls */}
-            <div className="space-y-2 sm:space-y-2.5 lg:space-y-3.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-stone-100 sm:pl-4 md:pl-6 lg:pl-8 xl:pl-10 flex flex-col justify-center">
-              {/* Log In vs Sign Up Tab switcher */}
-              {authMode !== "forgot" && (
-                <div className="flex border-b border-stone-100 pb-0.5 lg:pb-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode("login");
-                      setLoginError("");
-                    }}
-                    className={`flex-1 pb-1 sm:pb-1.5 lg:pb-2 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
-                      authMode === "login"
-                        ? "border-indigo-600 text-indigo-600 font-black"
-                        : "border-transparent text-stone-400 hover:text-stone-600"
-                    }`}
-                  >
-                    {t("loginTab")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode("signup");
-                      setLoginError("");
-                    }}
-                    className={`flex-1 pb-1 sm:pb-1.5 lg:pb-2 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
-                      authMode === "signup"
-                        ? "border-indigo-600 text-indigo-600 font-black"
-                        : "border-transparent text-stone-400 hover:text-stone-600"
-                    }`}
-                  >
-                    {t("signupTab")}
-                  </button>
-                </div>
-              )}
+            {/* 1. Log In vs Sign Up Tab Switcher (Right after Website Title) */}
+            {authMode !== "forgot" && (
+              <div className="flex border-b border-pink-100 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("login");
+                    setLoginError("");
+                  }}
+                  className={`flex-1 pb-1 sm:pb-1.5 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
+                    authMode === "login"
+                      ? "border-pink-600 text-pink-600 font-black"
+                      : "border-transparent text-stone-400 hover:text-stone-600"
+                  }`}
+                >
+                  {t("loginTab")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("signup");
+                    setLoginError("");
+                  }}
+                  className={`flex-1 pb-1 sm:pb-1.5 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
+                    authMode === "signup"
+                      ? "border-pink-600 text-pink-600 font-black"
+                      : "border-transparent text-stone-400 hover:text-stone-600"
+                  }`}
+                >
+                  {t("signupTab")}
+                </button>
+              </div>
+            )}
 
-              {/* Error Message */}
-              {loginError && (
-                <div className="p-2 sm:p-2.5 bg-red-50 border border-red-100 rounded-xl text-[10px] sm:text-xs lg:text-sm text-red-600 font-medium">
-                  ⚠️ {loginError}
+            {/* 2. Role Choice Tabs */}
+            {authMode !== "forgot" && (
+              <div className="space-y-1">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 block text-center sm:text-left">
+                  {t("selectRole")}
+                </span>
+                <div className="grid grid-cols-2 p-1 bg-gradient-to-r from-pink-50/90 to-blue-50/90 border border-pink-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginRole("student");
+                      setLoginError("");
+                    }}
+                    className={`py-1.5 sm:py-2 px-3 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      loginRole === "student"
+                        ? "bg-white text-pink-600 shadow-xs border border-pink-200/60"
+                        : "text-stone-500 hover:text-stone-800"
+                    }`}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    {t("studentRole")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginRole("landlord");
+                      setLoginError("");
+                    }}
+                    className={`py-1.5 sm:py-2 px-3 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      loginRole === "landlord"
+                        ? "bg-white text-blue-600 shadow-xs border border-blue-200/60"
+                        : "text-stone-500 hover:text-stone-800"
+                    }`}
+                  >
+                    <Building className="h-3.5 w-3.5" />
+                    {t("landlordRole")}
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {loginError && (
+              <div className="p-2 sm:p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[10px] sm:text-xs lg:text-sm text-rose-600 font-medium">
+                ⚠️ {loginError}
+              </div>
+            )}
+
+            {/* Forms & Controls */}
+            <div className="space-y-2.5 sm:space-y-3 flex flex-col justify-center">
 
               {/* FORGOT PASSWORD MODE FLOW */}
               {authMode === "forgot" ? (
                 <div className="space-y-2 sm:space-y-2.5 lg:space-y-3">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl space-y-0.5 lg:space-y-1">
-                    <div className="flex items-center gap-1.5 text-indigo-900 font-bold text-[10px] sm:text-xs lg:text-sm">
-                      <KeyRound className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-indigo-600 shrink-0" />
+                  <div className="p-2 sm:p-2.5 lg:p-3 bg-pink-50/80 border border-pink-100 rounded-xl space-y-0.5 lg:space-y-1">
+                    <div className="flex items-center gap-1.5 text-pink-900 font-bold text-[10px] sm:text-xs lg:text-sm">
+                      <KeyRound className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-pink-600 shrink-0" />
                       <span>Password Recovery</span>
                     </div>
-                    <p className="text-[10px] sm:text-xs lg:text-sm text-indigo-700 font-light leading-snug">
+                    <p className="text-[10px] sm:text-xs lg:text-sm text-pink-700 font-light leading-snug">
                       Enter your Username, Email address, or Mobile number to find your account.
                     </p>
                   </div>
 
                   {forgotSuccessMsg ? (
                     <div className="space-y-2 sm:space-y-2.5 lg:space-y-3">
-                      <div className="p-2.5 lg:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[10px] sm:text-xs lg:text-sm space-y-1">
+                      <div className="p-2.5 lg:p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-[10px] sm:text-xs lg:text-sm space-y-1">
                         <div className="flex items-center gap-1.5 font-bold">
-                          <CheckCircle2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-blue-600 shrink-0" />
                           <span>Success!</span>
                         </div>
                         <p className="font-medium leading-snug">{forgotSuccessMsg}</p>
@@ -1320,7 +1316,7 @@ export default function App() {
                           setForgotQuery("");
                           setForgotSuccessMsg("");
                         }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
                         <span>Log In with New Password 🚀</span>
                       </button>
@@ -1332,7 +1328,7 @@ export default function App() {
                         <form onSubmit={handleSearchForgotAccount} className="space-y-2 sm:space-y-2.5 lg:space-y-3">
                           <div className="space-y-0.5 lg:space-y-1">
                             <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                              <Search className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              <Search className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                               Username, Email, or Mobile
                             </label>
                             <input
@@ -1341,13 +1337,13 @@ export default function App() {
                               placeholder="e.g. juan.student / juan@example.com"
                               value={forgotQuery}
                               onChange={(e) => setForgotQuery(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-medium focus:outline-none"
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-medium focus:outline-none"
                             />
                           </div>
 
                           <button
                             type="submit"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                           >
                             <Search className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
                             <span>Find Account 🔍</span>
@@ -1357,7 +1353,7 @@ export default function App() {
                         /* Step 2: Reset Password Form */
                         <form onSubmit={handleResetForgotPassword} className="space-y-2 sm:space-y-2.5 lg:space-y-3">
                           {/* Found Account Info Badge */}
-                          <div className="p-2 lg:p-2.5 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between">
+                          <div className="p-2 lg:p-2.5 bg-stone-50 border border-pink-100 rounded-xl flex items-center justify-between">
                             <div>
                               <span className="text-[8px] sm:text-[9px] lg:text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
                                 Account Found
@@ -1367,8 +1363,8 @@ export default function App() {
                             </div>
                             <span className={`text-[8px] sm:text-[9px] lg:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full border ${
                               forgotFoundUser.role === "student"
-                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                ? "bg-pink-50 text-pink-700 border-pink-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200"
                             }`}>
                               {forgotFoundUser.role === "student" ? "STUDENT" : "LANDLORD"}
                             </span>
@@ -1376,7 +1372,7 @@ export default function App() {
 
                           <div className="space-y-0.5 lg:space-y-1">
                             <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                               New Password
                             </label>
                             <div className="relative">
@@ -1386,7 +1382,7 @@ export default function App() {
                                 placeholder="At least 3 characters"
                                 value={forgotNewPassword}
                                 onChange={(e) => setForgotNewPassword(e.target.value)}
-                                className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
+                                className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
                               />
                               <button
                                 type="button"
@@ -1400,7 +1396,7 @@ export default function App() {
 
                           <div className="space-y-0.5 lg:space-y-1">
                             <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                              <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                               Confirm New Password
                             </label>
                             <input
@@ -1409,7 +1405,7 @@ export default function App() {
                               placeholder="Must match new password"
                               value={forgotConfirmPassword}
                               onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 font-mono"
                             />
                           </div>
 
@@ -1423,7 +1419,7 @@ export default function App() {
                             </button>
                             <button
                               type="submit"
-                              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 lg:py-2 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1 lg:gap-1.5 cursor-pointer"
+                              className="flex-1 bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-1.5 lg:py-2 px-3 lg:px-4 rounded-xl text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1 lg:gap-1.5 cursor-pointer active:scale-95"
                             >
                               <Save className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
                               <span>Save New Password 🔒</span>
@@ -1435,7 +1431,7 @@ export default function App() {
                   )}
 
                   {/* Back to Login Link */}
-                  <div className="text-center pt-0.5 border-t border-stone-100">
+                  <div className="text-center pt-0.5 border-t border-pink-100">
                     <button
                       type="button"
                       onClick={() => {
@@ -1444,9 +1440,9 @@ export default function App() {
                         setForgotFoundUser(null);
                         setForgotQuery("");
                       }}
-                      className="text-[10px] sm:text-xs lg:text-sm text-indigo-600 font-bold hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                      className="text-[10px] sm:text-xs lg:text-sm text-pink-600 font-bold hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
                     >
-                      <ArrowLeft className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                      <ArrowLeft className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-600" />
                       <span>Back to Log In</span>
                     </button>
                   </div>
@@ -1459,7 +1455,7 @@ export default function App() {
                       <>
                         <div className="space-y-0.5 lg:space-y-1">
                           <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                            <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                            <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                             Email Address
                           </label>
                           <input
@@ -1468,13 +1464,13 @@ export default function App() {
                             placeholder={loginRole === "student" ? "e.g. juan@example.com" : "e.g. nena@example.com"}
                             value={signupEmail}
                             onChange={e => setSignupEmail(e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                            className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
                           />
                         </div>
 
                         <div className="space-y-0.5 lg:space-y-1">
                           <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                            <Phone className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                            <Phone className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                             {prefLanguage === "tagalog" ? "Mobile Number" : "Mobile Number"}
                           </label>
                           <input
@@ -1483,7 +1479,7 @@ export default function App() {
                             placeholder={loginRole === "student" ? "e.g. 09123456789" : "e.g. 09987654321"}
                             value={signupMobile}
                             onChange={e => setSignupMobile(e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                            className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
                           />
                         </div>
                       </>
@@ -1491,7 +1487,7 @@ export default function App() {
 
                     <div className="space-y-0.5 lg:space-y-1">
                       <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                        <Shield className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                        <Shield className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                         {authMode === "signup" ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") : "Username"}
                       </label>
                       <input
@@ -1500,14 +1496,14 @@ export default function App() {
                         placeholder={loginRole === "student" ? "e.g. juan.student" : "e.g. nena.landlord"}
                         value={loginUsername}
                         onChange={e => setLoginUsername(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
                       />
                     </div>
 
                     <div className="space-y-0.5 lg:space-y-1">
                       <div className="flex items-center justify-between">
                         <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                          <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-stone-400" />
+                          <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
                           Password
                         </label>
                         {authMode === "login" && (
@@ -1522,7 +1518,7 @@ export default function App() {
                               setForgotConfirmPassword("");
                               setForgotSuccessMsg("");
                             }}
-                            className="text-[9px] sm:text-[10px] lg:text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                            className="text-[9px] sm:text-[10px] lg:text-xs text-pink-600 hover:text-pink-800 font-bold hover:underline cursor-pointer"
                           >
                             {t("forgotPasswordLink")}
                           </button>
@@ -1535,7 +1531,7 @@ export default function App() {
                           placeholder="••••••••"
                           value={loginPassword}
                           onChange={e => setLoginPassword(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
                         />
                         <button
                           type="button"
@@ -1550,7 +1546,7 @@ export default function App() {
 
                     <button
                       type="submit"
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[11px] sm:text-xs lg:text-sm transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5 cursor-pointer mt-0.5 lg:mt-1"
+                      className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[11px] sm:text-xs lg:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer mt-0.5 lg:mt-1 active:scale-95"
                     >
                       {authMode === "signup" ? (
                         <>{t("signupBtn")}</>
@@ -1571,7 +1567,7 @@ export default function App() {
                             setAuthMode("signup");
                             setLoginError("");
                           }}
-                          className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                          className="text-pink-600 font-bold hover:underline cursor-pointer"
                         >
                           {prefLanguage === "tagalog" ? "Mag-sign Up dito!" : "Sign Up here!"}
                         </button>
@@ -1585,12 +1581,41 @@ export default function App() {
                             setAuthMode("login");
                             setLoginError("");
                           }}
-                          className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                          className="text-pink-600 font-bold hover:underline cursor-pointer"
                         >
                           {prefLanguage === "tagalog" ? "Mag-log In dito!" : "Log In here!"}
                         </button>
                       </span>
                     )}
+                  </div>
+
+                  {/* Quick Demo Credentials */}
+                  <div className="pt-2.5 border-t border-pink-100/80 space-y-1">
+                    <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 text-center">
+                      {t("quickAccessDemo")}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin("student")}
+                        className="bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/80 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                      >
+                        <div className="text-[10px] sm:text-xs font-bold text-pink-700 group-hover:scale-102 transition-transform">
+                          {prefLanguage === "tagalog" ? "Demo Estudyante 🎓" : "Demo Student 🎓"}
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-pink-500 font-mono mt-0.5">Quick Access</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin("landlord")}
+                        className="bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                      >
+                        <div className="text-[10px] sm:text-xs font-bold text-blue-700 group-hover:scale-102 transition-transform">
+                          {prefLanguage === "tagalog" ? "Demo Landlord 🏠" : "Demo Landlord 🏠"}
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-blue-500 font-mono mt-0.5">Property Owner</div>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -1609,17 +1634,17 @@ export default function App() {
           {/* Logo & Role Subheading */}
           <div className="flex items-center justify-between w-full md:w-auto gap-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-display font-bold text-lg sm:text-xl shadow-md shadow-indigo-100 shrink-0">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-tr from-pink-500 via-pink-600 to-blue-600 rounded-xl flex items-center justify-center text-white font-display font-bold text-lg sm:text-xl shadow-md shadow-pink-500/20 shrink-0">
                 {userSession.role === "student" ? "🎓" : "🏠"}
               </div>
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <h1 className="font-display text-lg sm:text-2xl font-bold tracking-tight text-stone-950 flex items-center gap-1.5">
-                    <span>CasaFinder</span>
+                    <span className="bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">CasaFinder</span>
                     <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-md border ${
                       userSession.role === "student"
-                        ? "text-indigo-600 bg-indigo-50 border-indigo-100"
-                        : "text-emerald-600 bg-emerald-50 border-emerald-100"
+                        ? "text-pink-600 bg-pink-50 border-pink-200"
+                        : "text-blue-600 bg-blue-50 border-blue-200"
                     }`}>
                       {userSession.role === "student" ? t("studentRole") : t("landlordRole")}
                     </span>
@@ -1631,15 +1656,15 @@ export default function App() {
               </div>
             </div>
 
-            {/* Mobile Profile Icon Button (Placed right beside CasaFinder on mobile) */}
+            {/* Mobile Profile Icon Button */}
             <div className="md:hidden relative">
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="bg-gradient-to-r from-pink-50 to-blue-50 hover:from-pink-100 hover:to-blue-100 text-stone-800 border border-pink-200/70 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                 title="Profile & Settings"
               >
-                <UserCog className="h-4 w-4 text-indigo-600" />
+                <UserCog className="h-4 w-4 text-pink-600" />
               </button>
 
               {/* Mobile Profile Dropdown Menu */}
@@ -1743,10 +1768,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="bg-gradient-to-r from-pink-50 to-blue-50 hover:from-pink-100 hover:to-blue-100 text-stone-800 border border-pink-200/70 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                 title="Profile & Settings"
               >
-                <UserCog className="h-4 w-4 text-indigo-600" />
+                <UserCog className="h-4 w-4 text-pink-600" />
               </button>
 
               {/* Desktop Dropdown Menu */}
@@ -1846,7 +1871,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleOpenAddModal}
-                className="bg-indigo-600 text-white rounded-xl py-2 px-3.5 sm:px-4 text-xs font-semibold hover:bg-indigo-700 hover:shadow-xs transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-100 cursor-pointer w-full sm:w-auto justify-center"
+                className="bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl py-2 px-3.5 sm:px-4 text-xs font-bold hover:from-pink-600 hover:to-rose-700 transition-all flex items-center gap-1.5 shadow-md shadow-pink-500/20 cursor-pointer w-full sm:w-auto justify-center active:scale-95"
               >
                 <Plus className="h-4 w-4" />
                 {t("postProperty")}
@@ -1855,7 +1880,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setShowMapPage(true)}
-              className="bg-emerald-600 text-white rounded-xl py-2 px-3.5 sm:px-4 text-xs font-semibold hover:bg-emerald-700 hover:shadow-xs transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-100 cursor-pointer w-full sm:w-auto justify-center"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-2 px-3.5 sm:px-4 text-xs font-bold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer w-full sm:w-auto justify-center active:scale-95"
             >
               <MapPin className="h-4 w-4" />
               {t("tabMap")}
@@ -1869,15 +1894,15 @@ export default function App() {
         
         {/* Search Panel - Only visible for Students */}
         {userSession.role === "student" && (
-          <div className="bg-white rounded-2xl border border-stone-200 p-3 sm:p-5 shadow-xs space-y-3 sm:space-y-4 transition-all">
+          <div className="bg-white rounded-2xl border border-pink-100 p-3 sm:p-5 shadow-sm shadow-pink-500/5 space-y-3 sm:space-y-4 transition-all">
             {/* Header / Mobile Toggle Bar */}
-            <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-2.5 sm:pb-3">
+            <div className="flex items-center justify-between gap-2 border-b border-pink-50 pb-2.5 sm:pb-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
-                  <SlidersHorizontal className="h-4 w-4 text-indigo-600" />
+                  <SlidersHorizontal className="h-4 w-4 text-pink-600" />
                   <span>{prefLanguage === "tagalog" ? "Maghanap at I-filter" : "Search & Filter"}</span>
                 </h3>
-                <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200/60 font-bold px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-gradient-to-r from-pink-50 to-blue-50 text-pink-700 border border-pink-200/80 font-bold px-2 py-0.5 rounded-full">
                   {processedProperties.length} {processedProperties.length === 1 ? (prefLanguage === "tagalog" ? "Tuluyan" : "House") : (prefLanguage === "tagalog" ? "Mga Tuluyan" : "Houses")}
                 </span>
               </div>
@@ -2071,7 +2096,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleSearch}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-1.5 sm:py-2 px-4 sm:px-5 text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 shrink-0"
+                className="bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white rounded-xl py-1.5 sm:py-2 px-4 sm:px-5 text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-pink-500/20 cursor-pointer active:scale-95 shrink-0"
               >
                 <Filter className="h-3.5 w-3.5" />
                 <span>{t("searchBtn")}</span>
@@ -2406,7 +2431,7 @@ export default function App() {
                           setNewCustomLng(coords[1]);
                         }
                       }}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white cursor-pointer"
                     >
                       {GUMACA_BARANGAYS.map((b) => (
                         <option key={b} value={b}>{b}</option>
@@ -2424,7 +2449,7 @@ export default function App() {
                       placeholder={prefLanguage === "tagalog" ? "hal. Malapit sa SLSU Gumaca Campus" : "e.g. Near SLSU Gumaca, Barangay Tabing Dagat, Gumaca, Quezon"}
                       value={newAddress}
                       onChange={e => setNewAddress(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
+                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white"
                     />
                     <p className="text-[10px] text-stone-500 italic mt-0.5">
                       🔒 {prefLanguage === "tagalog" ? "Payo: Maglagay ng landmark o kalsada sa Gumaca, Quezon (hal. 'Malapit sa SLSU Gate')." : "Tip: Enter a landmark or street in Gumaca, Quezon (e.g. 'Near SLSU Gumaca Main Gate')."}
@@ -2444,52 +2469,20 @@ export default function App() {
                   neighborhood={newNeighborhood}
                 />
 
-                {/* Utilities & Gender Accommodation Selection */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Uri ng Kasarian *" : "Gender Type *"}
-                    </label>
-                    <select
-                      value={newGenderPolicy}
-                      onChange={e => setNewGenderPolicy(e.target.value as "Both" | "Girls Only" | "Boys Only")}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
-                    >
-                      <option value="Both">{prefLanguage === "tagalog" ? "Lahat (Co-ed)" : "Both (Co-ed)"}</option>
-                      <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae Lamang 👧" : "Girls Only 👧"}</option>
-                      <option value="Boys Only">{prefLanguage === "tagalog" ? "Pang-lalaki Lamang 👦" : "Boys Only 👦"}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Paradahan ng Sasakyan" : "Parking Arrangement"}
-                    </label>
-                    <select
-                      value={newParking}
-                      onChange={e => setNewParking(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
-                    >
-                      <option value="No Parking">{prefLanguage === "tagalog" ? "Walang Paradahan" : "No Parking Space"}</option>
-                      <option value="Motorcycle Only">{prefLanguage === "tagalog" ? "Motorsiklo Lamang" : "Motorcycle Parking Only"}</option>
-                      <option value="Car & Motorcycle">{prefLanguage === "tagalog" ? "May Paradahan (Kotse at Motor)" : "Available (Car & Motorcycle)"}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Bentilasyon / Araw at Hangin" : "Ventilation / Cooling"}
-                    </label>
-                    <select
-                      value={newCooling}
-                      onChange={e => setNewCooling(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer"
-                    >
-                      <option value="Electric Fan">{prefLanguage === "tagalog" ? "Electric Fan Lamang" : "Electric Fan Only"}</option>
-                      <option value="Aircon Ready">{prefLanguage === "tagalog" ? "May Aircon" : "Aircon Installed"}</option>
-                      <option value="Well-Ventilated (Windows)">{prefLanguage === "tagalog" ? "Presko / Bintana Lamang" : "Well-Ventilated (Windows Only)"}</option>
-                    </select>
-                  </div>
+                {/* Gender Accommodation Selection */}
+                <div className="flex flex-col space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                    {prefLanguage === "tagalog" ? "Uri ng Kasarian *" : "Gender Type *"}
+                  </label>
+                  <select
+                    value={newGenderPolicy}
+                    onChange={e => setNewGenderPolicy(e.target.value as "Both" | "Girls Only" | "Boys Only")}
+                    className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white cursor-pointer"
+                  >
+                    <option value="Both">{prefLanguage === "tagalog" ? "Lahat (Co-ed)" : "Both (Co-ed)"}</option>
+                    <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae Lamang 👧" : "Girls Only 👧"}</option>
+                    <option value="Boys Only">{prefLanguage === "tagalog" ? "Pang-lalaki Lamang 👦" : "Boys Only 👦"}</option>
+                  </select>
                 </div>
 
                 {/* Description */}
@@ -2502,7 +2495,7 @@ export default function App() {
                     placeholder={prefLanguage === "tagalog" ? "hal. Bukod na submeter sa kuryente. Malapit sa SLSU Gumaca Campus. Kontak: 09123456789." : "e.g. Separate electric meter. Near SLSU Gumaca Campus. Contact: 09123456789."}
                     value={newDescription}
                     onChange={e => setNewDescription(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white resize-none"
+                    className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white resize-none"
                   />
                 </div>
 
@@ -2510,7 +2503,7 @@ export default function App() {
                 <div className="flex flex-col space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-stone-600 flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-stone-700 font-bold">
-                      <Camera className="h-4 w-4 text-indigo-600" />
+                      <Camera className="h-4 w-4 text-pink-600" />
                       {prefLanguage === "tagalog" ? "Litrato ng Tuluyan *" : "Establishment Photo *"}
                     </span>
                     {isCustomUpload && (
@@ -2521,7 +2514,7 @@ export default function App() {
                   </label>
 
                   {/* Upload Box */}
-                  <div className="border-2 border-dashed border-stone-200 hover:border-indigo-400 bg-stone-50/70 rounded-2xl p-4 transition-all text-center relative group">
+                  <div className="border-2 border-dashed border-stone-200 hover:border-pink-400 bg-stone-50/70 rounded-2xl p-4 transition-all text-center relative group">
                     <input
                       type="file"
                       accept="image/*"
@@ -2576,11 +2569,11 @@ export default function App() {
                         htmlFor="establishment-photo-upload"
                         className="flex flex-col items-center justify-center py-5 cursor-pointer space-y-2 group"
                       >
-                        <div className="w-12 h-12 bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center transition-all shadow-xs">
+                        <div className="w-12 h-12 bg-pink-50 group-hover:bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center transition-all shadow-xs">
                           <Upload className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-stone-800 group-hover:text-indigo-600 transition-colors">
+                          <p className="text-xs font-bold text-stone-800 group-hover:text-pink-600 transition-colors">
                             {prefLanguage === "tagalog" ? "Pindutin para mag-upload ng Tunay na Litrato ng Silid" : "Click to upload a Real Photo of the Room / Establishment"}
                           </p>
                           <p className="text-[10px] text-stone-400 mt-0.5">
@@ -2608,7 +2601,7 @@ export default function App() {
                               setUploadedFileName("");
                             }}
                             className={`relative aspect-video rounded-xl overflow-hidden border cursor-pointer transition-all ${
-                              isSelected ? "ring-2 ring-indigo-600 border-transparent scale-[1.02]" : "border-stone-200 hover:border-stone-300"
+                              isSelected ? "ring-2 ring-pink-500 border-transparent scale-[1.02]" : "border-stone-200 hover:border-stone-300"
                             }`}
                           >
                             <img
@@ -2621,7 +2614,7 @@ export default function App() {
                               {preset.label}
                             </div>
                             {isSelected && (
-                              <div className="absolute top-1 right-1 bg-indigo-600 text-white rounded-full p-0.5 shadow-md">
+                              <div className="absolute top-1 right-1 bg-gradient-to-r from-pink-500 to-blue-600 text-white rounded-full p-0.5 shadow-md">
                                 <Check className="h-2.5 w-2.5" />
                               </div>
                             )}
@@ -2647,12 +2640,12 @@ export default function App() {
                           onClick={() => toggleAmenity(amenity)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 lg:py-2 rounded-lg border text-left text-[11px] lg:text-xs transition-all cursor-pointer ${
                             isChecked
-                              ? "bg-indigo-50 border-indigo-200 text-indigo-700 font-medium"
+                              ? "bg-pink-50 border-pink-200 text-pink-700 font-medium"
                               : "bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100"
                           }`}
                         >
                           <div className={`w-3.5 h-3.5 lg:w-4 lg:h-4 rounded border flex items-center justify-center shrink-0 ${
-                            isChecked ? "bg-indigo-600 border-indigo-600 text-white" : "border-stone-300 bg-white"
+                            isChecked ? "bg-gradient-to-r from-pink-500 to-blue-600 border-transparent text-white" : "border-stone-300 bg-white"
                           }`}>
                             {isChecked && <Check className="h-2.5 w-2.5 lg:h-3 lg:w-3 stroke-[3]" />}
                           </div>
@@ -2674,7 +2667,7 @@ export default function App() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 lg:py-3 text-xs lg:text-sm font-bold transition-all shadow-md shadow-indigo-100 cursor-pointer"
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white rounded-xl py-2.5 lg:py-3 text-xs lg:text-sm font-bold transition-all shadow-md shadow-pink-500/20 cursor-pointer"
                   >
                     {prefLanguage === "tagalog" ? "I-save at I-post ang Tuluyan 🚀" : "Save & Post Listing 🚀"}
                   </button>
@@ -2850,7 +2843,7 @@ export default function App() {
             >
               {/* Modal Header */}
               <div className="bg-stone-900 text-white p-3.5 sm:p-4 relative flex items-center gap-3 shrink-0">
-                <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-indigo-500/20 shrink-0">
+                <div className="h-10 w-10 bg-gradient-to-tr from-pink-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-pink-500/20 shrink-0">
                   {userSession.role === "student" ? "🎓" : "🏠"}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2860,8 +2853,8 @@ export default function App() {
                     </h2>
                     <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
                       userSession.role === "student"
-                        ? "bg-indigo-950 text-indigo-300 border-indigo-800"
-                        : "bg-emerald-950 text-emerald-300 border-emerald-800"
+                        ? "bg-pink-950/80 text-pink-300 border-pink-800"
+                        : "bg-blue-950/80 text-blue-300 border-blue-800"
                     }`}>
                       {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
                     </span>
@@ -2886,7 +2879,7 @@ export default function App() {
                   onClick={() => setProfileTab("profile")}
                   className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "profile"
-                      ? "border-indigo-600 text-indigo-600"
+                      ? "border-pink-500 text-pink-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
@@ -2898,7 +2891,7 @@ export default function App() {
                   onClick={() => setProfileTab("settings")}
                   className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "settings"
-                      ? "border-indigo-600 text-indigo-600"
+                      ? "border-pink-500 text-pink-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
@@ -2910,7 +2903,7 @@ export default function App() {
                   onClick={() => setProfileTab("notifications")}
                   className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "notifications"
-                      ? "border-indigo-600 text-indigo-600"
+                      ? "border-pink-500 text-pink-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
@@ -2922,7 +2915,7 @@ export default function App() {
                   onClick={() => setProfileTab("about")}
                   className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                     profileTab === "about"
-                      ? "border-indigo-600 text-indigo-600"
+                      ? "border-pink-500 text-pink-600"
                       : "border-transparent text-stone-500 hover:text-stone-800"
                   }`}
                 >
@@ -2959,7 +2952,7 @@ export default function App() {
                           required
                           value={profileEditName}
                           onChange={(e) => setProfileEditName(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
                           placeholder={t("fullName")}
                         />
                       </div>
@@ -2993,7 +2986,7 @@ export default function App() {
                           type="email"
                           value={profileEditEmail}
                           onChange={(e) => setProfileEditEmail(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
                           placeholder="email@example.com"
                         />
                       </div>
@@ -3008,7 +3001,7 @@ export default function App() {
                           type="tel"
                           value={profileEditMobile}
                           onChange={(e) => setProfileEditMobile(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
                           placeholder="09123456789"
                         />
                       </div>
@@ -3028,7 +3021,7 @@ export default function App() {
                         type="text"
                         value={profileEditSchool}
                         onChange={(e) => setProfileEditSchool(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
                         placeholder={userSession.role === "student" ? "Gumaca National High School / SLSU Gumaca" : "Dormitory / Apartment Name"}
                       />
                     </div>
@@ -3042,7 +3035,7 @@ export default function App() {
                         rows={3}
                         value={profileEditBio}
                         onChange={(e) => setProfileEditBio(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-normal resize-none"
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-normal resize-none"
                         placeholder={prefLanguage === "tagalog" ? "Ipakilala ang sarili o mag-iwan ng maikling tala..." : "Introduce yourself or leave a short note..."}
                       />
                     </div>
@@ -3074,7 +3067,7 @@ export default function App() {
                               type="text"
                               value={profileEditPermitNo}
                               onChange={(e) => setProfileEditPermitNo(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
+                              className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
                               placeholder="e.g. BP-2026-GUM-8842"
                             />
                           </div>
@@ -3106,7 +3099,7 @@ export default function App() {
                                 <span className="truncate max-w-[160px] font-mono text-[11px] text-stone-600">
                                   {profileEditPermitFile || (prefLanguage === "tagalog" ? "Pumili ng permit file..." : "Choose permit file...")}
                                 </span>
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md shrink-0">
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md shrink-0">
                                   <Upload className="h-3 w-3" />
                                   {prefLanguage === "tagalog" ? "I-upload" : "Upload"}
                                 </span>
@@ -3119,7 +3112,7 @@ export default function App() {
                         {profileEditPermitFile && (
                           <div className="p-2.5 bg-stone-50 border border-stone-200/80 rounded-xl flex items-center justify-between text-xs text-stone-700">
                             <div className="flex items-center gap-2 truncate">
-                              <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
+                              <FileText className="h-4 w-4 text-pink-600 shrink-0" />
                               <span className="font-mono text-[11px] font-medium text-stone-800 truncate">{profileEditPermitFile}</span>
                             </div>
                             <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md shrink-0">
@@ -3150,7 +3143,7 @@ export default function App() {
                     )}
 
                     {/* Security Health Status Card */}
-                    <div className="p-4 bg-gradient-to-r from-stone-900 via-indigo-950 to-stone-900 text-white rounded-2xl shadow-md border border-stone-800 flex flex-col gap-3">
+                    <div className="p-4 bg-gradient-to-r from-stone-900 via-pink-950 to-stone-900 text-white rounded-2xl shadow-md border border-stone-800 flex flex-col gap-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
                           <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
@@ -3188,7 +3181,7 @@ export default function App() {
                         </div>
                         <div className="bg-stone-800/60 p-2 rounded-xl text-center border border-stone-700/50">
                           <span className="text-stone-400 block text-[9px] uppercase font-bold">4-Digit PIN</span>
-                          <span className="font-bold text-indigo-300">{securityPin ? (prefLanguage === "tagalog" ? "Naka-set 🔑" : "Set 🔑") : (prefLanguage === "tagalog" ? "Wala pa" : "Not Set")}</span>
+                          <span className="font-bold text-pink-300">{securityPin ? (prefLanguage === "tagalog" ? "Naka-set 🔑" : "Set 🔑") : (prefLanguage === "tagalog" ? "Wala pa" : "Not Set")}</span>
                         </div>
                       </div>
                     </div>
@@ -3196,7 +3189,7 @@ export default function App() {
                     {/* Section 1: Change Password & Password Strength Meter */}
                     <div className="bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80 space-y-3">
                       <div className="flex items-center gap-2 border-b border-stone-200/60 pb-2">
-                        <KeyRound className="h-4 w-4 text-indigo-600 shrink-0" />
+                        <KeyRound className="h-4 w-4 text-pink-600 shrink-0" />
                         <h4 className="font-bold text-xs text-stone-900">
                           {prefLanguage === "tagalog" ? "Pagbabago ng Password" : "Change Password"}
                         </h4>
@@ -3212,7 +3205,7 @@ export default function App() {
                             type={showProfileCurrentPassword ? "text" : "password"}
                             value={profileCurrentPassword}
                             onChange={(e) => setProfileCurrentPassword(e.target.value)}
-                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
                             placeholder={prefLanguage === "tagalog" ? "I-type ang kasalukuyang password" : "Type current password"}
                           />
                           <button
@@ -3235,7 +3228,7 @@ export default function App() {
                             type={showProfilePassword ? "text" : "password"}
                             value={profileEditPassword}
                             onChange={(e) => setProfileEditPassword(e.target.value)}
-                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
                             placeholder={prefLanguage === "tagalog" ? "I-type ang bagong password" : "Type new password"}
                           />
                           <button
@@ -3270,7 +3263,7 @@ export default function App() {
                             className={`w-full bg-white border rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none ${
                               profileConfirmPassword && profileEditPassword !== profileConfirmPassword
                                 ? "border-rose-300 focus:border-rose-500"
-                                : "border-stone-200 focus:border-indigo-500"
+                                : "border-stone-200 focus:border-pink-500"
                             }`}
                             placeholder={prefLanguage === "tagalog" ? "I-type muli ang bagong password" : "Re-type new password"}
                           />
@@ -3341,7 +3334,7 @@ export default function App() {
                     {/* Section 2: Two-Factor Authentication (2FA) */}
                     <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl shrink-0">
+                        <div className="p-2 bg-pink-100 text-pink-700 rounded-xl shrink-0">
                           <Smartphone className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
@@ -3369,7 +3362,7 @@ export default function App() {
                           );
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          is2FAEnabled ? "bg-indigo-600" : "bg-stone-300"
+                          is2FAEnabled ? "bg-gradient-to-r from-pink-500 to-blue-600" : "bg-stone-300"
                         }`}
                       >
                         <span
@@ -3389,7 +3382,7 @@ export default function App() {
                             {prefLanguage === "tagalog" ? "4-Digit Security PIN" : "4-Digit Security PIN"}
                           </span>
                         </div>
-                        <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-medium">
+                        <span className="text-[10px] text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md font-medium">
                           {prefLanguage === "tagalog" ? "Para sa mabilis na Kumpirmasyon" : "For Fast Confirmation"}
                         </span>
                       </div>
@@ -3401,7 +3394,7 @@ export default function App() {
                             maxLength={4}
                             value={securityPin}
                             onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ""))}
-                            className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-stone-800 outline-none"
+                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-stone-800 outline-none"
                             placeholder="****"
                           />
                           <button
@@ -3424,7 +3417,7 @@ export default function App() {
                     <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl space-y-2.5">
                       <div className="flex items-center justify-between border-b border-stone-200/60 pb-2">
                         <div className="flex items-center gap-2">
-                          <Laptop className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <Laptop className="h-4 w-4 text-pink-600 shrink-0" />
                           <span className="text-xs font-bold text-stone-900">
                             {prefLanguage === "tagalog" ? "Mga Naka-login na Device (Active Sessions)" : "Active Device Sessions"}
                           </span>
@@ -3439,7 +3432,7 @@ export default function App() {
                           <div key={session.id} className="p-2.5 bg-white border border-stone-200/70 rounded-xl flex items-center justify-between gap-2 text-xs">
                             <div className="flex items-start gap-2.5 min-w-0">
                               {session.device.includes("Mobile") || session.device.includes("iPhone") ? (
-                                <Smartphone className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                                <Smartphone className="h-4 w-4 text-pink-600 shrink-0 mt-0.5" />
                               ) : (
                                 <Laptop className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                               )}
@@ -3493,13 +3486,13 @@ export default function App() {
                       {/* Language Field Option */}
                       <div className="space-y-1.5">
                         <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
-                          <Globe className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                          <Globe className="h-3.5 w-3.5 text-pink-600 shrink-0" />
                           <span>{t("prefLanguageLabel")}</span>
                         </label>
                         <select
                           value={prefLanguage}
                           onChange={(e) => setPrefLanguage(e.target.value as "tagalog" | "english")}
-                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer shadow-2xs"
+                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
                         >
                           <option value="english">🇺🇸 English</option>
                           <option value="tagalog">🇵🇭 Tagalog (Filipino)</option>
@@ -3510,7 +3503,7 @@ export default function App() {
                       <div className="space-y-1.5">
                         <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
                           {prefTheme === "dark" ? (
-                            <Moon className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                            <Moon className="h-3.5 w-3.5 text-pink-500 shrink-0" />
                           ) : (
                             <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                           )}
@@ -3519,7 +3512,7 @@ export default function App() {
                         <select
                           value={prefTheme}
                           onChange={(e) => setPrefTheme(e.target.value as "light" | "dark")}
-                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer shadow-2xs"
+                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
                         >
                           <option value="light">☀️ Light Mode</option>
                           <option value="dark">🌙 Dark Mode</option>
@@ -3536,7 +3529,7 @@ export default function App() {
 
                       <label className="flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl cursor-pointer hover:bg-stone-100/80 transition-colors">
                         <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-indigo-600" />
+                          <Mail className="h-4 w-4 text-pink-600" />
                           <div>
                             <span className="text-xs font-bold text-stone-800 block">{prefLanguage === "tagalog" ? "Notipikasyon sa Email" : "Email Alerts"}</span>
                             <span className="text-[10px] text-stone-500 font-light">{prefLanguage === "tagalog" ? "Makatanggap ng email updates sa mga bagong boarding house." : "Receive email updates about new boarding houses."}</span>
@@ -3546,7 +3539,7 @@ export default function App() {
                           type="checkbox"
                           checked={prefEmailNotifications}
                           onChange={(e) => setPrefEmailNotifications(e.target.checked)}
-                          className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
+                          className="h-4 w-4 accent-pink-600 rounded cursor-pointer"
                         />
                       </label>
 
@@ -3562,13 +3555,13 @@ export default function App() {
                           type="checkbox"
                           checked={prefSmsAlerts}
                           onChange={(e) => setPrefSmsAlerts(e.target.checked)}
-                          className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
+                          className="h-4 w-4 accent-pink-600 rounded cursor-pointer"
                         />
                       </label>
 
                       <label className="flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl cursor-pointer hover:bg-stone-100/80 transition-colors">
                         <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-purple-600" />
+                          <MapPin className="h-4 w-4 text-blue-600" />
                           <div>
                             <span className="text-xs font-bold text-stone-800 block">{prefLanguage === "tagalog" ? "Awtomatikong Ipakita ang Hangganan ng Mapa" : "Auto-Highlight Map Boundaries"}</span>
                             <span className="text-[10px] text-stone-500 font-light">{prefLanguage === "tagalog" ? "Awtomatikong ipakita ang outline ng barangay sa mapa." : "Automatically display barangay boundary outlines."}</span>
@@ -3578,7 +3571,7 @@ export default function App() {
                           type="checkbox"
                           checked={prefAutoShowMap}
                           onChange={(e) => setPrefAutoShowMap(e.target.checked)}
-                          className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
+                          className="h-4 w-4 accent-pink-600 rounded cursor-pointer"
                         />
                       </label>
                     </div>
@@ -3658,7 +3651,7 @@ export default function App() {
                   {profileTab !== "notifications" && profileTab !== "about" && (
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white text-xs font-bold shadow-md shadow-pink-500/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <Save className="h-4 w-4" />
                       <span>

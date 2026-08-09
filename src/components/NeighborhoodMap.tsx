@@ -1790,8 +1790,8 @@ export default function NeighborhoodMap({
             }}
             className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
               isDrawingMode
-                ? "bg-amber-500 text-stone-950 ring-2 ring-amber-300 animate-pulse"
-                : "bg-indigo-600 text-white hover:bg-indigo-700"
+                ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white ring-2 ring-pink-300 animate-pulse"
+                : "bg-gradient-to-r from-pink-500 to-blue-600 text-white hover:from-pink-600 hover:to-blue-700 shadow-pink-500/10"
             }`}
             title="I-edit o iguhit ang boundary ng bawat barangay sa Gumaca"
           >
@@ -1813,7 +1813,7 @@ export default function NeighborhoodMap({
             }}
             className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
               showBoundariesOnMap
-                ? "bg-purple-100 text-purple-900 border border-purple-300"
+                ? "bg-gradient-to-r from-pink-100 to-blue-100 text-pink-900 border border-pink-300"
                 : "bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200"
             }`}
             title="Ipakita o Itago ang Boundary ng Napiling Barangay"

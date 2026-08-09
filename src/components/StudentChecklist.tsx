@@ -86,17 +86,17 @@ export default function StudentChecklist({ language = "english" }: StudentCheckl
   const isTagalog = language === "tagalog";
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col space-y-3">
+    <div className="bg-white rounded-2xl border border-pink-100 p-5 shadow-sm shadow-pink-500/5 flex flex-col space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+          <div className="p-1.5 bg-gradient-to-tr from-pink-500 to-blue-600 text-white rounded-lg shadow-2xs">
             <ClipboardCheck className="h-4 w-4" />
           </div>
           <h3 className="font-display text-sm font-semibold text-stone-800">
             {isTagalog ? "Student Inspection Checklist 📋" : "Student Inspection Checklist 📋"}
           </h3>
         </div>
-        <span className="text-[10px] bg-emerald-50 text-emerald-700 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-100">
+        <span className="text-[10px] bg-gradient-to-r from-pink-50 to-blue-50 text-pink-700 font-mono font-bold px-2 py-0.5 rounded-full border border-pink-200/80">
           {progressPercentage}% {isTagalog ? "Nacheck Na" : "Checked"}
         </span>
       </div>
@@ -108,9 +108,9 @@ export default function StudentChecklist({ language = "english" }: StudentCheckl
       </p>
 
       {/* Progress Bar */}
-      <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+      <div className="w-full bg-pink-50 h-1.5 rounded-full overflow-hidden border border-pink-100">
         <div
-          className="bg-emerald-500 h-full transition-all duration-300"
+          className="bg-gradient-to-r from-pink-500 to-blue-600 h-full transition-all duration-300"
           style={{ width: `${progressPercentage}%` }}
         />
       </div>
@@ -127,13 +127,13 @@ export default function StudentChecklist({ language = "english" }: StudentCheckl
               onClick={() => toggleItem(item.id)}
               className={`flex items-start gap-2.5 p-2 rounded-xl border text-xs cursor-pointer select-none transition-all ${
                 isChecked
-                  ? "bg-emerald-50/40 border-emerald-100/80 text-stone-500"
-                  : "bg-stone-50/50 border-stone-100 text-stone-800 hover:bg-stone-50 hover:border-stone-200"
+                  ? "bg-pink-50/40 border-pink-100 text-stone-500"
+                  : "bg-stone-50/50 border-stone-100 text-stone-800 hover:bg-pink-50/30 hover:border-pink-200"
               }`}
             >
               <button type="button" className="shrink-0 mt-0.5 text-stone-400 hover:text-stone-600">
                 {isChecked ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-pink-600" />
                 ) : (
                   <Circle className="h-4 w-4 text-stone-300" />
                 )}
@@ -145,12 +145,12 @@ export default function StudentChecklist({ language = "english" }: StudentCheckl
                 <span
                   className={`inline-block text-[9px] font-medium px-1.5 py-0.2 rounded-md mt-1 ${
                     item.categoryEn === "Utilities"
-                      ? "bg-blue-50 text-blue-600"
+                      ? "bg-blue-50 text-blue-600 border border-blue-100"
                       : item.categoryEn === "House Rules"
-                      ? "bg-amber-50 text-amber-600"
+                      ? "bg-amber-50 text-amber-600 border border-amber-100"
                       : item.categoryEn === "Safety"
-                      ? "bg-rose-50 text-rose-600"
-                      : "bg-indigo-50 text-indigo-600"
+                      ? "bg-pink-50 text-pink-600 border border-pink-100"
+                      : "bg-purple-50 text-purple-600 border border-purple-100"
                   }`}
                 >
                   {categoryText}

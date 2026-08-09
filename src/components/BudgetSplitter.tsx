@@ -32,17 +32,17 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
   const isTagalog = language === "tagalog";
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col space-y-4">
+    <div className="bg-white rounded-2xl border border-pink-100 p-5 shadow-sm shadow-pink-500/5 flex flex-col space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+          <div className="p-1.5 bg-gradient-to-tr from-pink-500 to-blue-600 text-white rounded-lg shadow-2xs">
             <Users className="h-4 w-4" />
           </div>
           <h3 className="font-display text-sm font-semibold text-stone-800">
             {isTagalog ? "Kuwenta ng Hatian sa Badyet 📊" : "Student Cost Splitter 📊"}
           </h3>
         </div>
-        <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold font-mono px-2 py-0.5 rounded-full border border-indigo-100">
+        <span className="text-[10px] bg-gradient-to-r from-pink-50 to-blue-50 text-pink-700 font-bold font-mono px-2 py-0.5 rounded-full border border-pink-200/80">
           {isTagalog ? "Kalkulator ng Hatian" : "Co-living Estimator"}
         </span>
       </div>
@@ -60,7 +60,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
             <span className="text-stone-600 font-medium">
               {isTagalog ? "Buwanang Upa (Rent)" : "Monthly Rent"}
             </span>
-            <span className="font-bold text-stone-900">₱{rent.toLocaleString()}</span>
+            <span className="font-bold text-pink-600">₱{rent.toLocaleString()}</span>
           </div>
           <input
             type="range"
@@ -69,7 +69,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
             step="200"
             value={rent}
             onChange={(e) => setRent(Number(e.target.value))}
-            className="w-full h-1.5 bg-stone-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            className="w-full h-1.5 bg-pink-100 rounded-lg appearance-none cursor-pointer accent-pink-600"
           />
         </div>
 
@@ -86,8 +86,8 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 onClick={() => setRoommates(num)}
                 className={`py-1.5 rounded-lg text-xs font-mono font-bold border transition-all cursor-pointer ${
                   roommates === num
-                    ? "bg-indigo-600 text-white border-indigo-700 shadow-xs"
-                    : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
+                    ? "bg-gradient-to-r from-pink-500 to-blue-600 text-white border-pink-600 shadow-xs"
+                    : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-pink-50 hover:text-pink-600"
                 }`}
               >
                 {num}
@@ -109,7 +109,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 type="checkbox"
                 checked={includeElectricity}
                 onChange={(e) => setIncludeElectricity(e.target.checked)}
-                className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                className="rounded border-pink-300 text-pink-600 focus:ring-pink-500 h-3.5 w-3.5"
               />
               <Zap className="h-3.5 w-3.5 text-amber-500" />
               <span>{isTagalog ? "Bill sa Kuryente" : "Electricity Bill"}</span>
@@ -120,7 +120,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 min="0"
                 value={elecCost}
                 onChange={(e) => setElecCost(Math.max(0, Number(e.target.value)))}
-                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold"
+                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold text-stone-800"
               />
             )}
           </div>
@@ -132,7 +132,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 type="checkbox"
                 checked={includeWater}
                 onChange={(e) => setIncludeWater(e.target.checked)}
-                className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                className="rounded border-pink-300 text-pink-600 focus:ring-pink-500 h-3.5 w-3.5"
               />
               <Droplet className="h-3.5 w-3.5 text-blue-500" />
               <span>{isTagalog ? "Bill sa Tubig" : "Water Supply"}</span>
@@ -143,7 +143,7 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 min="0"
                 value={waterCost}
                 onChange={(e) => setWaterCost(Math.max(0, Number(e.target.value)))}
-                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold"
+                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold text-stone-800"
               />
             )}
           </div>
@@ -155,9 +155,9 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 type="checkbox"
                 checked={includeWifi}
                 onChange={(e) => setIncludeWifi(e.target.checked)}
-                className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                className="rounded border-pink-300 text-pink-600 focus:ring-pink-500 h-3.5 w-3.5"
               />
-              <Wifi className="h-3.5 w-3.5 text-indigo-500" />
+              <Wifi className="h-3.5 w-3.5 text-blue-500" />
               <span>{isTagalog ? "Bill sa Wi-Fi Internet" : "Wi-Fi Internet"}</span>
             </label>
             {includeWifi && (
@@ -166,24 +166,24 @@ export default function BudgetSplitter({ language = "english" }: BudgetSplitterP
                 min="0"
                 value={wifiCost}
                 onChange={(e) => setWifiCost(Math.max(0, Number(e.target.value)))}
-                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold"
+                className="w-20 bg-stone-50 border border-stone-200 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold text-stone-800"
               />
             )}
           </div>
         </div>
 
         {/* Calculation Result Panel */}
-        <div className="mt-4 p-4 rounded-xl bg-indigo-50/70 border border-indigo-100 flex flex-col items-center text-center">
-          <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-pink-50/80 via-purple-50/80 to-blue-50/80 border border-pink-100 flex flex-col items-center text-center">
+          <span className="text-[10px] text-pink-600 font-bold uppercase tracking-wider">
             {isTagalog ? "Hatian Bawat Tao" : "Per Person Share"}
           </span>
-          <span className="font-display text-2xl font-bold text-indigo-900 mt-1">
+          <span className="font-display text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-blue-600 mt-1">
             ₱{sharePerPerson.toLocaleString()}
-            <span className="text-xs font-sans font-light text-indigo-600 ml-1">
+            <span className="text-xs font-sans font-light text-stone-500 ml-1">
               {isTagalog ? "/ buwan" : "/ mo"}
             </span>
           </span>
-          <span className="text-[10px] text-stone-400 mt-1.5 font-light">
+          <span className="text-[10px] text-stone-500 mt-1.5 font-light">
             {isTagalog
               ? `Kabuuan: ₱${overallTotal.toLocaleString()} • Hati sa ${roommates} tao`
               : `Total expenses: ₱${overallTotal.toLocaleString()} • Split ${roommates} ways`}

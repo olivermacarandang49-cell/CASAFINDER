@@ -100,17 +100,17 @@ export default function PropertyModal({
                 {property.type} &bull; Built {property.yearBuilt}
               </span>
               {property.genderPolicy === "Girls Only" && (
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-100 text-pink-800 border border-pink-200">
                   👧 {isTagalog ? "Mga Babae Lamang" : "Girls Only"}
                 </span>
               )}
               {property.genderPolicy === "Boys Only" && (
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                   👦 {isTagalog ? "Mga Lalaki Lamang" : "Boys Only"}
                 </span>
               )}
               {property.genderPolicy === "Both" && (
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 text-white shadow-xs">
                   👫 {isTagalog ? "Lalaki at Babae (Co-ed)" : "Both (Co-ed)"}
                 </span>
               )}
@@ -120,14 +120,14 @@ export default function PropertyModal({
             </h2>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
               <p className="text-stone-500 text-sm flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-rose-500 shrink-0" />
+                <MapPin className="h-4 w-4 text-pink-500 shrink-0" />
                 <span>{property.address}, {property.city} ({property.neighborhood})</span>
               </p>
               {onViewOnMap && (
                 <button
                   type="button"
                   onClick={() => onViewOnMap(property)}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 w-fit"
+                  className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-pink-500/20 cursor-pointer shrink-0 w-fit active:scale-95"
                 >
                   <Map className="h-4 w-4" />
                   <span>{isTagalog ? "Tingnan sa Interactive Map 🗺️" : "View on Interactive Map 🗺️"}</span>

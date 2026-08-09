@@ -66,7 +66,7 @@ export default function PropertyCard({
       exit={{ opacity: 0, y: -12 }}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white transition-all duration-300 hover:border-stone-300 hover:shadow-xl hover:shadow-stone-100 cursor-pointer"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-pink-100/80 bg-white transition-all duration-300 hover:border-pink-300 hover:shadow-xl hover:shadow-pink-500/10 cursor-pointer"
       onClick={onSelect}
     >
       {/* Property Image & Overlays */}
@@ -78,25 +78,25 @@ export default function PropertyCard({
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-stone-900/40 via-transparent to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-85" />
 
         {/* Property Type & Gender Policy Badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1 items-center max-w-[85%]">
-          <span className="rounded-full bg-white/90 backdrop-blur-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] font-bold text-stone-800 shadow-xs">
+          <span className="rounded-full bg-white/95 backdrop-blur-xs px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] font-bold text-stone-800 shadow-sm border border-stone-200">
             {property.type}
           </span>
           {property.genderPolicy === "Girls Only" && (
-            <span className="rounded-full bg-rose-600 text-white font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-xs">
+            <span className="rounded-full bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
               👧 {language === "tagalog" ? "Babe" : "Girls"}
             </span>
           )}
           {property.genderPolicy === "Boys Only" && (
-            <span className="rounded-full bg-sky-600 text-white font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-xs">
+            <span className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
               👦 {language === "tagalog" ? "Lalaki" : "Boys"}
             </span>
           )}
           {property.genderPolicy === "Both" && (
-            <span className="rounded-full bg-emerald-600 text-white font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-xs">
+            <span className="rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
               🚻 Co-ed
             </span>
           )}
@@ -121,13 +121,13 @@ export default function PropertyCard({
       {/* Card Info Content */}
       <div className="flex flex-1 flex-col p-2.5 sm:p-5">
         <div className="mb-1.5 sm:mb-2 flex items-center justify-between gap-1 flex-wrap">
-          <span className="font-display text-base sm:text-2xl font-bold tracking-tight text-stone-800">
+          <span className="font-display text-base sm:text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-blue-600">
             {formatPrice(property.price)}
             <span className="text-[9px] sm:text-xs font-sans font-light text-stone-400 ml-0.5">{t("perMonth")}</span>
           </span>
 
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-amber-50 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border border-amber-200/60 text-[10px] sm:text-xs font-bold text-amber-800 shrink-0">
-            <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-500" />
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-50 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border border-pink-200/60 text-[10px] sm:text-xs font-bold text-pink-700 shrink-0">
+            <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-pink-400 text-pink-500" />
             <span>{avgRating ? avgRating : "New"}</span>
             {reviews.length > 0 && (
               <span className="text-[8px] sm:text-[10px] text-stone-400 font-normal">({reviews.length})</span>
@@ -135,7 +135,7 @@ export default function PropertyCard({
           </div>
         </div>
 
-        <h3 className="mb-1 sm:mb-2 font-display text-xs sm:text-base font-bold sm:font-medium leading-snug text-stone-800 group-hover:text-stone-900 transition-colors line-clamp-1">
+        <h3 className="mb-1 sm:mb-2 font-display text-xs sm:text-base font-bold sm:font-medium leading-snug text-stone-800 group-hover:text-blue-600 transition-colors line-clamp-1">
           {property.title}
         </h3>
 
@@ -152,16 +152,16 @@ export default function PropertyCard({
                 onViewOnMap(property, nearestSchool.id);
               }
             }}
-            className="mb-2 sm:mb-3 bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200/70 rounded-lg sm:rounded-xl p-1.5 sm:p-2 flex items-center justify-between text-[10px] sm:text-xs text-indigo-950 font-medium transition-colors cursor-pointer group/school gap-1"
+            className="mb-2 sm:mb-3 bg-gradient-to-r from-pink-50/90 to-blue-50/90 hover:from-pink-100 hover:to-blue-100 border border-pink-200/80 rounded-lg sm:rounded-xl p-1.5 sm:p-2 flex items-center justify-between text-[10px] sm:text-xs text-stone-800 font-medium transition-colors cursor-pointer group/school gap-1"
             title="I-click para makita ang linya papuntang paaralan sa mapa"
           >
             <div className="flex items-center gap-1 truncate">
-              <GraduationCap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-600 shrink-0" />
+              <GraduationCap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-pink-600 shrink-0" />
               <span className="truncate text-[9px] sm:text-[11px]">
                 <strong>{nearestSchool.distanceKm.toFixed(1)}km</strong> {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')}
               </span>
             </div>
-            <span className="text-[8px] sm:text-[10px] bg-indigo-600 group-hover/school:bg-indigo-700 text-white font-mono font-bold px-1 py-0.5 rounded-md shrink-0">
+            <span className="text-[8px] sm:text-[10px] bg-gradient-to-r from-pink-500 to-blue-600 group-hover/school:from-pink-600 group-hover/school:to-blue-700 text-white font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs">
               {nearestSchool.walkingMinutes}m
             </span>
           </div>
