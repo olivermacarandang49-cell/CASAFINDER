@@ -257,7 +257,14 @@ export default function NeighborhoodMap({
   const [selectedBarangayToSave, setSelectedBarangayToSave] = useState("Barangay Tabing Dagat");
   const [selectedBarangayBoundaryFilter, setSelectedBarangayBoundaryFilter] = useState<string>("");
   const [isMobileQuickJumpOpen, setIsMobileQuickJumpOpen] = useState(false);
+  const [isPropertyCardDismissed, setIsPropertyCardDismissed] = useState(false);
   const [copySuccessMsg, setCopySuccessMsg] = useState("");
+
+  useEffect(() => {
+    if (selectedProperty) {
+      setIsPropertyCardDismissed(false);
+    }
+  }, [selectedProperty]);
   const [showBoundariesOnMap, setShowBoundariesOnMap] = useState(true);
   const [showSchoolsOnMap, setShowSchoolsOnMap] = useState(false);
   const [showConfirmDeleteAll, setShowConfirmDeleteAll] = useState(false);
@@ -3315,7 +3322,7 @@ export default function NeighborhoodMap({
         )}
 
         {/* Hover / Selection Preview Card (Draggable over the map) */}
-        {(hoveredProperty || selectedProperty) && mapMode !== "google_embed" && (
+        {!isPropertyCardDismissed && (hoveredProperty || selectedProperty) && mapMode !== "google_embed" && (
           <motion.div
             ref={propertyCardRef}
             drag
@@ -3334,10 +3341,13 @@ export default function NeighborhoodMap({
               const nearestSchool = schoolDistances[0];
 
               const handleCloseCard = (e: React.SyntheticEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onSelectProperty(null as any);
+                if (e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+                setIsPropertyCardDismissed(true);
                 setHoveredProperty(null);
+                onSelectProperty(null as any);
                 setActiveArrowLocation(null);
                 setActiveSchoolRouteFilter("none");
                 setDismissedSchoolId(selectedSchoolId || "none");

@@ -29,7 +29,7 @@ export interface Property {
   id: string;
   title: string;
   price: number;
-  type: 'Apartment' | 'Bedspace';
+  type: 'Boarding House' | 'Apartment' | 'Others' | string;
   beds: number;
   baths: number;
   sqft: number; // Stated as square meters in the description

@@ -11,7 +11,7 @@ export const translations = {
     studentAccount: "STUDENT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
     postProperty: "Mag-post ng Tuluyan",
-    profileSettings: "Profile & Settings ⚙️",
+    profileSettings: "Profile & Settings",
     logOut: "Mag-log Out",
 
     // Quick Nav Tabs
@@ -41,11 +41,9 @@ export const translations = {
     sortPriceDesc: "Pinakamahal Muna",
     sortSlots: "Maraming Bakante",
 
-    typeStudio: "Studio Unit",
-    typeSingle: "Single Room",
-    typeBedspace: "Bedspace",
-    typeTransient: "Transient",
-    typeApartment: "Apartment / Full Unit",
+    typeBoardingHouse: "Boarding House",
+    typeApartment: "Apartment",
+    typeOthers: "Iba pa (Others)",
 
     // Main Sections
     featuredHeading: "✨ Mga Inirerekomendang Boarding House sa Gumaca",
@@ -112,7 +110,7 @@ export const translations = {
     propertyTypeLabel: "Uri ng Tuluyan *",
     barangayLabel: "Barangay sa Gumaca, Quezon *",
     landmarkLabel: "Lugar / Landmark sa Gumaca *",
-    genderPolicyLabel: "Kasarian / Patakaran *",
+    genderPolicyLabel: "Uri ng Kasarian *",
     monthlyPriceLabel: "Buwanang Upa (₱) *",
     availableSlotsLabel: "Bilang ng Bakanteng Slot *",
     utilitiesIncludedLabel: "Kasama na ba ang Kuryente at Tubig?",
@@ -138,7 +136,7 @@ export const translations = {
     studentAccount: "STUDENT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
     postProperty: "Post Housing",
-    profileSettings: "Profile & Settings ⚙️",
+    profileSettings: "Profile & Settings",
     logOut: "Log Out",
 
     // Quick Nav Tabs
@@ -168,11 +166,9 @@ export const translations = {
     sortPriceDesc: "Price: High to Low",
     sortSlots: "Most Vacancies",
 
-    typeStudio: "Studio Unit",
-    typeSingle: "Single Room",
-    typeBedspace: "Bedspace",
-    typeTransient: "Transient",
-    typeApartment: "Apartment / Full Unit",
+    typeBoardingHouse: "Boarding House",
+    typeApartment: "Apartment",
+    typeOthers: "Others",
 
     // Main Sections
     featuredHeading: "✨ Recommended Boarding Houses in Gumaca",
@@ -239,7 +235,7 @@ export const translations = {
     propertyTypeLabel: "Property Type *",
     barangayLabel: "Barangay in Gumaca, Quezon *",
     landmarkLabel: "Location / Landmark in Gumaca *",
-    genderPolicyLabel: "Gender Policy / Preference *",
+    genderPolicyLabel: "Gender Type *",
     monthlyPriceLabel: "Monthly Rent (₱) *",
     availableSlotsLabel: "Available Slots *",
     utilitiesIncludedLabel: "Utilities (Electricity & Water) Included?",

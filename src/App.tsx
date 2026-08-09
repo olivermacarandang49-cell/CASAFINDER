@@ -22,6 +22,7 @@ import {
   Loader2,
   LogOut,
   User,
+  UserCog,
   Lock,
   Eye,
   EyeOff,
@@ -293,7 +294,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPrice, setNewPrice] = useState<number | "">("");
-  const [newType, setNewType] = useState<"Apartment" | "Bedspace">("Apartment");
+  const [newType, setNewType] = useState<"Boarding House" | "Apartment" | "Others">("Boarding House");
   const [newBeds, setNewBeds] = useState(1);
   const [newBaths, setNewBaths] = useState(1);
   const [newSqft, setNewSqft] = useState(15);
@@ -330,13 +331,13 @@ export default function App() {
   const [barangaySearchQuery, setBarangaySearchQuery] = useState("");
   const [barangayInput, setBarangayInput] = useState("All");
   const [typeInput, setTypeInput] = useState("All");
-  const [priceInput, setPriceInput] = useState(15000);
+  const [priceInput, setPriceInput] = useState("All");
   const [amenityGenderInput, setAmenityGenderInput] = useState<"All" | "Both" | "Girls Only" | "Boys Only">("All");
 
   // Active filter states (only applied when clicking the Search button)
   const [activeBarangay, setActiveBarangay] = useState("All");
   const [activeType, setActiveType] = useState("All");
-  const [activeMaxPrice, setActiveMaxPrice] = useState(15000);
+  const [activePriceRange, setActivePriceRange] = useState("All");
   const [activeAmenityGender, setActiveAmenityGender] = useState<"All" | "Both" | "Girls Only" | "Boys Only">("All");
 
   // Simulate startup loading screen with dynamic progress
@@ -732,7 +733,7 @@ export default function App() {
       setActiveBarangay(barangayInput);
     }
     setActiveType(typeInput);
-    setActiveMaxPrice(priceInput);
+    setActivePriceRange(priceInput);
     setActiveAmenityGender(amenityGenderInput);
   };
 
@@ -742,11 +743,11 @@ export default function App() {
     setBarangaySearchQuery("");
     setBarangayInput("All");
     setTypeInput("All");
-    setPriceInput(15000);
+    setPriceInput("All");
     setAmenityGenderInput("All");
     setActiveBarangay("All");
     setActiveType("All");
-    setActiveMaxPrice(15000);
+    setActivePriceRange("All");
     setActiveAmenityGender("All");
   };
 
@@ -867,7 +868,7 @@ export default function App() {
     // Reset Form Fields
     setNewTitle("");
     setNewPrice("");
-    setNewType("Apartment");
+    setNewType("Boarding House");
     setNewBeds(1);
     setNewBaths(1);
     setNewSqft(15);
@@ -991,8 +992,18 @@ export default function App() {
       result = result.filter((p) => p.type === activeType);
     }
 
-    // Filter by Max Price Limit
-    result = result.filter((p) => p.price <= activeMaxPrice);
+    // Filter by Price Range Brackets (Option C)
+    if (activePriceRange === "under1500") {
+      result = result.filter((p) => p.price < 1500);
+    } else if (activePriceRange === "1500-3000") {
+      result = result.filter((p) => p.price >= 1500 && p.price <= 3000);
+    } else if (activePriceRange === "3000-5000") {
+      result = result.filter((p) => p.price >= 3000 && p.price <= 5000);
+    } else if (activePriceRange === "5000-10000") {
+      result = result.filter((p) => p.price >= 5000 && p.price <= 10000);
+    } else if (activePriceRange === "above10000") {
+      result = result.filter((p) => p.price > 10000);
+    }
 
     // Filter by Amenities / Gender Preference (Girls Only, Boys Only, Both)
     if (activeAmenityGender === "Girls Only") {
@@ -1061,7 +1072,7 @@ export default function App() {
     result.sort((a, b) => b.price - a.price);
 
     return result;
-  }, [propertiesList, boardingHouseSearchQuery, barangaySearchQuery, activeBarangay, activeType, activeMaxPrice, activeAmenityGender]);
+  }, [propertiesList, boardingHouseSearchQuery, barangaySearchQuery, activeBarangay, activeType, activePriceRange, activeAmenityGender]);
 
   if (isLoading) {
     return (
@@ -1625,12 +1636,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl p-2 transition-all flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95"
-                title={t("profileSettings")}
+                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title="Profile & Settings"
               >
-                <User className="h-4 w-4 text-indigo-600" />
-                <Settings className="h-3.5 w-3.5 text-stone-500" />
-                <ChevronDown className="h-3 w-3 text-stone-400" />
+                <UserCog className="h-4 w-4 text-indigo-600" />
               </button>
 
               {/* Mobile Profile Dropdown Menu */}
@@ -1734,11 +1743,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 rounded-xl py-2 px-3 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title="Profile & Settings"
               >
-                <User className="h-3.5 w-3.5 text-indigo-600" />
-                <span>{t("profileSettings")}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
+                <UserCog className="h-4 w-4 text-indigo-600" />
               </button>
 
               {/* Desktop Dropdown Menu */}
@@ -1875,7 +1883,7 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-2">
-                {(boardingHouseSearchQuery || barangaySearchQuery || barangayInput !== "All" || typeInput !== "All" || priceInput !== 15000 || amenityGenderInput !== "All") && (
+                {(boardingHouseSearchQuery || barangaySearchQuery || barangayInput !== "All" || typeInput !== "All" || priceInput !== "All" || amenityGenderInput !== "All") && (
                   <button
                     type="button"
                     onClick={handleResetFilters}
@@ -2009,25 +2017,23 @@ export default function App() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
                 >
                   <option value="All">{t("allTypes")}</option>
+                  <option value="Boarding House">{t("typeBoardingHouse")}</option>
                   <option value="Apartment">{t("typeApartment")}</option>
-                  <option value="Bedspace">{t("typeBedspace")}</option>
-                  <option value="Studio">{t("typeStudio")}</option>
-                  <option value="Single Room">{t("typeSingle")}</option>
-                  <option value="Transient">{t("typeTransient")}</option>
+                  <option value="Others">{t("typeOthers")}</option>
                 </select>
               </div>
 
               {/* 4. Amenities / Gender Filter */}
               <div className="col-span-1 flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
-                  {prefLanguage === "tagalog" ? "Kasarian" : "Gender Policy"}
+                  {prefLanguage === "tagalog" ? "Uri ng Kasarian" : "Gender Type"}
                 </label>
                 <select
                   value={amenityGenderInput}
                   onChange={(e) => setAmenityGenderInput(e.target.value as "All" | "Both" | "Girls Only" | "Boys Only")}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
                 >
-                  <option value="All">{prefLanguage === "tagalog" ? "Lahat" : "All Policies"}</option>
+                  <option value="All">{prefLanguage === "tagalog" ? "Lahat" : "All Types"}</option>
                   <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae 👧" : "Girls Only 👧"}</option>
                   <option value="Boys Only">{prefLanguage === "tagalog" ? "Pang-lalaki 👦" : "Boys Only 👦"}</option>
                   <option value="Both">{prefLanguage === "tagalog" ? "Co-ed 🚻" : "Both / Co-ed 🚻"}</option>
@@ -2041,17 +2047,15 @@ export default function App() {
                 </label>
                 <select
                   value={priceInput}
-                  onChange={(e) => setPriceInput(Number(e.target.value))}
+                  onChange={(e) => setPriceInput(e.target.value)}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer font-mono shadow-2xs"
                 >
-                  <option value="15000">{prefLanguage === "tagalog" ? "Kahit Anong Presyo" : "Any Price"}</option>
-                  <option value="1500">₱1,500 pababa</option>
-                  <option value="2000">₱2,000 pababa</option>
-                  <option value="2500">₱2,500 pababa</option>
-                  <option value="3000">₱3,000 pababa</option>
-                  <option value="4000">₱4,000 pababa</option>
-                  <option value="5000">₱5,000 pababa</option>
-                  <option value="10000">₱10,000 pababa</option>
+                  <option value="All">{prefLanguage === "tagalog" ? "Kahit Anong Presyo" : "Any Price"}</option>
+                  <option value="under1500">{prefLanguage === "tagalog" ? "Mababa sa ₱1,500" : "Under ₱1,500"}</option>
+                  <option value="1500-3000">₱1,500 – ₱3,000</option>
+                  <option value="3000-5000">₱3,000 – ₱5,000</option>
+                  <option value="5000-10000">₱5,000 – ₱10,000</option>
+                  <option value="above10000">{prefLanguage === "tagalog" ? "Higit sa ₱10,000" : "Above ₱10,000"}</option>
                 </select>
               </div>
             </div>
@@ -2160,18 +2164,6 @@ export default function App() {
           )}
 
       </main>
-
-      {/* Footer credits & About button */}
-      <footer className="mt-auto py-8 bg-white border-t border-stone-200 text-center text-xs text-stone-500 font-light flex flex-col items-center justify-center gap-3 px-4">
-        <button
-          type="button"
-          onClick={() => setShowAboutModal(true)}
-          className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-stone-300/70 active:scale-95"
-        >
-          <span>ℹ️ {prefLanguage === "tagalog" ? "Tungkol sa CasaFinder" : "About CasaFinder"}</span>
-        </button>
-        <p>&copy; {new Date().getFullYear()} CasaFinder Inc. Gumaca College & High School Housing Network. All rights reserved.</p>
-      </footer>
 
       {/* About CasaFinder Modal */}
       <AboutModal
@@ -2360,11 +2352,12 @@ export default function App() {
                     </label>
                     <select
                       value={newType}
-                      onChange={e => setNewType(e.target.value as "Apartment" | "Bedspace")}
+                      onChange={e => setNewType(e.target.value as "Boarding House" | "Apartment" | "Others")}
                       className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs text-stone-800 focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer truncate"
                     >
+                      <option value="Boarding House">{t("typeBoardingHouse")}</option>
                       <option value="Apartment">{t("typeApartment")}</option>
-                      <option value="Bedspace">{t("typeBedspace")}</option>
+                      <option value="Others">{t("typeOthers")}</option>
                     </select>
                   </div>
 
@@ -2455,7 +2448,7 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
                   <div className="flex flex-col space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                      {prefLanguage === "tagalog" ? "Kasarian / Patakaran *" : "Gender Preference / Policy *"}
+                      {prefLanguage === "tagalog" ? "Uri ng Kasarian *" : "Gender Type *"}
                     </label>
                     <select
                       value={newGenderPolicy}
