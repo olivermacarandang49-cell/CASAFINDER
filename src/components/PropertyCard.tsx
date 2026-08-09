@@ -66,7 +66,7 @@ export default function PropertyCard({
       exit={{ opacity: 0, y: -12 }}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-pink-100/80 bg-white transition-all duration-300 hover:border-pink-300 hover:shadow-xl hover:shadow-pink-500/10 cursor-pointer"
+      className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/80 bg-white transition-all duration-300 hover:border-pink-400 hover:shadow-xl hover:shadow-pink-500/10 cursor-pointer"
       onClick={onSelect}
     >
       {/* Property Image & Overlays */}
@@ -78,68 +78,68 @@ export default function PropertyCard({
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-85" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
 
         {/* Property Type & Gender Policy Badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1 items-center max-w-[85%]">
-          <span className="rounded-full bg-white/95 backdrop-blur-xs px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] font-bold text-stone-800 shadow-sm border border-stone-200">
+          <span className="rounded-full bg-stone-900/80 backdrop-blur-md px-2.5 py-1 text-[9px] sm:text-[10px] font-bold text-white shadow-xs border border-white/20">
             {property.type}
           </span>
           {property.genderPolicy === "Girls Only" && (
-            <span className="rounded-full bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
-              👧 {language === "tagalog" ? "Babe" : "Girls"}
+            <span className="rounded-full bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold px-2.5 py-1 text-[9px] sm:text-[10px] shadow-xs">
+              👧 {language === "tagalog" ? "Pang-babe" : "Girls Only"}
             </span>
           )}
           {property.genderPolicy === "Boys Only" && (
-            <span className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
-              👦 {language === "tagalog" ? "Lalaki" : "Boys"}
+            <span className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-2.5 py-1 text-[9px] sm:text-[10px] shadow-xs">
+              👦 {language === "tagalog" ? "Pang-lalaki" : "Boys Only"}
             </span>
           )}
           {property.genderPolicy === "Both" && (
-            <span className="rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 text-white font-bold px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] shadow-sm">
+            <span className="rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 text-white font-bold px-2.5 py-1 text-[9px] sm:text-[10px] shadow-xs">
               🚻 Co-ed
             </span>
           )}
         </div>
 
-        {/* AI Match Score Badge (Displays if a match query has run) */}
+        {/* AI Match Score Badge */}
         {aiMatch && (
-          <div className={`absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center gap-1 rounded-full border px-2 py-0.5 sm:px-3 sm:py-1 text-[9px] sm:text-xs font-semibold backdrop-blur-md shadow-sm transition-all duration-300 ${getScoreBadgeStyles(aiMatch.score)}`}>
+          <div className={`absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] sm:text-xs font-semibold backdrop-blur-md shadow-xs transition-all duration-300 ${getScoreBadgeStyles(aiMatch.score)}`}>
             <span>{aiMatch.score}%</span>
           </div>
         )}
 
         {/* Location Tag Bottom-Left overlay */}
-        <div className="absolute bottom-1.5 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 text-white max-w-[90%] truncate">
-          <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-stone-300 shrink-0" />
-          <span className="text-[10px] sm:text-xs font-medium text-white shadow-xs drop-shadow-sm truncate">
+        <div className="absolute bottom-2 left-2.5 sm:bottom-3 sm:left-3 flex items-center gap-1 text-white max-w-[90%] truncate">
+          <MapPin className="h-3.5 w-3.5 text-pink-400 shrink-0 drop-shadow-xs" />
+          <span className="text-[10px] sm:text-xs font-semibold text-white shadow-xs drop-shadow-md truncate">
             {property.neighborhood}, {property.city}
           </span>
         </div>
       </div>
 
       {/* Card Info Content */}
-      <div className="flex flex-1 flex-col p-2.5 sm:p-5">
+      <div className="flex flex-1 flex-col p-3.5 sm:p-5">
         <div className="mb-1.5 sm:mb-2 flex items-center justify-between gap-1 flex-wrap">
-          <span className="font-display text-base sm:text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-blue-600">
+          <span className="font-display text-lg sm:text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-indigo-600">
             {formatPrice(property.price)}
-            <span className="text-[9px] sm:text-xs font-sans font-light text-stone-400 ml-0.5">{t("perMonth")}</span>
+            <span className="text-[10px] sm:text-xs font-sans font-medium text-stone-400 ml-0.5">{t("perMonth")}</span>
           </span>
 
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-50 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border border-pink-200/60 text-[10px] sm:text-xs font-bold text-pink-700 shrink-0">
-            <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-pink-400 text-pink-500" />
+          <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-xl border border-amber-200 text-[10px] sm:text-xs font-bold text-amber-800 shrink-0">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
             <span>{avgRating ? avgRating : "New"}</span>
             {reviews.length > 0 && (
-              <span className="text-[8px] sm:text-[10px] text-stone-400 font-normal">({reviews.length})</span>
+              <span className="text-[9px] text-amber-600/70 font-normal">({reviews.length})</span>
             )}
           </div>
         </div>
 
-        <h3 className="mb-1 sm:mb-2 font-display text-xs sm:text-base font-bold sm:font-medium leading-snug text-stone-800 group-hover:text-blue-600 transition-colors line-clamp-1">
+        <h3 className="mb-1.5 font-display text-sm sm:text-base font-bold leading-snug text-stone-900 group-hover:text-pink-600 transition-colors line-clamp-1">
           {property.title}
         </h3>
 
-        <p className="mb-2 sm:mb-3 line-clamp-2 text-[10px] sm:text-xs leading-relaxed text-stone-500 font-light">
+        <p className="mb-3 line-clamp-2 text-[11px] sm:text-xs leading-relaxed text-stone-500 font-light">
           {property.description}
         </p>
 
@@ -152,27 +152,27 @@ export default function PropertyCard({
                 onViewOnMap(property, nearestSchool.id);
               }
             }}
-            className="mb-2 sm:mb-3 bg-gradient-to-r from-pink-50/90 to-blue-50/90 hover:from-pink-100 hover:to-blue-100 border border-pink-200/80 rounded-lg sm:rounded-xl p-1.5 sm:p-2 flex items-center justify-between text-[10px] sm:text-xs text-stone-800 font-medium transition-colors cursor-pointer group/school gap-1"
+            className="mb-3 bg-gradient-to-r from-pink-50/90 via-indigo-50/50 to-blue-50/90 hover:from-pink-100 hover:to-indigo-100 border border-pink-200/80 rounded-xl p-2 flex items-center justify-between text-xs text-stone-800 font-medium transition-colors cursor-pointer group/school gap-1 shadow-2xs"
             title="I-click para makita ang linya papuntang paaralan sa mapa"
           >
-            <div className="flex items-center gap-1 truncate">
-              <GraduationCap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-pink-600 shrink-0" />
-              <span className="truncate text-[9px] sm:text-[11px]">
+            <div className="flex items-center gap-1.5 truncate">
+              <GraduationCap className="h-3.5 w-3.5 text-pink-600 shrink-0" />
+              <span className="truncate text-[10px] sm:text-[11px]">
                 <strong>{nearestSchool.distanceKm.toFixed(1)}km</strong> {nearestSchool.shortName || nearestSchool.name.replace(/ [🎓🏫🏛️]/g, '')}
               </span>
             </div>
-            <span className="text-[8px] sm:text-[10px] bg-gradient-to-r from-pink-500 to-blue-600 group-hover/school:from-pink-600 group-hover/school:to-blue-700 text-white font-mono font-bold px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs">
+            <span className="text-[9px] sm:text-[10px] bg-gradient-to-r from-pink-500 to-indigo-600 group-hover/school:from-pink-600 group-hover/school:to-indigo-700 text-white font-mono font-bold px-2 py-0.5 rounded-md shrink-0 shadow-2xs">
               {nearestSchool.walkingMinutes}m
             </span>
           </div>
         )}
 
         {/* Features Row */}
-        <div className="mb-2 sm:mb-4 flex flex-wrap gap-1">
-          {property.tags.slice(0, 2).map((tag) => (
+        <div className="mb-3 flex flex-wrap gap-1">
+          {property.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="rounded-md bg-stone-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium text-stone-600 border border-stone-100 truncate max-w-[100px]"
+              className="rounded-lg bg-stone-100/80 px-2 py-0.5 text-[10px] font-medium text-stone-600 border border-stone-200/60 truncate max-w-[120px]"
             >
               {tag}
             </span>
@@ -180,16 +180,16 @@ export default function PropertyCard({
         </div>
 
         {/* Spacer & Specs */}
-        <div className="mt-auto pt-2 sm:pt-3 border-t border-stone-100 flex items-center justify-between text-stone-500 gap-1">
+        <div className="mt-auto pt-3 border-t border-stone-100 flex items-center justify-between text-stone-500 gap-1">
           {/* Specs */}
-          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-mono">
-            <span className="flex items-center gap-0.5 sm:gap-1">
-              <BedDouble className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-stone-400" />
-              <strong>{property.beds}</strong> <span className="hidden sm:inline">bed</span>
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <span className="flex items-center gap-1">
+              <BedDouble className="h-3.5 w-3.5 text-stone-400" />
+              <strong className="text-stone-700">{property.beds}</strong> <span className="text-stone-400 hidden sm:inline">bed</span>
             </span>
-            <span className="flex items-center gap-0.5 sm:gap-1">
-              <Bath className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-stone-400" />
-              <strong>{property.baths}</strong> <span className="hidden sm:inline">bath</span>
+            <span className="flex items-center gap-1">
+              <Bath className="h-3.5 w-3.5 text-stone-400" />
+              <strong className="text-stone-700">{property.baths}</strong> <span className="text-stone-400 hidden sm:inline">bath</span>
             </span>
           </div>
 
@@ -201,7 +201,7 @@ export default function PropertyCard({
                 e.stopPropagation();
                 onEdit(property);
               }}
-              className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Edit3 className="h-3 w-3 text-amber-600" />
               <span>Edit</span>
@@ -210,9 +210,9 @@ export default function PropertyCard({
         </div>
 
         {/* Landlord Profile Bar */}
-        <div className="mt-2 pt-2 sm:mt-3 sm:pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs gap-1">
+        <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs gap-1">
           <div
-            className={`flex items-center gap-1.5 min-w-0 ${onViewLandlordProfile ? "cursor-pointer group hover:opacity-80 transition-opacity" : ""}`}
+            className={`flex items-center gap-2 min-w-0 ${onViewLandlordProfile ? "cursor-pointer group/owner hover:opacity-80 transition-opacity" : ""}`}
             onClick={(e) => {
               if (onViewLandlordProfile) {
                 e.stopPropagation();
@@ -220,7 +220,7 @@ export default function PropertyCard({
               }
             }}
           >
-            <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-full bg-stone-200 overflow-hidden shrink-0 border border-stone-300">
+            <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-stone-200 overflow-hidden shrink-0 border border-stone-300">
               {property.landlordAvatar ? (
                 <img
                   src={property.landlordAvatar}
@@ -228,16 +228,16 @@ export default function PropertyCard({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="h-full w-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px]">
+                <div className="h-full w-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">
                   {(property.landlordName || "L").charAt(0)}
                 </div>
               )}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold text-stone-800 leading-none flex items-center gap-0.5 truncate group-hover:text-indigo-600 transition-colors">
+              <span className="text-[11px] font-bold text-stone-800 leading-none flex items-center gap-1 truncate group-hover/owner:text-indigo-600 transition-colors">
                 <span className="truncate">{property.landlordName || "Owner"}</span>
                 {property.landlordPermits?.businessPermit && (
-                  <ShieldCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-600 shrink-0" />
+                  <ShieldCheck className="h-3 w-3 text-emerald-600 shrink-0" />
                 )}
               </span>
             </div>
@@ -251,7 +251,7 @@ export default function PropertyCard({
                   e.stopPropagation();
                   onViewOnMap(property);
                 }}
-                className="p-1 sm:px-2.5 sm:py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-md sm:rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="p-1 sm:px-2.5 sm:py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 title="Tingnan ang lokasyon sa interactive map"
               >
                 <Map className="h-3 w-3 text-emerald-600" />
@@ -266,7 +266,7 @@ export default function PropertyCard({
                   e.stopPropagation();
                   onViewLandlordProfile(property);
                 }}
-                className="p-1 sm:px-2.5 sm:py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-md sm:rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="p-1 sm:px-2.5 sm:py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <UserCheck className="h-3 w-3 text-indigo-600" />
                 <span className="hidden sm:inline">Profile</span>

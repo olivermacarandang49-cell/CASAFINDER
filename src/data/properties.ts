@@ -50,6 +50,7 @@ export interface Property {
   landlordName?: string;
   landlordMobile?: string;
   landlordEmail?: string;
+  landlordFacebook?: string;
   landlordAvatar?: string;
   landlordBio?: string;
   landlordPermits?: LandlordPermits;

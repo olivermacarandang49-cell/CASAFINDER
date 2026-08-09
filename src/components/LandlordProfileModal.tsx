@@ -1,7 +1,7 @@
 import React from "react";
 import { Property } from "../data/properties";
 import { motion } from "motion/react";
-import { X, ShieldCheck, Phone, Mail, FileCheck, CheckCircle2, Home, MapPin, GraduationCap, Map } from "lucide-react";
+import { X, ShieldCheck, Phone, Mail, FileCheck, CheckCircle2, Home, MapPin, GraduationCap, Map, Facebook } from "lucide-react";
 import { getSchoolDistancesForProperty } from "../utils/schoolDistances";
 import { Language } from "../utils/translations";
 
@@ -11,6 +11,7 @@ interface LandlordProfileModalProps {
     name?: string;
     mobile?: string;
     email?: string;
+    facebook?: string;
     avatar?: string;
     bio?: string;
     permits?: {
@@ -40,6 +41,7 @@ export default function LandlordProfileModal({
   const avatar = landlordInfo.avatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200";
   const mobile = landlordInfo.mobile || "09987654321";
   const email = landlordInfo.email || "nena.landlord@example.com";
+  const facebook = landlordInfo.facebook || "https://facebook.com/alingnena.housing";
   const isTagalog = language === "tagalog";
 
   const bio = landlordInfo.bio || (isTagalog
@@ -138,6 +140,25 @@ export default function LandlordProfileModal({
                 <p className="text-xs font-mono font-bold text-stone-900 truncate max-w-[170px]">{email}</p>
               </div>
             </a>
+
+            {facebook && (
+              <a
+                href={facebook.startsWith("http") ? facebook : `https://${facebook}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200 rounded-2xl transition-all cursor-pointer group sm:col-span-2"
+              >
+                <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs group-hover:scale-105 transition-transform">
+                  <Facebook className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase font-bold text-blue-900 tracking-wider">
+                    {isTagalog ? "Facebook Profile / Messenger" : "Facebook Profile / Messenger"}
+                  </p>
+                  <p className="text-xs font-medium text-blue-950 truncate">{facebook}</p>
+                </div>
+              </a>
+            )}
           </div>
 
           {/* Types of Permits & LGU Verifications Section */}

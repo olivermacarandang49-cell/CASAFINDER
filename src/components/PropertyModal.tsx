@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Property } from "../data/properties";
 import { AiMatch } from "../types";
 import { motion } from "motion/react";
-import { X, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation, AlertTriangle } from "lucide-react";
+import { X, Home, Calendar, Flame, Car, CheckCircle, Trash2, Star, MessageSquare, Reply, CornerDownRight, ShieldCheck, MapPin, Map, Navigation, AlertTriangle, MessageCircle, Send, Copy, Check, Facebook, Phone } from "lucide-react";
 import { SchoolDistancesList } from "./SchoolDistancesList";
 import { getTranslation, Language } from "../utils/translations";
 
@@ -44,6 +44,28 @@ export default function PropertyModal({
   const [activeReplyReviewId, setActiveReplyReviewId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+  // Contact & SMS Template state for students
+  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
+  const [copiedMessage, setCopiedMessage] = useState(false);
+
+  const contactTemplates = [
+    isTagalog 
+      ? `Magandang araw po! Available pa po ba ang slot sa ${property.title} sa Brgy. ${property.neighborhood}? Magkano po ang advance/deposit?`
+      : `Hello! Is the slot still available at ${property.title} in Brgy. ${property.neighborhood}? How much is the advance/deposit?`,
+    isTagalog
+      ? `Hello po! Student po ako sa Gumaca. Kailan po pwedeng pumunta para mag-viewing sa ${property.title}?`
+      : `Hello! I am a student in Gumaca. When can I visit for a viewing at ${property.title}?`,
+    isTagalog
+      ? `Hi po! Tanong ko lang po kung kasama na sa ₱${property.price.toLocaleString()}/month ang kuryente at tubig sa ${property.title}? Thank you po!`
+      : `Hi! May I ask if electricity and water are included in the ₱${property.price.toLocaleString()}/month rent for ${property.title}? Thank you!`
+  ];
+
+  const [contactMessage, setContactMessage] = useState(contactTemplates[0]);
+
+  React.useEffect(() => {
+    setContactMessage(contactTemplates[selectedTemplateIndex]);
+  }, [selectedTemplateIndex, property.id, language]);
 
   const reviews = property.reviews || [];
   const avgRating = reviews.length > 0
@@ -548,6 +570,112 @@ export default function PropertyModal({
                   <span>{isTagalog ? "Tingnan ang Profile ng Landlord 👤" : "View Landlord Profile 👤"}</span>
                 </button>
               )}
+            </div>
+
+            {/* Direct Landlord Contact & SMS / Messenger Chat Card */}
+            <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50/90 via-white to-pink-50/50 rounded-2xl border border-indigo-200/80 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-1 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950">
+                  <MessageCircle className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>{isTagalog ? "Direktang Kontak at Chat sa Landlord" : "Direct Landlord Contact & Chat"}</span>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200 font-mono">
+                  📱 {property.landlordMobile || "09987654321"}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-stone-600 leading-snug font-light">
+                {isTagalog 
+                  ? "Pumili ng template o i-customize ang mensahe para mag-text (SMS), mag-call, o mag-Messenger:" 
+                  : "Select a pre-filled template or edit the message to send an SMS, call, or open Messenger:"}
+              </p>
+
+              {/* Template Quick Selection Chips */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {contactTemplates.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedTemplateIndex(idx)}
+                    className={`text-[10px] font-medium px-2.5 py-1 rounded-xl transition-all cursor-pointer border ${
+                      selectedTemplateIndex === idx
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-bold"
+                        : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
+                    }`}
+                  >
+                    {idx === 0 && (isTagalog ? "🏠 Slot & Upa" : "🏠 Slot & Rent")}
+                    {idx === 1 && (isTagalog ? "🗓️ Viewing" : "🗓️ Visit")}
+                    {idx === 2 && (isTagalog ? "⚡ Kuryente/Tubig" : "⚡ Utilities")}
+                  </button>
+                ))}
+              </div>
+
+              {/* Editable Message Box */}
+              <textarea
+                rows={3}
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                className="w-full bg-white border border-indigo-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl p-2.5 text-xs text-stone-800 font-medium leading-relaxed resize-none shadow-2xs focus:outline-hidden"
+              />
+
+              {/* Action Buttons: Direct SMS, Messenger, Call, Copy */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {/* Direct SMS Link */}
+                <a
+                  href={`sms:${property.landlordMobile || "09987654321"}?body=${encodeURIComponent(contactMessage)}`}
+                  className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>{isTagalog ? "I-Text / SMS 📱" : "Send SMS 📱"}</span>
+                </a>
+
+                {/* Messenger / Facebook Link */}
+                <a
+                  href={property.landlordFacebook ? (property.landlordFacebook.startsWith("http") ? property.landlordFacebook : `https://${property.landlordFacebook}`) : `https://facebook.com`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    navigator.clipboard.writeText(contactMessage);
+                  }}
+                  className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title={isTagalog ? "Nakokopya ang mensahe sa clipboard para ma-paste sa Messenger" : "Auto-copies message to clipboard for easy Messenger pasting"}
+                >
+                  <Facebook className="h-3.5 w-3.5" />
+                  <span>{isTagalog ? "Messenger 💬" : "Messenger 💬"}</span>
+                </a>
+
+                {/* Direct Call */}
+                <a
+                  href={`tel:${property.landlordMobile || "09987654321"}`}
+                  className="flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                >
+                  <Phone className="h-3.5 w-3.5 text-amber-400" />
+                  <span>{isTagalog ? "Tawag 📞" : "Call Landlord 📞"}</span>
+                </a>
+
+                {/* Copy Text Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(contactMessage);
+                    setCopiedMessage(true);
+                    setTimeout(() => setCopiedMessage(false), 2500);
+                  }}
+                  className="flex items-center justify-center gap-1.5 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 rounded-xl py-2 px-3 text-xs font-bold transition-all cursor-pointer active:scale-95"
+                >
+                  {copiedMessage ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-emerald-700">{isTagalog ? "Nakopya Na! 📋" : "Copied! 📋"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5 text-stone-500" />
+                      <span>{isTagalog ? "Kopyahin 📋" : "Copy Text 📋"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* AI Match Notification */}

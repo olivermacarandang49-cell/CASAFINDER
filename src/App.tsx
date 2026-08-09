@@ -55,7 +55,8 @@ import {
   Laptop,
   Fingerprint,
   AlertTriangle,
-  Activity
+  Activity,
+  Facebook
 } from "lucide-react";
 
 // Pre-defined room image presets to make listings look beautiful instantly
@@ -138,8 +139,8 @@ export default function App() {
       }
     }
     return [
-      { name: "Juan Dela Cruz", username: "juan.student", role: "student", password: "123", email: "juan.delacruz@gmail.com", mobile: "09171234567", school: "SLSU Gumaca Campus", bio: "College Student looking for dorm near SLSU", permitNo: "", permitFile: "", permitStatus: "" },
-      { name: "Aling Nena", username: "nena.landlord", role: "landlord", password: "123", email: "alingnena.housing@gmail.com", mobile: "09987654321", school: "", bio: "Owner of Nena's Student Residences in Brgy. Tabing Dagat, Gumaca, Quezon. Providing clean and safe lodgings for students since 2018.", permitNo: "2026-0881", permitFile: "Mayors_Permit_2026.pdf", permitStatus: "Verified" }
+      { name: "Juan Dela Cruz", username: "juan.student", role: "student", password: "123", email: "juan.delacruz@gmail.com", mobile: "09171234567", facebook: "https://facebook.com/juan.delacruz", school: "SLSU Gumaca Campus", bio: "College Student looking for dorm near SLSU", permitNo: "", permitFile: "", permitStatus: "" },
+      { name: "Aling Nena", username: "nena.landlord", role: "landlord", password: "123", email: "alingnena.housing@gmail.com", mobile: "09987654321", facebook: "https://facebook.com/alingnena.housing", school: "", bio: "Owner of Nena's Student Residences in Brgy. Tabing Dagat, Gumaca, Quezon. Providing clean and safe lodgings for students since 2018.", permitNo: "2026-0881", permitFile: "Mayors_Permit_2026.pdf", permitStatus: "Verified" }
     ];
   });
   const [userSession, setUserSession] = useState<{ role: "student" | "landlord"; name: string; username: string } | null>(() => {
@@ -159,7 +160,7 @@ export default function App() {
 
   // Forgot Password States
   const [forgotQuery, setForgotQuery] = useState("");
-  const [forgotFoundUser, setForgotFoundUser] = useState<{ name: string; username: string; role: "student" | "landlord"; password?: string; email?: string; mobile?: string; school?: string; bio?: string } | null>(null);
+  const [forgotFoundUser, setForgotFoundUser] = useState<{ name: string; username: string; role: "student" | "landlord"; password?: string; email?: string; mobile?: string; facebook?: string; school?: string; bio?: string } | null>(null);
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
@@ -173,6 +174,7 @@ export default function App() {
   const [profileEditName, setProfileEditName] = useState("");
   const [profileEditEmail, setProfileEditEmail] = useState("");
   const [profileEditMobile, setProfileEditMobile] = useState("");
+  const [profileEditFacebook, setProfileEditFacebook] = useState("");
   const [profileEditSchool, setProfileEditSchool] = useState("");
   const [profileEditBio, setProfileEditBio] = useState("");
   const [profileEditPermitNo, setProfileEditPermitNo] = useState("");
@@ -631,6 +633,7 @@ export default function App() {
     setProfileEditName(current.name || userSession.name);
     setProfileEditEmail(current.email || "");
     setProfileEditMobile(current.mobile || "");
+    setProfileEditFacebook(current.facebook || "");
     setProfileEditSchool(current.school || "");
     setProfileEditBio(current.bio || "");
     setProfileEditPermitNo(current.permitNo || "");
@@ -682,6 +685,7 @@ export default function App() {
           name: profileEditName.trim() || u.name,
           email: profileEditEmail.trim(),
           mobile: profileEditMobile.trim(),
+          facebook: profileEditFacebook.trim(),
           school: profileEditSchool.trim(),
           bio: profileEditBio.trim(),
           permitNo: profileEditPermitNo.trim(),
@@ -2285,6 +2289,7 @@ export default function App() {
                 name: actualName,
                 mobile: actualMobile,
                 email: actualEmail,
+                facebook: matchedUser?.facebook || "",
                 avatar: actualAvatar,
                 bio: actualBio,
                 permits: actualPermits,
@@ -3005,6 +3010,21 @@ export default function App() {
                           placeholder="09123456789"
                         />
                       </div>
+                    </div>
+
+                    {/* Facebook Profile Link / Messenger */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                        <Facebook className="h-3 w-3 text-blue-600" />
+                        {prefLanguage === "tagalog" ? "Facebook Account / Profile Link (Messenger)" : "Facebook Profile Link / Messenger"}
+                      </label>
+                      <input
+                        type="url"
+                        value={profileEditFacebook}
+                        onChange={(e) => setProfileEditFacebook(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                        placeholder="https://facebook.com/your.profile"
+                      />
                     </div>
 
                     {/* School / Institution / Business */}
