@@ -56,7 +56,8 @@ import {
   Fingerprint,
   AlertTriangle,
   Activity,
-  Facebook
+  Facebook,
+  PhoneCall
 } from "lucide-react";
 
 // Pre-defined room image presets to make listings look beautiful instantly
@@ -120,36 +121,55 @@ export default function App() {
   // Loading and Authentication States
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
-  const [registeredUsers, setRegisteredUsers] = useState<{ name: string; username: string; role: "student" | "landlord"; password?: string; email?: string; mobile?: string; school?: string; bio?: string; permitNo?: string; permitFile?: string; permitStatus?: string }[]>(() => {
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot" | "adminLogin">("login");
+  const DEFAULT_DEMO_USERS = [
+    { name: "Juan Dela Cruz", username: "juan.student", role: "student" as const, password: "123", email: "juan.delacruz@gmail.com", mobile: "09171234567", facebook: "https://facebook.com/juan.delacruz", school: "SLSU Gumaca Campus", bio: "Tenant & College Student looking for room near SLSU Campus", address: "Brgy. Mabini, Gumaca, Quezon", emergencyContact: "Maria Dela Cruz (09181112222)", avatar: "🎓", permitNo: "", permitFile: "", permitStatus: "" },
+    { name: "Aling Nena", username: "nena.landlord", role: "landlord" as const, password: "123", email: "alingnena.housing@gmail.com", mobile: "09987654321", facebook: "https://facebook.com/alingnena.housing", school: "Nena's Student & Worker Residences", bio: "Owner of Nena's Student & Worker Residences in Brgy. Tabing Dagat, Gumaca. Providing clean and safe lodgings for tenants since 2018.", address: "Brgy. Tabing Dagat, Gumaca, Quezon", emergencyContact: "Barangay Office (042-311-1234)", avatar: "🏠", permitNo: "2026-0881", permitFile: "Mayors_Permit_2026.pdf", permitStatus: "Verified" },
+    { name: "Gumaca LGU Housing Admin", username: "admin.gumaca", role: "admin" as const, password: "admin", email: "admin.housing@gumaca.gov.ph", mobile: "09190008888", facebook: "https://facebook.com/gumaca.lgu", school: "Municipal Housing Regulatory Office", bio: "Authorized Municipal Housing Regulatory Officer for Gumaca, Quezon. Overseeing safety compliance, mayor's permits, and student dorm welfare.", address: "Municipal Hall, Brgy. San Diego, Gumaca, Quezon", emergencyContact: "Mayor's Office (042-311-9999)", avatar: "🛡️", permitNo: "SYS-ADMIN-01", permitFile: "LGU_System_Auth.pdf", permitStatus: "System Admin" },
+    { name: "Campus Housing Officer", username: "admin.campus", role: "admin" as const, password: "admin", email: "housing.officer@slsu.edu.ph", mobile: "09190007777", facebook: "https://facebook.com/slsu.gumaca.housing", school: "SLSU & EQC Student Affairs Office", bio: "Official Student Housing Coordinator for SLSU & Eastern Quezon College. Verifying accreditation and safety for student lodgings.", address: "SLSU Campus, Brgy. Mabini, Gumaca, Quezon", emergencyContact: "Campus Security (042-311-8888)", avatar: "👑", permitNo: "SYS-ADMIN-02", permitFile: "SLSU_Officer_Auth.pdf", permitStatus: "System Admin" }
+  ];
+
+  const [registeredUsers, setRegisteredUsers] = useState<{ name: string; username: string; role: "student" | "landlord" | "admin"; password?: string; email?: string; mobile?: string; school?: string; bio?: string; address?: string; emergencyContact?: string; avatar?: string; facebook?: string; permitNo?: string; permitFile?: string; permitStatus?: string }[]>(() => {
     const saved = localStorage.getItem("casafinder_registered_users");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((u: any) => ({
-          ...u,
-          school: (u.school?.includes("Gumaca National") || u.school?.includes("Nena's Residences") || u.school?.includes("Gumaca Housing")) ? "" : u.school || "",
-          bio: (u.bio?.includes("Senior High Student") || u.bio?.includes("Managing student boarding")) ? "" : u.bio || "",
-          permitNo: (u.permitNo?.includes("BP-2026") || u.permitNo?.includes("2024-SLSU")) ? "" : u.permitNo || "",
-          permitFile: (u.permitFile?.includes("Mayors_Permit") || u.permitFile?.includes("Student_ID")) ? "" : u.permitFile || "",
-          permitStatus: (u.permitStatus?.includes("Verified LGU") || u.permitStatus?.includes("Verified Student")) ? "" : u.permitStatus || ""
-        }));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasAdmin1 = parsed.some((u: any) => u.username === "admin.gumaca");
+          const hasAdmin2 = parsed.some((u: any) => u.username === "admin.campus");
+          if (hasAdmin1 && hasAdmin2) return parsed;
+          return [
+            ...parsed.filter((u: any) => u.username !== "admin.gumaca" && u.username !== "admin.campus"),
+            DEFAULT_DEMO_USERS[2],
+            DEFAULT_DEMO_USERS[3]
+          ];
+        }
       } catch (e) {
-        // Fallback
+        console.error("Failed to parse saved users:", e);
       }
     }
-    return [
-      { name: "Juan Dela Cruz", username: "juan.student", role: "student", password: "123", email: "juan.delacruz@gmail.com", mobile: "09171234567", facebook: "https://facebook.com/juan.delacruz", school: "SLSU Gumaca Campus", bio: "College Student looking for dorm near SLSU", permitNo: "", permitFile: "", permitStatus: "" },
-      { name: "Aling Nena", username: "nena.landlord", role: "landlord", password: "123", email: "alingnena.housing@gmail.com", mobile: "09987654321", facebook: "https://facebook.com/alingnena.housing", school: "", bio: "Owner of Nena's Student Residences in Brgy. Tabing Dagat, Gumaca, Quezon. Providing clean and safe lodgings for students since 2018.", permitNo: "2026-0881", permitFile: "Mayors_Permit_2026.pdf", permitStatus: "Verified" }
-    ];
+    localStorage.setItem("casafinder_registered_users", JSON.stringify(DEFAULT_DEMO_USERS));
+    return DEFAULT_DEMO_USERS;
   });
-  const [userSession, setUserSession] = useState<{ role: "student" | "landlord"; name: string; username: string } | null>(() => {
+
+  const [userSession, setUserSession] = useState<{ role: "student" | "landlord" | "admin"; name: string; username: string } | null>(() => {
     const saved = localStorage.getItem("casafinder_user_session");
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.username === "juan.student" || parsed?.username === "nena.landlord" || parsed?.username === "admin.gumaca" || parsed?.username === "admin.campus" || parsed?.role === "admin") {
+          return parsed;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    localStorage.removeItem("casafinder_user_session");
+    return null;
   });
 
   // Login Form States
-  const [loginRole, setLoginRole] = useState<"student" | "landlord">("student");
+  const [loginRole, setLoginRole] = useState<"student" | "landlord" | "admin">("student");
   const [loginName, setLoginName] = useState("");
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -166,6 +186,18 @@ export default function App() {
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [forgotSuccessMsg, setForgotSuccessMsg] = useState("");
 
+  // Welcome / Onboarding Modal States
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [onboardingSlide, setOnboardingSlide] = useState(0);
+  const [onboardingName, setOnboardingName] = useState("");
+  const [onboardingMobile, setOnboardingMobile] = useState("");
+  const [onboardingAddress, setOnboardingAddress] = useState("");
+  const [onboardingEmergencyContact, setOnboardingEmergencyContact] = useState("");
+  const [onboardingAvatar, setOnboardingAvatar] = useState("");
+  const [onboardingSchool, setOnboardingSchool] = useState("");
+  const [onboardingBio, setOnboardingBio] = useState("");
+  const [onboardingFacebook, setOnboardingFacebook] = useState("");
+
   // Profile & Settings Modal & Dropdown Menu State
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -174,6 +206,9 @@ export default function App() {
   const [profileEditName, setProfileEditName] = useState("");
   const [profileEditEmail, setProfileEditEmail] = useState("");
   const [profileEditMobile, setProfileEditMobile] = useState("");
+  const [profileEditAddress, setProfileEditAddress] = useState("");
+  const [profileEditEmergencyContact, setProfileEditEmergencyContact] = useState("");
+  const [profileEditAvatar, setProfileEditAvatar] = useState("");
   const [profileEditFacebook, setProfileEditFacebook] = useState("");
   const [profileEditSchool, setProfileEditSchool] = useState("");
   const [profileEditBio, setProfileEditBio] = useState("");
@@ -248,6 +283,10 @@ export default function App() {
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
   const [mobileMapTab, setMobileMapTab] = useState<"map" | "list">("map");
 
+  // Admin & Landlord Approval States
+  const [adminTabFilter, setAdminTabFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [showLandlordPendingOnly, setShowLandlordPendingOnly] = useState(false);
+
   useEffect(() => {
     if (prefTheme === "dark") {
       document.documentElement.classList.add("dark");
@@ -278,14 +317,12 @@ export default function App() {
 
   // Application State - Load saved user properties or default to empty
   const [propertiesList, setPropertiesList] = useState<Property[]>(() => {
-    const saved = localStorage.getItem("gumaca_student_properties");
+    const saved = localStorage.getItem("gumaca_student_properties_v2");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const demoIds = new Set(["slsu-elite-dorm", "dagat-bay-coliving", "la-villa-estudiante", "green-eco-apts"]);
-          const filtered = parsed.filter((p: Property) => !demoIds.has(p.id));
-          return filtered;
+          return parsed;
         }
       } catch (e) {
         console.error("Failed to parse saved properties:", e);
@@ -293,6 +330,10 @@ export default function App() {
     }
     return [];
   });
+
+  useEffect(() => {
+    localStorage.setItem("gumaca_student_properties_v2", JSON.stringify(propertiesList));
+  }, [propertiesList]);
 
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [detailModalProperty, setDetailModalProperty] = useState<Property | null>(null);
@@ -387,9 +428,11 @@ export default function App() {
     localStorage.setItem("gumaca_student_properties", JSON.stringify(propertiesList));
   }, [propertiesList]);
 
-  // Prevent background scrolling when any modal (Profile & Settings, About, Add Listing, Property details) is open
+  // Prevent background scrolling when any modal (Welcome slides onboarding, Auth, Profile, About, Add Listing, Property details) is open
   useEffect(() => {
     const isAnyModalOpen = Boolean(
+      !userSession ||
+      showOnboardingModal ||
       showProfileModal ||
       showAboutModal ||
       showAddModal ||
@@ -406,7 +449,7 @@ export default function App() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [showProfileModal, showAboutModal, showAddModal, detailModalProperty, landlordProfileProperty]);
+  }, [userSession, showOnboardingModal, showProfileModal, showAboutModal, showAddModal, detailModalProperty, landlordProfileProperty]);
 
   // Landlord tool: Seed beautiful student-friendly Gumaca listings
   const handleSeedListings = () => {
@@ -426,38 +469,49 @@ export default function App() {
     e.preventDefault();
     
     const usernameVal = loginUsername.trim().toLowerCase();
-    const emailVal = signupEmail.trim().toLowerCase();
-    const mobileVal = signupMobile.trim();
-    const displayName = usernameVal.charAt(0).toUpperCase() + usernameVal.slice(1);
+    const contactVal = signupEmail.trim();
+    const displayName = usernameVal ? usernameVal.charAt(0).toUpperCase() + usernameVal.slice(1) : "User";
     
     if (authMode === "signup") {
-      if (!usernameVal || !emailVal || !mobileVal || !loginPassword.trim()) {
-        setLoginError("Please fill in your Username, Email, Mobile Number, and Password!");
+      if (!usernameVal || !contactVal || !loginPassword.trim()) {
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Paki-kumpleto ang iyong Email/Mobile Number, Username, at Password!"
+            : "Please fill in your Email or Mobile Number, Username, and Password!"
+        );
         return;
       }
       
       // Check if username already exists
-      const existingUsername = registeredUsers.find(u => u.username === usernameVal);
+      const existingUsername = registeredUsers.find(
+        u => u.username.trim().toLowerCase() === usernameVal
+      );
       if (existingUsername) {
-        setLoginError("This username is already taken! Please choose another one.");
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Gamit na ang Username na ito! Paki-pili ng iba."
+            : "This username is already taken! Please choose another one."
+        );
         return;
       }
 
-      if (emailVal) {
-        const existingEmail = registeredUsers.find(u => u.email === emailVal);
-        if (existingEmail) {
-          setLoginError("This email address is already registered! Please log in instead.");
-          return;
-        }
+      // Check if email or mobile already registered
+      const existingContact = registeredUsers.find(u => {
+        const uEmail = (u.email || "").trim().toLowerCase();
+        const uMobile = (u.mobile || "").trim();
+        return (uEmail && uEmail === contactVal.toLowerCase()) || (uMobile && uMobile === contactVal);
+      });
+
+      if (existingContact) {
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Nakarehistro na ang Email o Mobile Number na ito! Paki-log in na lamang."
+            : "This Email or Mobile Number is already registered! Please log in instead."
+        );
+        return;
       }
 
-      if (mobileVal) {
-        const existingMobile = registeredUsers.find(u => u.mobile === mobileVal);
-        if (existingMobile) {
-          setLoginError("This mobile number is already registered! Please log in instead.");
-          return;
-        }
-      }
+      const isEmail = contactVal.includes("@");
 
       // Create new user
       const newUser = {
@@ -465,8 +519,8 @@ export default function App() {
         username: usernameVal,
         role: loginRole,
         password: loginPassword,
-        email: emailVal,
-        mobile: mobileVal,
+        email: isEmail ? contactVal.toLowerCase() : "",
+        mobile: !isEmail ? contactVal : "",
         school: "",
         bio: "",
         permitNo: "",
@@ -483,6 +537,14 @@ export default function App() {
         username: usernameVal
       });
 
+      // Show onboarding welcome modal
+      setOnboardingSlide(0);
+      setOnboardingName(displayName);
+      setOnboardingSchool("");
+      setOnboardingBio("");
+      setOnboardingFacebook("");
+      setShowOnboardingModal(true);
+
       // Reset
       setLoginName("");
       setLoginUsername("");
@@ -491,37 +553,89 @@ export default function App() {
       setSignupMobile("");
       setLoginError("");
     } else {
-      // Login mode
-      if (!usernameVal || !loginPassword.trim()) {
-        setLoginError("Please enter both your Username and Password!");
+      // Login mode - accept Username OR Email OR Mobile Number
+      const input = loginUsername.trim().toLowerCase();
+      if (!input || !loginPassword.trim()) {
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Paki-lagay ang iyong Username/Email at Password!"
+            : "Please enter your Username, Email, or Mobile Number, and Password!"
+        );
         return;
       }
 
-      const user = registeredUsers.find(u => 
-        u.username === usernameVal
-      );
+      const user = registeredUsers.find(u => {
+        const uName = u.username.trim().toLowerCase();
+        const uEmail = (u.email || "").trim().toLowerCase();
+        const uMobile = (u.mobile || "").trim();
+        return uName === input || (uEmail && uEmail === input) || (uMobile && uMobile === input);
+      });
       
       if (!user) {
-        setLoginError("This account is not registered yet. Please Sign Up first!");
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Wala pang account na nakarehistro sa Username/Email na ito. Paki-Sign Up muna!"
+            : "This account is not registered yet. Please Sign Up first!"
+        );
         return;
       }
 
-      if (user.role !== loginRole) {
-        setLoginError(`This account is not registered as a ${loginRole === "student" ? "Student" : "Landlord"}. Please select the correct role above.`);
-        return;
+      if (authMode === "adminLogin" || loginRole === "admin") {
+        if (user.role !== "admin") {
+          setLoginError(
+            prefLanguage === "tagalog"
+              ? "Ang account na ito ay hindi rehistradong Admin! Paki-gamit ang pampublikong login."
+              : "This account is not a registered System Admin! Please use public login."
+          );
+          return;
+        }
+      } else {
+        if (user.role !== loginRole) {
+          setLoginError(
+            prefLanguage === "tagalog"
+              ? `Ang account na ito ay nakarehistro bilang ${user.role === "student" ? "Tenant / Umuupa" : user.role === "landlord" ? "Landlord" : "Admin"}. Paki-pili ang tamang role sa itaas.`
+              : `This account is registered as a ${user.role === "student" ? "Tenant" : user.role === "landlord" ? "Landlord" : "Admin"}. Please select the correct role above.`
+          );
+          return;
+        }
       }
 
       if (user.password && user.password !== loginPassword) {
-        setLoginError("Incorrect password! Please try again.");
+        setLoginError(
+          prefLanguage === "tagalog"
+            ? "Maling password! Paki-subukan muli."
+            : "Incorrect password! Please try again."
+        );
         return;
       }
 
       // Successful login
-      setUserSession({
+      const session = {
         role: user.role,
         name: user.name,
         username: user.username
-      });
+      };
+      setUserSession(session);
+      localStorage.setItem("casafinder_user_session", JSON.stringify(session));
+
+      const isDemo = ["juan.student", "nena.landlord", "admin.gumaca", "admin.campus"].includes(user.username);
+      const alreadyOnboarded = localStorage.getItem(`casafinder_onboarded_${user.username}`);
+
+      if (isDemo || alreadyOnboarded) {
+        setShowOnboardingModal(false);
+      } else {
+        // Show onboarding welcome modal for first time users
+        setOnboardingSlide(0);
+        setOnboardingName(user.name || "");
+        setOnboardingMobile(user.mobile || "");
+        setOnboardingAddress(user.address || "");
+        setOnboardingEmergencyContact(user.emergencyContact || "");
+        setOnboardingAvatar(user.avatar || (user.role === "student" ? "🎓" : user.role === "landlord" ? "🏠" : "🛡️"));
+        setOnboardingSchool(user.school || "");
+        setOnboardingBio(user.bio || "");
+        setOnboardingFacebook((user as any).facebook || "");
+        setShowOnboardingModal(true);
+      }
 
       // Reset
       setLoginName("");
@@ -531,6 +645,36 @@ export default function App() {
       setSignupMobile("");
       setLoginError("");
     }
+  };
+
+  // Onboarding Save Handler
+  const handleSaveOnboarding = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userSession) return;
+
+    const newName = onboardingName.trim() || userSession.name;
+
+    const updatedUsers = registeredUsers.map(u => {
+      if (u.username === userSession.username) {
+        return {
+          ...u,
+          name: newName,
+          mobile: onboardingMobile.trim() || u.mobile,
+          address: onboardingAddress.trim() || u.address,
+          emergencyContact: onboardingEmergencyContact.trim() || u.emergencyContact,
+          avatar: onboardingAvatar.trim() || u.avatar,
+          school: onboardingSchool.trim() || u.school,
+          bio: onboardingBio.trim() || u.bio,
+          facebook: onboardingFacebook.trim() || (u as any).facebook || "",
+        };
+      }
+      return u;
+    });
+
+    setRegisteredUsers(updatedUsers);
+    localStorage.setItem("casafinder_registered_users", JSON.stringify(updatedUsers));
+    setUserSession(prev => prev ? { ...prev, name: newName } : null);
+    setShowOnboardingModal(false);
   };
 
   // Forgot Password: Search Account handler
@@ -595,20 +739,22 @@ export default function App() {
   };
 
   // Handle direct Quick Demo logins
-  const handleQuickLogin = (role: "student" | "landlord") => {
-    if (role === "student") {
-      setUserSession({
-        role: "student",
-        name: "Juan Dela Cruz",
-        username: "juan.student"
-      });
-    } else {
-      setUserSession({
-        role: "landlord",
-        name: "Aling Nena",
-        username: "nena.landlord"
-      });
-    }
+  const handleQuickLogin = (role: "student" | "landlord" | "admin") => {
+    const demoUser = registeredUsers.find(u => u.role === role) || (
+      role === "student" ? DEFAULT_DEMO_USERS[0] : role === "landlord" ? DEFAULT_DEMO_USERS[1] : DEFAULT_DEMO_USERS[2]
+    );
+    const session = {
+      role: role,
+      name: demoUser.name,
+      username: demoUser.username
+    };
+    setUserSession(session);
+    localStorage.setItem("casafinder_user_session", JSON.stringify(session));
+    localStorage.setItem(`casafinder_onboarded_${demoUser.username}`, "true");
+    
+    // Close welcome onboarding wizard for quick demo logins
+    setShowOnboardingModal(false);
+    setOnboardingSlide(0);
   };
 
   // Handle Sign Out
@@ -626,6 +772,9 @@ export default function App() {
       role: userSession.role,
       email: "",
       mobile: "",
+      address: "",
+      emergencyContact: "",
+      avatar: "",
       password: "",
       school: "",
       bio: ""
@@ -633,6 +782,9 @@ export default function App() {
     setProfileEditName(current.name || userSession.name);
     setProfileEditEmail(current.email || "");
     setProfileEditMobile(current.mobile || "");
+    setProfileEditAddress(current.address || "");
+    setProfileEditEmergencyContact(current.emergencyContact || "");
+    setProfileEditAvatar(current.avatar || (current.role === "student" ? "🎓" : "🏠"));
     setProfileEditFacebook(current.facebook || "");
     setProfileEditSchool(current.school || "");
     setProfileEditBio(current.bio || "");
@@ -685,6 +837,9 @@ export default function App() {
           name: profileEditName.trim() || u.name,
           email: profileEditEmail.trim(),
           mobile: profileEditMobile.trim(),
+          address: profileEditAddress.trim(),
+          emergencyContact: profileEditEmergencyContact.trim(),
+          avatar: profileEditAvatar.trim(),
           facebook: profileEditFacebook.trim(),
           school: profileEditSchool.trim(),
           bio: profileEditBio.trim(),
@@ -821,9 +976,8 @@ export default function App() {
     setIsCustomUpload(false);
     setNewSelectedAmenities([]);
     setIsPinCustomized(false);
-    const defaultCoords = getNeighborhoodDefaultLatLng("Barangay Tabing Dagat");
-    setNewCustomLat(defaultCoords[0]);
-    setNewCustomLng(defaultCoords[1]);
+    setNewCustomLat(null);
+    setNewCustomLng(null);
     setShowAddModal(true);
   };
 
@@ -889,6 +1043,7 @@ export default function App() {
       landlordEmail: landlordEmail,
       landlordAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
       landlordBio: landlordBio,
+      approvalStatus: userSession?.role === "admin" ? "approved" : "pending",
       landlordPermits: landlordPermitNo ? {
         businessPermit: landlordPermitNo.startsWith("BP-") ? landlordPermitNo : `BP-GMC-${landlordPermitNo}`
       } : undefined
@@ -918,6 +1073,14 @@ export default function App() {
     setIsPinCustomized(false);
 
     setShowAddModal(false);
+
+    if (userSession?.role !== "admin") {
+      alert(
+        prefLanguage === "tagalog"
+          ? "⏳ Matagumpay na naipasa ang iyong post!\n\nNakatambay ito sa ADMIN APPROVAL at HINDI MUNA LALABAS SA WEBSITE hangga't hindi ito inaaprubahan ng Admin."
+          : "⏳ Your listing has been submitted!\n\nIt is pending ADMIN APPROVAL and will NOT appear on the public website until an Admin approves it."
+      );
+    }
   };
 
   // Delete a specific landlord-created property listing
@@ -932,6 +1095,28 @@ export default function App() {
     if (landlordProfileProperty?.id === id) {
       setLandlordProfileProperty(null);
     }
+  };
+
+  // Admin action: Approve listing
+  const handleApproveProperty = (id: string) => {
+    setPropertiesList(prev => prev.map(p => {
+      if (p.id === id) {
+        return { ...p, approvalStatus: "approved" as const };
+      }
+      return p;
+    }));
+    alert(prefLanguage === "tagalog" ? "✅ Na-approve na ang listing! Lalabas na ito sa pampublikong website." : "✅ Listing Approved! It will now appear on the public website.");
+  };
+
+  // Admin action: Reject listing
+  const handleRejectProperty = (id: string) => {
+    setPropertiesList(prev => prev.map(p => {
+      if (p.id === id) {
+        return { ...p, approvalStatus: "rejected" as const };
+      }
+      return p;
+    }));
+    alert(prefLanguage === "tagalog" ? "❌ Na-reject ang listing." : "❌ Listing Rejected.");
   };
 
   // Student rating & review handler
@@ -995,6 +1180,24 @@ export default function App() {
   // Filter & Sort properties based on search options
   const processedProperties = useMemo(() => {
     let result = [...propertiesList];
+
+    // STRICT ADMIN vs PUBLIC APPROVAL FILTER:
+    // If Admin is logged in, filter by adminTabFilter ("pending", "approved", "rejected", "all")
+    // If Landlord is logged in AND toggled showLandlordPendingOnly, show landlord's pending posts
+    // For everyone else (Tenants, Guests, & Landlords browsing feed): ONLY APPROVED POSTS ARE SHOWN!
+    if (userSession?.role === "admin") {
+      if (adminTabFilter === "pending") {
+        result = result.filter(p => p.approvalStatus === "pending");
+      } else if (adminTabFilter === "approved") {
+        result = result.filter(p => p.approvalStatus === "approved" || !p.approvalStatus);
+      } else if (adminTabFilter === "rejected") {
+        result = result.filter(p => p.approvalStatus === "rejected");
+      }
+    } else if (userSession?.role === "landlord" && showLandlordPendingOnly) {
+      result = result.filter(p => p.landlordUsername === userSession.username && p.approvalStatus === "pending");
+    } else {
+      result = result.filter(p => p.approvalStatus === "approved" || !p.approvalStatus);
+    }
 
     // Filter by Boarding House name, title, address, description, or features typing query
     if (boardingHouseSearchQuery.trim()) {
@@ -1103,7 +1306,7 @@ export default function App() {
     result.sort((a, b) => b.price - a.price);
 
     return result;
-  }, [propertiesList, boardingHouseSearchQuery, barangaySearchQuery, activeBarangay, activeType, activePriceRange, activeAmenityGender]);
+  }, [propertiesList, boardingHouseSearchQuery, barangaySearchQuery, activeBarangay, activeType, activePriceRange, activeAmenityGender, userSession, adminTabFilter, showLandlordPendingOnly]);
 
   if (isLoading) {
     return (
@@ -1199,12 +1402,15 @@ export default function App() {
             </div>
 
             {/* 1. Log In vs Sign Up Tab Switcher (Right after Website Title) */}
-            {authMode !== "forgot" && (
+            {authMode !== "forgot" && authMode !== "adminLogin" && (
               <div className="flex border-b border-pink-100 pb-0.5">
                 <button
                   type="button"
                   onClick={() => {
                     setAuthMode("login");
+                    setLoginUsername("");
+                    setLoginPassword("");
+                    setSignupEmail("");
                     setLoginError("");
                   }}
                   className={`flex-1 pb-1 sm:pb-1.5 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
@@ -1219,6 +1425,9 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setAuthMode("signup");
+                    setLoginUsername("");
+                    setLoginPassword("");
+                    setSignupEmail("");
                     setLoginError("");
                   }}
                   className={`flex-1 pb-1 sm:pb-1.5 text-[11px] sm:text-xs lg:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
@@ -1233,7 +1442,7 @@ export default function App() {
             )}
 
             {/* 2. Role Choice Tabs */}
-            {authMode !== "forgot" && (
+            {authMode !== "forgot" && authMode !== "adminLogin" && (
               <div className="space-y-1">
                 <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 block text-center sm:text-left">
                   {t("selectRole")}
@@ -1283,8 +1492,84 @@ export default function App() {
             {/* Forms & Controls */}
             <div className="space-y-2.5 sm:space-y-3 flex flex-col justify-center">
 
-              {/* FORGOT PASSWORD MODE FLOW */}
-              {authMode === "forgot" ? (
+              {/* EXCLUSIVE ADMIN LOGIN MODE */}
+              {authMode === "adminLogin" ? (
+                <div className="space-y-2.5 sm:space-y-3 bg-stone-900 text-white p-3.5 sm:p-4 rounded-2xl border border-amber-500/40 shadow-xl">
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1 text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5 text-amber-300 font-bold text-xs sm:text-sm font-display">
+                      <Shield className="h-4 w-4 text-amber-400 shrink-0" />
+                      <span>🔒 Exclusive System Admin Portal</span>
+                    </div>
+                    <p className="text-[10px] text-stone-300 leading-tight">
+                      Restricted Access • Authorized Municipal & Campus Officers Only (2 Exclusive Accounts: <span className="text-amber-200 font-mono font-bold">admin.gumaca</span> & <span className="text-amber-200 font-mono font-bold">admin.campus</span>)
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleLoginSubmit} className="space-y-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                        <UserCog className="h-3.5 w-3.5 text-amber-400" />
+                        Admin Username or Email
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. admin.gumaca or admin.campus"
+                        value={loginUsername}
+                        onChange={e => setLoginUsername(e.target.value)}
+                        className="w-full bg-stone-800 border border-stone-700 focus:border-amber-400 focus:bg-stone-800 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                        <Lock className="h-3.5 w-3.5 text-amber-400" />
+                        Admin Security Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={e => setLoginPassword(e.target.value)}
+                          className="w-full bg-stone-800 border border-stone-700 focus:border-amber-400 focus:bg-stone-800 rounded-xl pl-3 pr-8 py-1.5 text-xs text-white font-mono focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-stone-950 font-black py-2 px-3 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Shield className="h-3.5 w-3.5 text-stone-950" />
+                      <span>Verify & Enter Admin Portal 🛡️</span>
+                    </button>
+                  </form>
+
+                  <div className="text-center pt-1 border-t border-stone-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode("login");
+                        setLoginRole("student");
+                        setLoginError("");
+                      }}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      <span>Back to Public Tenant & Landlord Login</span>
+                    </button>
+                  </div>
+                </div>
+              ) : authMode === "forgot" ? (
                 <div className="space-y-2 sm:space-y-2.5 lg:space-y-3">
                   <div className="p-2 sm:p-2.5 lg:p-3 bg-pink-50/80 border border-pink-100 rounded-xl space-y-0.5 lg:space-y-1">
                     <div className="flex items-center gap-1.5 text-pink-900 font-bold text-[10px] sm:text-xs lg:text-sm">
@@ -1456,48 +1741,42 @@ export default function App() {
                   {/* Login/Signup Form */}
                   <form onSubmit={handleLoginSubmit} className="space-y-1.5 sm:space-y-2 lg:space-y-3 animate-none">
                     {authMode === "signup" && (
-                      <>
-                        <div className="space-y-0.5 lg:space-y-1">
-                          <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                            <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
-                            Email Address
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            placeholder={loginRole === "student" ? "e.g. juan@example.com" : "e.g. nena@example.com"}
-                            value={signupEmail}
-                            onChange={e => setSignupEmail(e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
-                          />
-                        </div>
-
-                        <div className="space-y-0.5 lg:space-y-1">
-                          <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                            <Phone className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
-                            {prefLanguage === "tagalog" ? "Mobile Number" : "Mobile Number"}
-                          </label>
-                          <input
-                            type="tel"
-                            required
-                            placeholder={loginRole === "student" ? "e.g. 09123456789" : "e.g. 09987654321"}
-                            value={signupMobile}
-                            onChange={e => setSignupMobile(e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
-                          />
-                        </div>
-                      </>
+                      <div className="space-y-0.5 lg:space-y-1">
+                        <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                          <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
+                          {prefLanguage === "tagalog" ? "Email Address o Mobile Number" : "Email Address or Mobile Number"}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder={
+                            loginRole === "student"
+                              ? (prefLanguage === "tagalog" ? "e.g. juan@example.com o 09123456789" : "e.g. juan@example.com or 09123456789")
+                              : (prefLanguage === "tagalog" ? "e.g. nena@example.com o 09987654321" : "e.g. nena@example.com or 09987654321")
+                          }
+                          value={signupEmail}
+                          onChange={e => setSignupEmail(e.target.value)}
+                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                        />
+                      </div>
                     )}
 
                     <div className="space-y-0.5 lg:space-y-1">
                       <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
                         <Shield className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
-                        {authMode === "signup" ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") : "Username"}
+                        {authMode === "signup" 
+                          ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") 
+                          : (prefLanguage === "tagalog" ? "Username, Email, o Mobile" : "Username, Email, or Mobile")
+                        }
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder={loginRole === "student" ? "e.g. juan.student" : "e.g. nena.landlord"}
+                        placeholder={
+                          authMode === "signup"
+                            ? (loginRole === "student" ? "e.g. juan.student" : "e.g. nena.landlord")
+                            : "e.g. juan.student or juan@example.com"
+                        }
                         value={loginUsername}
                         onChange={e => setLoginUsername(e.target.value)}
                         className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
@@ -1560,6 +1839,26 @@ export default function App() {
                     </button>
                   </form>
 
+                  {/* Switch to Admin Portal link */}
+                  {authMode === "login" && (
+                    <div className="text-center pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode("adminLogin");
+                          setLoginRole("admin");
+                          setLoginUsername("");
+                          setLoginPassword("");
+                          setLoginError("");
+                        }}
+                        className="text-[10px] sm:text-[11px] text-amber-700 hover:text-amber-900 font-bold hover:underline cursor-pointer inline-flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/70"
+                      >
+                        <Shield className="h-3 w-3 text-amber-600 shrink-0" />
+                        <span>{prefLanguage === "tagalog" ? "Esklusibong Portal ng Admin Login 🔒" : "Exclusive System Admin Portal 🔒"}</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Alternate switch link */}
                   <div className="text-center text-[10px] sm:text-[11px] lg:text-xs pt-0.5">
                     {authMode === "login" ? (
@@ -1569,6 +1868,9 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setAuthMode("signup");
+                            setLoginUsername("");
+                            setLoginPassword("");
+                            setSignupEmail("");
                             setLoginError("");
                           }}
                           className="text-pink-600 font-bold hover:underline cursor-pointer"
@@ -1583,6 +1885,9 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setAuthMode("login");
+                            setLoginUsername("");
+                            setLoginPassword("");
+                            setSignupEmail("");
                             setLoginError("");
                           }}
                           className="text-pink-600 font-bold hover:underline cursor-pointer"
@@ -1598,26 +1903,36 @@ export default function App() {
                     <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 text-center">
                       {t("quickAccessDemo")}
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => handleQuickLogin("student")}
-                        className="bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/80 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                        className="bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
                       >
-                        <div className="text-[10px] sm:text-xs font-bold text-pink-700 group-hover:scale-102 transition-transform">
-                          {prefLanguage === "tagalog" ? "Demo Estudyante 🎓" : "Demo Student 🎓"}
+                        <div className="text-[9px] sm:text-[11px] font-bold text-pink-700 group-hover:scale-102 transition-transform truncate">
+                          Demo Tenant 🎓
                         </div>
                         <div className="text-[8px] sm:text-[9px] text-pink-500 font-mono mt-0.5">Quick Access</div>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickLogin("landlord")}
-                        className="bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                        className="bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
                       >
-                        <div className="text-[10px] sm:text-xs font-bold text-blue-700 group-hover:scale-102 transition-transform">
-                          {prefLanguage === "tagalog" ? "Demo Landlord 🏠" : "Demo Landlord 🏠"}
+                        <div className="text-[9px] sm:text-[11px] font-bold text-blue-700 group-hover:scale-102 transition-transform truncate">
+                          Demo Landlord 🏠
                         </div>
                         <div className="text-[8px] sm:text-[9px] text-blue-500 font-mono mt-0.5">Property Owner</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin("admin")}
+                        className="bg-amber-50/90 hover:bg-amber-100 border border-amber-300/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                      >
+                        <div className="text-[9px] sm:text-[11px] font-bold text-amber-800 group-hover:scale-102 transition-transform truncate">
+                          Demo Admin 🛡️
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-amber-600 font-mono mt-0.5">2 Accs Portal</div>
                       </button>
                     </div>
                   </div>
@@ -1631,31 +1946,33 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-stone-900 font-sans flex flex-col antialiased">
+    <div className="min-h-screen bg-[#faf9f6] dark:bg-black text-stone-900 dark:text-stone-100 font-sans flex flex-col antialiased">
       {/* Dynamic Header Navigation */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 sm:px-6 py-3 sm:py-4 shadow-xs">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 px-4 sm:px-6 py-3 sm:py-4 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
           {/* Logo & Role Subheading */}
           <div className="flex items-center justify-between w-full md:w-auto gap-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-tr from-pink-500 via-pink-600 to-blue-600 rounded-xl flex items-center justify-center text-white font-display font-bold text-lg sm:text-xl shadow-md shadow-pink-500/20 shrink-0">
-                {userSession.role === "student" ? "🎓" : "🏠"}
+                {userSession.role === "student" ? "🎓" : userSession.role === "landlord" ? "🏠" : "🛡️"}
               </div>
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h1 className="font-display text-lg sm:text-2xl font-bold tracking-tight text-stone-950 flex items-center gap-1.5">
+                  <h1 className="font-display text-lg sm:text-2xl font-bold tracking-tight text-stone-950 dark:text-stone-100 flex items-center gap-1.5">
                     <span className="bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">CasaFinder</span>
                     <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-md border ${
                       userSession.role === "student"
-                        ? "text-pink-600 bg-pink-50 border-pink-200"
-                        : "text-blue-600 bg-blue-50 border-blue-200"
+                        ? "text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-950/80 border-pink-300 dark:border-pink-800"
+                        : userSession.role === "landlord"
+                        ? "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/80 border-blue-300 dark:border-blue-800"
+                        : "text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 border-amber-300 dark:border-amber-800"
                     }`}>
-                      {userSession.role === "student" ? t("studentRole") : t("landlordRole")}
+                      {userSession.role === "student" ? t("studentRole") : userSession.role === "landlord" ? t("landlordRole") : "System Admin 🛡️"}
                     </span>
                   </h1>
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-stone-500 font-light mt-0.5">
-                  {t("hello")} <span className="font-semibold text-stone-800">{userSession.name}</span> • Gumaca Housing
+                <p className="text-[11px] sm:text-xs text-black dark:text-black force-black font-semibold mt-0.5">
+                  {t("hello")} <span className="font-bold text-black dark:text-black force-black">{userSession.name}</span> • Gumaca Housing Page
                 </p>
               </div>
             </div>
@@ -1665,10 +1982,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-gradient-to-r from-pink-50 to-blue-50 hover:from-pink-100 hover:to-blue-100 text-stone-800 border border-pink-200/70 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-blue-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                 title="Profile & Settings"
               >
-                <UserCog className="h-4 w-4 text-pink-600" />
+                <UserCog className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </button>
 
               {/* Mobile Profile Dropdown Menu */}
@@ -1683,17 +2000,19 @@ export default function App() {
                       initial={{ opacity: 0, scale: 0.95, y: -5 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                      className="absolute right-0 top-11 z-50 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
+                      className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
                     >
-                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-100 mb-1">
-                        <p className="font-bold text-stone-800 text-xs truncate">{userSession.name}</p>
-                        <p className="text-[10px] text-stone-500 font-mono truncate">@{userSession.username}</p>
+                      <div className="p-2.5 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-100 dark:border-stone-700 mb-1">
+                        <p className="font-bold text-stone-800 dark:text-stone-100 text-xs truncate">{userSession.name}</p>
+                        <p className="text-[10px] text-stone-500 dark:text-stone-400 font-mono truncate">@{userSession.username}</p>
                         <span className={`inline-block text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded border ${
                           userSession.role === "student"
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800"
+                            : userSession.role === "landlord"
+                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                            : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
                         }`}>
-                          {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
+                          {userSession.role === "student" ? t("studentAccount") : userSession.role === "landlord" ? t("landlordAccount") : "System Admin 🛡️"}
                         </span>
                       </div>
 
@@ -1703,9 +2022,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("profile");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <User className="h-3.5 w-3.5 text-indigo-600" />
+                        <User className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabProfileInfo")}</span>
                       </button>
 
@@ -1715,9 +2034,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("settings");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Lock className="h-3.5 w-3.5 text-indigo-600" />
+                        <Lock className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabSecurity")}</span>
                       </button>
 
@@ -1727,9 +2046,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("notifications");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Bell className="h-3.5 w-3.5 text-indigo-600" />
+                        <Bell className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabPreferences")}</span>
                       </button>
 
@@ -1739,9 +2058,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("about");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Info className="h-3.5 w-3.5 text-indigo-600" />
+                        <Info className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabAbout")}</span>
                       </button>
 
@@ -1772,10 +2091,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-gradient-to-r from-pink-50 to-blue-50 hover:from-pink-100 hover:to-blue-100 text-stone-800 border border-pink-200/70 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-blue-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
                 title="Profile & Settings"
               >
-                <UserCog className="h-4 w-4 text-pink-600" />
+                <UserCog className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </button>
 
               {/* Desktop Dropdown Menu */}
@@ -1790,17 +2109,19 @@ export default function App() {
                       initial={{ opacity: 0, scale: 0.95, y: -5 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                      className="absolute right-0 top-11 z-50 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
+                      className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
                     >
-                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-100 mb-1">
-                        <p className="font-bold text-stone-800 text-xs truncate">{userSession.name}</p>
-                        <p className="text-[10px] text-stone-500 font-mono truncate">@{userSession.username}</p>
+                      <div className="p-2.5 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-100 dark:border-stone-700 mb-1">
+                        <p className="font-bold text-stone-800 dark:text-stone-100 text-xs truncate">{userSession.name}</p>
+                        <p className="text-[10px] text-stone-500 dark:text-stone-400 font-mono truncate">@{userSession.username}</p>
                         <span className={`inline-block text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded border ${
                           userSession.role === "student"
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800"
+                            : userSession.role === "landlord"
+                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                            : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
                         }`}>
-                          {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
+                          {userSession.role === "student" ? t("studentAccount") : userSession.role === "landlord" ? t("landlordAccount") : "System Admin 🛡️"}
                         </span>
                       </div>
 
@@ -1810,9 +2131,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("profile");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <User className="h-3.5 w-3.5 text-indigo-600" />
+                        <User className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabProfileInfo")}</span>
                       </button>
 
@@ -1822,9 +2143,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("settings");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Lock className="h-3.5 w-3.5 text-indigo-600" />
+                        <Lock className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabSecurity")}</span>
                       </button>
 
@@ -1834,9 +2155,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("notifications");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Bell className="h-3.5 w-3.5 text-indigo-600" />
+                        <Bell className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabPreferences")}</span>
                       </button>
 
@@ -1846,9 +2167,9 @@ export default function App() {
                           setShowUserMenu(false);
                           handleOpenProfileTab("about");
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        <Info className="h-3.5 w-3.5 text-indigo-600" />
+                        <Info className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
                         <span>{t("tabAbout")}</span>
                       </button>
 
@@ -1898,15 +2219,15 @@ export default function App() {
         
         {/* Search Panel - Only visible for Students */}
         {userSession.role === "student" && (
-          <div className="bg-white rounded-2xl border border-pink-100 p-3 sm:p-5 shadow-sm shadow-pink-500/5 space-y-3 sm:space-y-4 transition-all">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-pink-100 dark:border-stone-800 p-3 sm:p-5 shadow-sm shadow-pink-500/5 space-y-3 sm:space-y-4 transition-all">
             {/* Header / Mobile Toggle Bar */}
-            <div className="flex items-center justify-between gap-2 border-b border-pink-50 pb-2.5 sm:pb-3">
+            <div className="flex items-center justify-between gap-2 border-b border-pink-50 dark:border-stone-800 pb-2.5 sm:pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
-                  <SlidersHorizontal className="h-4 w-4 text-pink-600" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-200 flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                   <span>{prefLanguage === "tagalog" ? "Maghanap at I-filter" : "Search & Filter"}</span>
                 </h3>
-                <span className="text-[10px] bg-gradient-to-r from-pink-50 to-blue-50 text-pink-700 border border-pink-200/80 font-bold px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 text-pink-700 dark:text-pink-300 border border-pink-200/80 dark:border-stone-700 font-bold px-2 py-0.5 rounded-full">
                   {processedProperties.length} {processedProperties.length === 1 ? (prefLanguage === "tagalog" ? "Tuluyan" : "House") : (prefLanguage === "tagalog" ? "Mga Tuluyan" : "Houses")}
                 </span>
               </div>
@@ -1916,7 +2237,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="text-stone-400 hover:text-red-600 text-[10px] sm:text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                    className="text-stone-400 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400 text-[10px] sm:text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <X className="h-3 w-3" />
                     <span className="hidden xs:inline">{t("resetFilters")}</span>
@@ -1927,7 +2248,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsMobileSearchExpanded(!isMobileSearchExpanded)}
-                  className="sm:hidden bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-stone-200 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="sm:hidden bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-700 flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <span>{isMobileSearchExpanded ? t("collapse") : t("filterOptions")}</span>
                   {isMobileSearchExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -1943,14 +2264,14 @@ export default function App() {
                   value={boardingHouseSearchQuery}
                   onChange={(e) => setBoardingHouseSearchQuery(e.target.value)}
                   placeholder={t("searchPlaceholder")}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-2 text-[11px] text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white shadow-2xs"
+                  className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl pl-8 pr-8 py-2 text-[11px] text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 shadow-2xs"
                 />
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                 {boardingHouseSearchQuery && (
                   <button
                     type="button"
                     onClick={() => setBoardingHouseSearchQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5 rounded-full"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-0.5 rounded-full"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1964,9 +2285,9 @@ export default function App() {
             }`}>
               {/* 1. Boarding House Search Bar (Typing) */}
               <div className="col-span-2 sm:col-span-2 lg:col-span-2 flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Home className="h-3 w-3 text-indigo-600" />
+                    <Home className="h-3 w-3 text-pink-600 dark:text-pink-400" />
                     {prefLanguage === "tagalog" ? "Pangalan ng Tuluyan" : "Boarding House Search"}
                   </span>
                   <span className="text-[9px] text-stone-400 font-normal">{prefLanguage === "tagalog" ? "I-type ang pangalan" : "Type house name"}</span>
@@ -1977,14 +2298,14 @@ export default function App() {
                     value={boardingHouseSearchQuery}
                     onChange={(e) => setBoardingHouseSearchQuery(e.target.value)}
                     placeholder={t("searchPlaceholder")}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
+                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 transition-all shadow-2xs"
                   />
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                   {boardingHouseSearchQuery && (
                     <button
                       type="button"
                       onClick={() => setBoardingHouseSearchQuery("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-0.5"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -1994,9 +2315,9 @@ export default function App() {
 
               {/* 2. Barangay Search Bar (Typing) */}
               <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-indigo-600" />
+                    <MapPin className="h-3 w-3 text-pink-600 dark:text-pink-400" />
                     {t("filterBarangay")}
                   </span>
                 </label>
@@ -2010,7 +2331,7 @@ export default function App() {
                       setBarangayInput(e.target.value);
                     }}
                     placeholder={prefLanguage === "tagalog" ? "Mag-type ng barangay..." : "Type barangay..."}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-all shadow-2xs"
+                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl pl-8 pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 transition-all shadow-2xs"
                   />
                   <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                   {barangaySearchQuery && (
@@ -2021,7 +2342,7 @@ export default function App() {
                         setBarangayInput("All");
                         setActiveBarangay("All");
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-0.5"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -2037,13 +2358,13 @@ export default function App() {
 
               {/* 3. Property Type Selector */}
               <div className="col-span-1 flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 truncate">
                   {t("filterType")}
                 </label>
                 <select
                   value={typeInput}
                   onChange={(e) => setTypeInput(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
+                  className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 cursor-pointer shadow-2xs truncate"
                 >
                   <option value="All">{t("allTypes")}</option>
                   <option value="Boarding House">{t("typeBoardingHouse")}</option>
@@ -2054,13 +2375,13 @@ export default function App() {
 
               {/* 4. Amenities / Gender Filter */}
               <div className="col-span-1 flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 truncate">
                   {prefLanguage === "tagalog" ? "Uri ng Kasarian" : "Gender Type"}
                 </label>
                 <select
                   value={amenityGenderInput}
                   onChange={(e) => setAmenityGenderInput(e.target.value as "All" | "Both" | "Girls Only" | "Boys Only")}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer shadow-2xs truncate"
+                  className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 cursor-pointer shadow-2xs truncate"
                 >
                   <option value="All">{prefLanguage === "tagalog" ? "Lahat" : "All Types"}</option>
                   <option value="Girls Only">{prefLanguage === "tagalog" ? "Pang-babae 👧" : "Girls Only 👧"}</option>
@@ -2071,13 +2392,13 @@ export default function App() {
 
               {/* 5. Max Price & Filter Button */}
               <div className="col-span-2 sm:col-span-1 flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                   {t("filterBudget")}
                 </label>
                 <select
                   value={priceInput}
                   onChange={(e) => setPriceInput(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white cursor-pointer font-mono shadow-2xs"
+                  className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-stone-900 cursor-pointer font-mono shadow-2xs"
                 >
                   <option value="All">{prefLanguage === "tagalog" ? "Kahit Anong Presyo" : "Any Price"}</option>
                   <option value="under1500">{prefLanguage === "tagalog" ? "Mababa sa ₱1,500" : "Under ₱1,500"}</option>
@@ -2093,8 +2414,8 @@ export default function App() {
             <div className={`flex items-center justify-between pt-1 gap-2 ${
               isMobileSearchExpanded ? "flex" : "hidden sm:flex"
             }`}>
-              <span className="text-[10px] sm:text-[11px] text-stone-500 font-medium">
-                {t("showingResults")} <strong className="text-indigo-600 font-bold">{processedProperties.length}</strong> {processedProperties.length === 1 ? t("boardingHouse") : t("boardingHouses")}
+              <span className="text-[10px] sm:text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+                {t("showingResults")} <strong className="text-pink-600 dark:text-pink-400 font-bold">{processedProperties.length}</strong> {processedProperties.length === 1 ? t("boardingHouse") : t("boardingHouses")}
               </span>
 
               <button
@@ -2108,6 +2429,140 @@ export default function App() {
             </div>
           </div>
         )}
+
+          {/* Admin Moderation Bar */}
+          {userSession?.role === "admin" && (
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-orange-500/10 border-2 border-amber-400 dark:border-amber-600/80 rounded-2xl p-4 mb-5 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-amber-500 text-stone-900 rounded-xl text-lg font-bold shadow-xs shrink-0">👑</span>
+                  <div>
+                    <h3 className="font-display font-extrabold text-stone-900 dark:text-stone-100 text-sm sm:text-base leading-snug">
+                      Admin Moderation Dashboard
+                    </h3>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-300 font-medium">
+                      Manage landlord posts. Unapproved landlord posts are strictly hidden from students and guests until approved.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 border-t border-amber-200/60 dark:border-amber-800/60 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => setAdminTabFilter("pending")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    adminTabFilter === "pending"
+                      ? "bg-amber-500 text-stone-950 shadow-md ring-2 ring-amber-400"
+                      : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-100 border border-amber-200 dark:border-stone-700"
+                  }`}
+                >
+                  <span>⏳ Pending Approval</span>
+                  <span className="px-1.5 py-0.5 bg-amber-900 text-white rounded-full text-[10px]">
+                    {propertiesList.filter(p => p.approvalStatus === "pending").length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminTabFilter("approved")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    adminTabFilter === "approved"
+                      ? "bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400"
+                      : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-100 border border-stone-200 dark:border-stone-700"
+                  }`}
+                >
+                  <span>✅ Approved Public Listings</span>
+                  <span className="px-1.5 py-0.5 bg-emerald-950 text-white rounded-full text-[10px]">
+                    {propertiesList.filter(p => p.approvalStatus === "approved" || !p.approvalStatus).length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminTabFilter("rejected")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    adminTabFilter === "rejected"
+                      ? "bg-red-600 text-white shadow-md ring-2 ring-red-400"
+                      : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-100 border border-stone-200 dark:border-stone-700"
+                  }`}
+                >
+                  <span>❌ Rejected Listings</span>
+                  <span className="px-1.5 py-0.5 bg-red-950 text-white rounded-full text-[10px]">
+                    {propertiesList.filter(p => p.approvalStatus === "rejected").length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminTabFilter("all")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    adminTabFilter === "all"
+                      ? "bg-stone-800 text-white shadow-md"
+                      : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-100 border border-stone-200 dark:border-stone-700"
+                  }`}
+                >
+                  <span>📂 All Properties</span>
+                  <span className="px-1.5 py-0.5 bg-stone-900 text-white rounded-full text-[10px]">
+                    {propertiesList.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Landlord View Navigation Bar */}
+          {userSession?.role === "landlord" && (
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-stone-900 text-white rounded-2xl p-3.5 sm:p-4 mb-5 border border-indigo-700/50 shadow-md space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl text-lg font-bold border border-indigo-400/30 shrink-0">
+                    🏠
+                  </div>
+                  <div>
+                    <h3 className="font-display font-extrabold text-white text-xs sm:text-sm">
+                      {prefLanguage === "tagalog" ? "Landlord Management Dashboard" : "Landlord Management Dashboard"}
+                    </h3>
+                    <p className="text-[10px] sm:text-[11px] text-stone-300">
+                      {prefLanguage === "tagalog"
+                        ? "Ang iyong mga ipinost na tuluyan ay lalabas muna bilang 'Pending' (Kulay Grey) sa iyong Sariling Page hangga't 'di pa inaaprubahan ng Admin."
+                        : "Your newly posted listings appear as 'Pending' (Greyed out) on your personal page until approved by an Admin."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Switcher Buttons */}
+                <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-indigo-800/80 pt-2 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowLandlordPendingOnly(false)}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                      !showLandlordPendingOnly
+                        ? "bg-pink-600 text-white border-pink-400 shadow-sm font-extrabold"
+                        : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                    }`}
+                  >
+                    <span>🌐 Public Search Feed</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLandlordPendingOnly(true)}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                      showLandlordPendingOnly
+                        ? "bg-amber-500 text-stone-950 border-amber-300 shadow-sm font-extrabold"
+                        : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                    }`}
+                  >
+                    <span>🏠 My Personal Page</span>
+                    <span className="px-1.5 py-0.2 bg-stone-950/40 rounded-full text-[10px] font-mono">
+                      {propertiesList.filter(p => p.landlordUsername === userSession.username || p.landlordEmail === userSession.username).length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Property Cards Grid */}
           {processedProperties.length === 0 ? (
@@ -2138,7 +2593,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-[11px] text-indigo-700 font-medium leading-relaxed">
-                      💡 <strong>{prefLanguage === "tagalog" ? "Paalala sa Estudyante:" : "Student Note:"}</strong> {prefLanguage === "tagalog" ? "Maaaring sabihan ang inyong landlords sa Gumaca na mag-post ng kanilang tuluyan dito!" : "Please inform your landlords or homeowners in Gumaca to post their listings here so the student community can find them!"}
+                      💡 <strong>{prefLanguage === "tagalog" ? "Paalala sa Tenant:" : "Tenant Note:"}</strong> {prefLanguage === "tagalog" ? "Maaaring sabihan ang inyong landlords sa Gumaca na mag-post ng kanilang tuluyan dito!" : "Please inform your landlords or homeowners in Gumaca to post their listings here so the tenant community can find them!"}
                     </div>
                   )}
                 </div>
@@ -2168,27 +2623,24 @@ export default function App() {
                   {t("showingResults")} {processedProperties.length} {processedProperties.length === 1 ? t("boardingHouse") : t("boardingHouses")}
                 </span>
               </div>
-              <motion.div
-                layout
-                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6"
-              >
-                <AnimatePresence mode="popLayout">
-                  {processedProperties.map((property) => (
-                    <PropertyCard
-                      key={property.id}
-                      property={property}
-                      onSelect={() => {
-                        setSelectedProperty(property);
-                        setDetailModalProperty(property);
-                      }}
-                      onViewLandlordProfile={(prop) => setLandlordProfileProperty(prop)}
-                      onViewOnMap={handleViewOnMap}
-                      currentUserRole={userSession?.role}
-                      language={prefLanguage}
-                    />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6">
+                {processedProperties.map((property) => (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    onSelect={() => {
+                      setSelectedProperty(property);
+                      setDetailModalProperty(property);
+                    }}
+                    onApprove={(p) => handleApproveProperty(p.id)}
+                    onReject={(p) => handleRejectProperty(p.id)}
+                    onViewLandlordProfile={(prop) => setLandlordProfileProperty(prop)}
+                    onViewOnMap={handleViewOnMap}
+                    currentUserRole={userSession?.role}
+                    language={prefLanguage}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
@@ -2200,6 +2652,566 @@ export default function App() {
         onClose={() => setShowAboutModal(false)}
         prefLanguage={prefLanguage}
       />
+
+      {/* Welcome / Onboarding Setup Multi-Slide Modal after Login or Signup */}
+      <AnimatePresence>
+        {showOnboardingModal && userSession && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/80 backdrop-blur-md overflow-y-auto">
+            {/* Backdrop (non-clickable so setup cannot be bypassed) */}
+            <div className="absolute inset-0" />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-xl bg-white dark:bg-stone-900 rounded-3xl overflow-hidden shadow-2xl border border-stone-200 dark:border-stone-800 z-10 my-auto flex flex-col text-stone-800 dark:text-stone-100"
+            >
+              {/* Modal Top Hero Header Banner */}
+              <div className="bg-gradient-to-r from-stone-900 via-pink-950/95 to-indigo-950 p-6 sm:p-7 text-white relative overflow-hidden shrink-0 border-b border-white/10">
+                {/* Glowing Ambient Background Orbs */}
+                <div className="absolute -top-16 -left-16 w-40 h-40 bg-pink-500/30 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -right-16 w-40 h-40 bg-indigo-500/30 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Top Row: Step Badge */}
+                <div className="flex items-center justify-between relative z-10 mb-4">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold tracking-wide text-pink-200 border border-white/15">
+                    <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse" />
+                    <span>
+                      {prefLanguage === "tagalog"
+                        ? `CasaFinder Guide • Hakbang ${onboardingSlide + 1} sa 4`
+                        : `CasaFinder Guide • Step ${onboardingSlide + 1} of 4`
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hero Icon & Title Header */}
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="relative shrink-0">
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-indigo-600 p-0.5 shadow-xl shadow-pink-500/20">
+                      <div className="w-full h-full rounded-[14px] bg-stone-900/90 backdrop-blur-md flex items-center justify-center text-3xl">
+                        {userSession.role === "student" ? "🎓" : "🏠"}
+                      </div>
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full text-[10px] shadow-xs border-2 border-stone-900">
+                      ✨
+                    </span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display font-black text-lg sm:text-xl md:text-2xl tracking-tight text-white drop-shadow-sm leading-snug">
+                      {onboardingSlide === 0 && (
+                        prefLanguage === "tagalog"
+                          ? (userSession.role === "student" ? "Maligayang Pagdating, Tenant!" : "Maligayang Pagdating, Landlord!")
+                          : (userSession.role === "student" ? "Welcome, Tenant!" : "Welcome, Landlord!")
+                      )}
+                      {onboardingSlide === 1 && (prefLanguage === "tagalog" ? "Tampok na Kasangkapan" : "Platform Features & Tools")}
+                      {onboardingSlide === 2 && (prefLanguage === "tagalog" ? "Setup ng Profile at Contact" : "Profile & Contact Setup")}
+                      {onboardingSlide === 3 && (prefLanguage === "tagalog" ? "Handa Na Mag-Explore!" : "Ready to Explore!")}
+                    </h3>
+                    <p className="text-xs text-stone-300 font-medium mt-0.5 truncate">
+                      {userSession.name} (@{userSession.username}) • Gumaca Housing Directory
+                    </p>
+                  </div>
+                </div>
+
+                {/* Animated Step Progress Bar */}
+                <div className="mt-5 relative z-10">
+                  <div className="flex justify-between text-[10px] font-bold text-stone-300 mb-1.5 uppercase tracking-wider">
+                    <span>{prefLanguage === "tagalog" ? "Progreso" : "Progress"}</span>
+                    <span>{((onboardingSlide + 1) * 25)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-pink-500 via-rose-400 to-indigo-500 rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${(onboardingSlide + 1) * 25}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Body Content */}
+              <div className="p-5 sm:p-6 bg-stone-50/60 dark:bg-stone-900/60 flex-1 overflow-y-auto max-h-[62vh]">
+                <AnimatePresence mode="wait">
+                  {/* SLIDE 0: Hero Welcome Card */}
+                  {onboardingSlide === 0 && (
+                    <motion.div
+                      key="slide0"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-4"
+                    >
+                      {/* Greeting Card with Modern Glass Gradient */}
+                      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-pink-50 via-purple-50/60 to-indigo-50 dark:from-stone-800 dark:via-pink-950/30 dark:to-stone-800 border border-pink-200/80 dark:border-stone-700 space-y-3 relative overflow-hidden shadow-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 bg-pink-600 text-white rounded-xl text-xs font-bold shadow-xs">🏠</span>
+                          <div>
+                            <h4 className="font-bold text-stone-900 dark:text-stone-100 text-xs sm:text-sm">
+                              {prefLanguage === "tagalog" ? "CasaFinder Housing Portal Gumaca" : "CasaFinder Gumaca Housing Directory"}
+                            </h4>
+                            <p className="text-[10px] text-pink-600 dark:text-pink-400 font-semibold">
+                              {userSession.role === "student" ? "🎓 Registered Tenant Account" : "🏠 Verified Landlord Account"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed font-normal">
+                          {userSession.role === "student"
+                            ? (prefLanguage === "tagalog"
+                                ? "Subaybayan at maghanap ng pinakabagong boarding house, apartment, at dorm sa bayan ng Gumaca. May kasama itong live interactive barangay map, tricycle fare calculator, at roommate budget splitter."
+                                : "Discover and connect with verified boarding houses, apartments, and dormitories in Gumaca, Quezon. Built-in with an interactive map, tricycle fare calculator, and roommate split tool.")
+                            : (prefLanguage === "tagalog"
+                                ? "I-post at pamahalaan ang inyong mga papaupahang silid para sa mga estudyante ng SLSU Gumaca, EQC, at mga manggagawa sa bayan. Libreng mag-upload ng mga larawan at permits."
+                                : "List and manage your rental spaces for SLSU students, workers, and local tenants in Gumaca. Easily upload photos, terms, and Mayor's Permit verification.")
+                          }
+                        </p>
+                      </div>
+
+                      {/* 3 Quick Feature Highlight Badges */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div className="p-3 rounded-xl bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 space-y-1 shadow-2xs">
+                          <span className="text-base block">🏢</span>
+                          <p className="font-bold text-stone-900 dark:text-stone-100 text-[11px]">
+                            {prefLanguage === "tagalog" ? "100% Rehistrado" : "Verified Listings"}
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-stone-400 font-light">
+                            {prefLanguage === "tagalog" ? "Lahat ng uri ng tuluyan sa bayan" : "Comprehensive housing catalogue"}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 space-y-1 shadow-2xs">
+                          <span className="text-base block">🗺️</span>
+                          <p className="font-bold text-stone-900 dark:text-stone-100 text-[11px]">
+                            {prefLanguage === "tagalog" ? "Barangay Map" : "Interactive Map"}
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-stone-400 font-light">
+                            {prefLanguage === "tagalog" ? "Plotted sa Tabing Dagat & Mabini" : "Pinpoint locations near campuses"}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 space-y-1 shadow-2xs">
+                          <span className="text-base block">🚕</span>
+                          <p className="font-bold text-stone-900 dark:text-stone-100 text-[11px]">
+                            {prefLanguage === "tagalog" ? "Fare & Splitter" : "Fare & Utilities"}
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-stone-400 font-light">
+                            {prefLanguage === "tagalog" ? "Kalkulado ang pamasahe sa trike" : "Local tricycle fare calculator"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Navigation */}
+                      <div className="pt-2 flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(1)}
+                          className="w-full py-3 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-lg shadow-pink-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>{prefLanguage === "tagalog" ? "Magsimula / Tingnan ang Tampok ➡️" : "Start / Explore Features ➡️"}</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* SLIDE 1: Interactive Features Overview */}
+                  {onboardingSlide === 1 && (
+                    <motion.div
+                      key="slide1"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-2 sm:space-y-4"
+                    >
+                      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-1.5 sm:pb-2">
+                        <h4 className="font-bold text-stone-900 dark:text-stone-100 text-[11px] sm:text-sm uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="p-1 bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-md">💡</span>
+                          {prefLanguage === "tagalog" ? "Ano ang Magagawa Mo sa CasaFinder?" : "What You Can Do on CasaFinder"}
+                        </h4>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60 px-1.5 py-0.5 rounded-full border border-pink-200/50 dark:border-pink-800">
+                          {userSession.role === "student" ? "Tenant Mode" : "Landlord Mode"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
+                        {userSession.role === "student" ? (
+                          <>
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-pink-300 dark:hover:border-pink-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-pink-50 dark:bg-pink-950/80 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                🔍
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Filter sa Badyet" : "Filter by Budget"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Boarding house & apartment." : "Search by room type & price."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                🚕
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Trike Fare Calc" : "Tricycle Fare Calc"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Pamasahe papuntang SLSU." : "Trike fare to campus."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-50 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                💰
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Rent Splitter" : "Rent Splitter"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Hatian sa kuryente at upa." : "Split rent & utilities."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                💬
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Direct Contact" : "Direct Call & FB"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Mabilisang tawag sa landlord." : "Contact verified landlords."}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                📢
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Post Listing" : "Post Vacant Rooms"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Mag-upload ng larawan." : "Upload real room photos."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                🛡️
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Permit Badge" : "Mayor's Permit"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Verified landlord badge." : "Earn verified badge."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-amber-300 dark:hover:border-amber-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                📱
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Inquiries" : "Tenant Leads"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "Tanggapin ang tawag." : "Direct calls from tenants."}
+                              </p>
+                            </div>
+
+                            <div className="p-2 sm:p-3.5 bg-white dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700/80 rounded-xl sm:rounded-2xl space-y-1 shadow-2xs hover:border-pink-300 dark:hover:border-pink-700 transition-colors">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-pink-50 dark:bg-pink-950/80 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-xs sm:text-sm">
+                                🗺️
+                              </div>
+                              <h5 className="font-bold text-stone-900 dark:text-stone-100 text-[10px] sm:text-xs leading-tight">{prefLanguage === "tagalog" ? "Town Map" : "Pinpoint Location"}</h5>
+                              <p className="text-[9px] sm:text-[11px] text-stone-500 dark:text-stone-400 leading-tight font-light">
+                                {prefLanguage === "tagalog" ? "I-plot sa Gumaca map." : "Plot location on map."}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="pt-1 sm:pt-2 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(0)}
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          {prefLanguage === "tagalog" ? "⬅️ Bumalik" : "⬅️ Back"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(2)}
+                          className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
+                        >
+                          <span>{prefLanguage === "tagalog" ? "I-set up ang Profile ➡️" : "Set Up Profile ➡️"}</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* SLIDE 2: Profile & Contact Quick Setup */}
+                  {onboardingSlide === 2 && (
+                    <motion.div
+                      key="slide2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-2 sm:space-y-3.5"
+                    >
+                      <div className="border-b border-stone-200 dark:border-stone-800 pb-1 sm:pb-2">
+                        <h4 className="font-bold text-stone-900 dark:text-stone-100 text-[11px] sm:text-sm uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="p-1 bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-md">👤</span>
+                          {prefLanguage === "tagalog" ? "Setup ng Profile at Impormasyon" : "Profile & Contact Setup"}
+                        </h4>
+                      </div>
+
+                      {/* Interactive Profile Photo Upload Card */}
+                      <div className="p-2.5 sm:p-4 bg-gradient-to-r from-stone-50 via-pink-50/60 to-stone-50 dark:from-stone-800 dark:via-pink-950/20 dark:to-stone-800 text-stone-800 dark:text-stone-100 rounded-xl sm:rounded-2xl flex items-center gap-3 sm:gap-4 shadow-xs border border-stone-200/80 dark:border-stone-700 relative overflow-hidden">
+                        {/* Avatar Halo Frame */}
+                        <div className="relative group shrink-0 z-10">
+                          <label className="cursor-pointer block relative">
+                            <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full p-0.5 bg-gradient-to-tr from-pink-500 via-rose-400 to-amber-300 shadow-md shadow-pink-500/20 group-hover:scale-105 transition-all">
+                              <div className="w-full h-full rounded-full bg-white dark:bg-stone-900 overflow-hidden flex items-center justify-center border border-white dark:border-stone-800 relative">
+                                {onboardingAvatar && (onboardingAvatar.startsWith("data:image/") || onboardingAvatar.startsWith("http")) ? (
+                                  <img src={onboardingAvatar} alt="Profile Preview" className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span className="text-lg sm:text-2xl">{onboardingAvatar || (userSession.role === "student" ? "🎓" : "🏠")}</span>
+                                )}
+                              </div>
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 5 * 1024 * 1024) {
+                                  alert(prefLanguage === "tagalog" ? "Masyadong malaki ang larawan. Pumili ng mas mababa sa 5MB." : "Image too large. Select under 5MB.");
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                  if (evt.target?.result) setOnboardingAvatar(evt.target.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Upload Controls */}
+                        <div className="flex-1 space-y-0.5 sm:space-y-1 min-w-0 z-10">
+                          <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400 flex items-center gap-1">
+                            <Camera className="h-3 w-3 text-pink-500" />
+                            {prefLanguage === "tagalog" ? "Larawan sa Profile" : "Profile Picture"}
+                          </label>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <label className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold shadow-xs transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95">
+                              <Upload className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              <span>{prefLanguage === "tagalog" ? "Mag-upload" : "Upload Photo"}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  if (file.size > 5 * 1024 * 1024) {
+                                    alert(prefLanguage === "tagalog" ? "Masyadong malaki ang larawan. Pumili ng mas mababa sa 5MB." : "Image too large. Select under 5MB.");
+                                    return;
+                                  }
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) => {
+                                    if (evt.target?.result) setOnboardingAvatar(evt.target.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }}
+                              />
+                            </label>
+
+                            {onboardingAvatar && (onboardingAvatar.startsWith("data:image/") || onboardingAvatar.startsWith("http")) && (
+                              <button
+                                type="button"
+                                onClick={() => setOnboardingAvatar(userSession.role === "student" ? "🎓" : "🏠")}
+                                className="px-2 py-1 text-[10px] sm:text-xs text-stone-600 dark:text-stone-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg sm:rounded-xl font-bold border border-stone-200 dark:border-stone-700 transition-colors"
+                              >
+                                {prefLanguage === "tagalog" ? "Alisin" : "Remove"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Inputs Grid on Mobile (2 columns) */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Full Name */}
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                            <User className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-pink-500" />
+                            {prefLanguage === "tagalog" ? "Pangalan" : "Name"}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={userSession.role === "student" ? "Maria Santos" : "Aling Nena"}
+                            value={onboardingName}
+                            onChange={(e) => setOnboardingName(e.target.value)}
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/20 rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-sm text-stone-800 dark:text-stone-100 focus:outline-hidden font-medium"
+                          />
+                        </div>
+
+                        {/* Phone / Mobile Number */}
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                            <Phone className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-pink-500" />
+                            {prefLanguage === "tagalog" ? "Telepono" : "Phone"}
+                          </label>
+                          <input
+                            type="tel"
+                            placeholder="09171234567"
+                            value={onboardingMobile}
+                            onChange={(e) => setOnboardingMobile(e.target.value)}
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/20 rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-mono"
+                          />
+                        </div>
+
+                        {/* Barangay / Address */}
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                            <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-pink-500" />
+                            {prefLanguage === "tagalog" ? "Barangay" : "Barangay"}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Brgy. Mabini"
+                            value={onboardingAddress}
+                            onChange={(e) => setOnboardingAddress(e.target.value)}
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/20 rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium"
+                          />
+                        </div>
+
+                        {/* School / Workplace */}
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                            <GraduationCap className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-pink-500" />
+                            {prefLanguage === "tagalog" ? "Paaralan / Work" : "School / Work"}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="SLSU Gumaca"
+                            value={onboardingSchool}
+                            onChange={(e) => setOnboardingSchool(e.target.value)}
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/20 rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-sm text-stone-800 dark:text-stone-100 font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                          <FileText className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-pink-500" />
+                          {prefLanguage === "tagalog" ? "Maikling Bio" : "Short Bio"}
+                        </label>
+                        <textarea
+                          rows={1}
+                          placeholder={
+                            userSession.role === "student"
+                              ? (prefLanguage === "tagalog" ? "e.g. SLSU Student..." : "e.g. SLSU Student...")
+                              : (prefLanguage === "tagalog" ? "e.g. Nagpapaupa sa Brgy. Mabini..." : "e.g. Renting rooms...")
+                          }
+                          value={onboardingBio}
+                          onChange={(e) => setOnboardingBio(e.target.value)}
+                          className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/20 rounded-lg sm:rounded-xl px-2 py-1 sm:p-2.5 text-[11px] sm:text-xs text-stone-800 dark:text-stone-100 font-medium resize-none"
+                        />
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="pt-1 sm:pt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(1)}
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          {prefLanguage === "tagalog" ? "⬅️ Bumalik" : "⬅️ Back"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(3)}
+                          className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
+                        >
+                          <span>{prefLanguage === "tagalog" ? "Susunod ➡️" : "Next ➡️"}</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* SLIDE 3: Features Tour & Finish */}
+                  {onboardingSlide === 3 && (
+                    <motion.div
+                      key="slide3"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-2.5 sm:space-y-4"
+                    >
+                      <div className="text-center space-y-1 sm:space-y-2 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 dark:from-stone-800 dark:via-pink-950/30 dark:to-stone-800 border border-pink-200/80 dark:border-stone-700 p-3 sm:p-5 rounded-2xl shadow-xs">
+                        <div className="text-2xl sm:text-4xl animate-bounce">🎉</div>
+                        <h4 className="font-extrabold text-stone-900 dark:text-stone-100 text-xs sm:text-base">
+                          {prefLanguage === "tagalog" ? "Handa ka nang mag-explore sa CasaFinder!" : "You're all set to explore CasaFinder!"}
+                        </h4>
+                        <p className="text-[10px] sm:text-xs text-stone-600 dark:text-stone-300 max-w-xs mx-auto font-medium">
+                          {prefLanguage === "tagalog"
+                            ? "I-save ang iyong impormasyon para tuluyan nang ma-enjoy ang mga tampok na kasangkapan."
+                            : "Save your details to complete setup and start exploring."
+                          }
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-left">
+                        <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-2 sm:p-3 rounded-xl text-[10px] sm:text-xs space-y-0.5 shadow-2xs">
+                          <span className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1">📋 Listings</span>
+                          <p className="text-[9px] sm:text-[10px] text-stone-500 dark:text-stone-400">{prefLanguage === "tagalog" ? "Lahat ng tuluyan" : "Complete catalogue"}</p>
+                        </div>
+                        <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-2 sm:p-3 rounded-xl text-[10px] sm:text-xs space-y-0.5 shadow-2xs">
+                          <span className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1">🗺️ Map</span>
+                          <p className="text-[9px] sm:text-[10px] text-stone-500 dark:text-stone-400">{prefLanguage === "tagalog" ? "Plotted sa Gumaca" : "Plotted map"}</p>
+                        </div>
+                        <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-2 sm:p-3 rounded-xl text-[10px] sm:text-xs space-y-0.5 shadow-2xs">
+                          <span className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1">🚕 Fare Calc</span>
+                          <p className="text-[9px] sm:text-[10px] text-stone-500 dark:text-stone-400">{prefLanguage === "tagalog" ? "Pamasahe sa trike" : "Trike estimates"}</p>
+                        </div>
+                        <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-2 sm:p-3 rounded-xl text-[10px] sm:text-xs space-y-0.5 shadow-2xs">
+                          <span className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1">💰 Splitter</span>
+                          <p className="text-[9px] sm:text-[10px] text-stone-500 dark:text-stone-400">{prefLanguage === "tagalog" ? "Hatiang badyet" : "Rent sharing"}</p>
+                        </div>
+                      </div>
+
+                      {/* Final Submit / Finish Button */}
+                      <form onSubmit={handleSaveOnboarding} className="pt-1 sm:pt-2 flex items-center justify-between gap-2 sm:gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingSlide(2)}
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          {prefLanguage === "tagalog" ? "⬅️ Bumalik" : "⬅️ Back"}
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-pink-500/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer ml-auto"
+                        >
+                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span>{prefLanguage === "tagalog" ? "I-save & Magsimula Na 🎉" : "Save & Start Exploring 🎉"}</span>
+                        </button>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Pop-up detail modal */}
       <AnimatePresence>
@@ -2429,12 +3441,6 @@ export default function App() {
                       onChange={e => {
                         const brgy = e.target.value;
                         setNewNeighborhood(brgy);
-                        // Only auto-center pin to new barangay if user has not set a custom pinpoint on the map
-                        if (!isPinCustomized) {
-                          const coords = getNeighborhoodDefaultLatLng(brgy);
-                          setNewCustomLat(coords[0]);
-                          setNewCustomLng(coords[1]);
-                        }
                       }}
                       className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-hidden focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white cursor-pointer"
                     >
@@ -2472,6 +3478,7 @@ export default function App() {
                     setIsPinCustomized(true);
                   }}
                   neighborhood={newNeighborhood}
+                  language={prefLanguage}
                 />
 
                 {/* Gender Accommodation Selection */}
@@ -2701,7 +3708,7 @@ export default function App() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="font-display font-bold text-stone-900 text-sm sm:text-base md:text-lg leading-snug truncate">
-                    {prefLanguage === "tagalog" ? "Mapa ng mga Tuluyan sa Gumaca 🗺️" : "Gumaca Student Housing Campus Map 🗺️"}
+                    {prefLanguage === "tagalog" ? "Mapa ng mga Tuluyan sa Gumaca 🗺️" : "Gumaca Housing & Dormitory Map 🗺️"}
                   </h2>
                   <p className="text-[10px] text-stone-400 font-light mt-0.5 hidden xs:block truncate">
                     {prefLanguage === "tagalog" ? "Hanapin sa mapa ang mga boarding house malapit sa SLSU Gumaca Campus & Eastern Quezon College" : "Visually locate boarding rooms and apartments near SLSU Gumaca Campus & Eastern Quezon College"}
@@ -2844,12 +3851,16 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full overflow-hidden my-auto max-h-[88vh] flex flex-col"
+              className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-2xl max-w-md w-full overflow-hidden my-auto max-h-[88vh] flex flex-col text-stone-800 dark:text-stone-100"
             >
               {/* Modal Header */}
-              <div className="bg-stone-900 text-white p-3.5 sm:p-4 relative flex items-center gap-3 shrink-0">
-                <div className="h-10 w-10 bg-gradient-to-tr from-pink-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-pink-500/20 shrink-0">
-                  {userSession.role === "student" ? "🎓" : "🏠"}
+              <div className="bg-stone-900 dark:bg-stone-950 text-white p-3.5 sm:p-4 relative flex items-center gap-3 shrink-0 border-b border-stone-800">
+                <div className="h-10 w-10 bg-gradient-to-tr from-pink-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-pink-500/20 shrink-0 overflow-hidden">
+                  {userSession.avatar && (userSession.avatar.startsWith("data:image/") || userSession.avatar.startsWith("http")) ? (
+                    <img src={userSession.avatar} alt={userSession.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    userSession.avatar || (userSession.role === "student" ? "🎓" : "🏠")
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -2878,54 +3889,54 @@ export default function App() {
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-stone-200 bg-stone-50/80 px-3 pt-2 gap-1 overflow-x-auto shrink-0">
+              <div className="flex border-b border-stone-200 dark:border-stone-800 bg-stone-100/90 dark:bg-stone-900 px-3 pt-2 gap-1.5 overflow-x-auto shrink-0">
                 <button
                   type="button"
                   onClick={() => setProfileTab("profile")}
-                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                     profileTab === "profile"
-                      ? "border-pink-500 text-pink-600"
-                      : "border-transparent text-stone-500 hover:text-stone-800"
+                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
+                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
                   }`}
                 >
-                  <User className="h-3 w-3" />
-                  <span>{t("tabProfileInfo")}</span>
+                  <User className={`h-3.5 w-3.5 ${profileTab === "profile" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
+                  <span className={profileTab === "profile" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabProfileInfo")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProfileTab("settings")}
-                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                     profileTab === "settings"
-                      ? "border-pink-500 text-pink-600"
-                      : "border-transparent text-stone-500 hover:text-stone-800"
+                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
+                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
                   }`}
                 >
-                  <Lock className="h-3 w-3" />
-                  <span>{t("tabSecurity")}</span>
+                  <Lock className={`h-3.5 w-3.5 ${profileTab === "settings" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
+                  <span className={profileTab === "settings" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabSecurity")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProfileTab("notifications")}
-                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                     profileTab === "notifications"
-                      ? "border-pink-500 text-pink-600"
-                      : "border-transparent text-stone-500 hover:text-stone-800"
+                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
+                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
                   }`}
                 >
-                  <Bell className="h-3 w-3" />
-                  <span>{t("tabPreferences")}</span>
+                  <Bell className={`h-3.5 w-3.5 ${profileTab === "notifications" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
+                  <span className={profileTab === "notifications" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabPreferences")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProfileTab("about")}
-                  className={`pb-2 px-2.5 text-[11px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                     profileTab === "about"
-                      ? "border-pink-500 text-pink-600"
-                      : "border-transparent text-stone-500 hover:text-stone-800"
+                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
+                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
                   }`}
                 >
-                  <Info className="h-3 w-3" />
-                  <span>{t("tabAbout")}</span>
+                  <Info className={`h-3.5 w-3.5 ${profileTab === "about" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
+                  <span className={profileTab === "about" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabAbout")}</span>
                 </button>
               </div>
 
@@ -2945,10 +3956,117 @@ export default function App() {
                 {/* TAB 1: Profile Info */}
                 {profileTab === "profile" && (
                   <div className="space-y-4">
+                    {/* Profile Photo Upload & Header Card - MLBB Light Style */}
+                    <div className="p-5 bg-gradient-to-b from-stone-50 via-pink-50/50 to-stone-50 dark:from-stone-900 dark:via-pink-950/20 dark:to-stone-900 text-stone-800 dark:text-stone-100 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-xs border border-stone-200/90 dark:border-stone-800 relative overflow-hidden">
+                      {/* Blurred Photo Backdrop if photo is set */}
+                      {profileEditAvatar && (profileEditAvatar.startsWith("data:image/") || profileEditAvatar.startsWith("http")) && (
+                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-2xl">
+                          <img
+                            src={profileEditAvatar}
+                            alt="Background"
+                            className="w-full h-full object-cover scale-150 blur-2xl opacity-35 dark:opacity-20"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-white/25 dark:bg-black/40" />
+                        </div>
+                      )}
+
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-pink-600 dark:text-pink-400 flex items-center gap-1.5 z-10">
+                        <Camera className="h-3.5 w-3.5 text-pink-500 dark:text-pink-400" />
+                        <span>{prefLanguage === "tagalog" ? "Larawan sa Profile at Frame" : "Profile Picture & Avatar Frame"}</span>
+                      </div>
+
+                      {/* Interactive MLBB Circular Avatar with Frame Ring & Camera Overlay Badge */}
+                      <div className="relative group z-10 my-1">
+                        <label className="cursor-pointer block relative">
+                          {/* MLBB Golden/Pink Halo Frame Ring */}
+                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-pink-500 via-rose-400 to-amber-300 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-all duration-300">
+                            <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center border-2 border-white relative">
+                              {profileEditAvatar && (profileEditAvatar.startsWith("data:image/") || profileEditAvatar.startsWith("http")) ? (
+                                <img src={profileEditAvatar} alt="Profile" className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" referrerPolicy="no-referrer" />
+                              ) : (
+                                <span className="text-4xl">{profileEditAvatar || (userSession.role === "student" ? "🎓" : "🏠")}</span>
+                              )}
+
+                              {/* Hover Overlay Camera */}
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Camera className="h-8 w-8 text-white drop-shadow-md" />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* MLBB Style Floating Camera Badge at Bottom Right */}
+                          <div className="absolute bottom-0 right-0 bg-gradient-to-r from-pink-500 to-rose-600 text-white p-2 rounded-full shadow-md border-2 border-white group-hover:scale-110 transition-transform flex items-center justify-center">
+                            <Camera className="h-4 w-4" />
+                          </div>
+
+                          {/* Hidden File Input */}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 5 * 1024 * 1024) {
+                                alert(prefLanguage === "tagalog" ? "Masyadong malaki ang larawan. Pumili ng mas mababa sa 5MB." : "Image too large. Select under 5MB.");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                if (evt.target?.result) setProfileEditAvatar(evt.target.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <p className="text-[11px] text-stone-600 font-medium z-10">
+                        {prefLanguage === "tagalog" ? "Pindutin ang larawan para mag-upload mula sa Gallery" : "Tap picture to upload from gallery"}
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-center gap-2 flex-wrap z-10 pt-1">
+                        <label className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5 active:scale-95">
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>{prefLanguage === "tagalog" ? "Mag-upload ng Larawan" : "Upload Photo"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 5 * 1024 * 1024) {
+                                alert(prefLanguage === "tagalog" ? "Masyadong malaki ang larawan. Pumili ng mas mababa sa 5MB." : "Image too large. Select under 5MB.");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                if (evt.target?.result) setProfileEditAvatar(evt.target.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+
+                        {profileEditAvatar && (profileEditAvatar.startsWith("data:image/") || profileEditAvatar.startsWith("http")) && (
+                          <button
+                            type="button"
+                            onClick={() => setProfileEditAvatar(userSession.role === "student" ? "🎓" : "🏠")}
+                            className="px-3 py-2 text-xs text-stone-600 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold border border-stone-200 transition-colors"
+                          >
+                            {prefLanguage === "tagalog" ? "Alisin" : "Remove"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Full Name */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                           <User className="h-3 w-3 text-stone-400" />
                           {t("fullName")}
                         </label>
@@ -2957,25 +4075,25 @@ export default function App() {
                           required
                           value={profileEditName}
                           onChange={(e) => setProfileEditName(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                          className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
                           placeholder={t("fullName")}
                         />
                       </div>
 
                       {/* Username (Read Only) */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center justify-between">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 flex items-center justify-between">
                           <span className="flex items-center gap-1">
                             <Lock className="h-3 w-3 text-stone-400" />
                             Username
                           </span>
-                          <span className="text-[9px] text-stone-400 font-normal">{prefLanguage === "tagalog" ? "Hindi Mababago" : "Fixed ID"}</span>
+                          <span className="text-[9px] text-stone-400 dark:text-stone-500 font-normal">{prefLanguage === "tagalog" ? "Hindi Mababago" : "Fixed ID"}</span>
                         </label>
                         <input
                           type="text"
                           disabled
                           value={userSession.username}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-500 font-mono cursor-not-allowed"
+                          className="w-full bg-stone-100 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700/80 rounded-xl px-3 py-2 text-xs text-stone-500 dark:text-stone-400 font-mono cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -2983,7 +4101,7 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Email Address */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                           <Mail className="h-3 w-3 text-stone-400" />
                           Email Address
                         </label>
@@ -2991,14 +4109,14 @@ export default function App() {
                           type="email"
                           value={profileEditEmail}
                           onChange={(e) => setProfileEditEmail(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                          className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
                           placeholder="email@example.com"
                         />
                       </div>
 
                       {/* Mobile Phone */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                           <Phone className="h-3 w-3 text-stone-400" />
                           {prefLanguage === "tagalog" ? "Numero ng Telepono / Mobile" : "Mobile Number"}
                         </label>
@@ -3006,71 +4124,103 @@ export default function App() {
                           type="tel"
                           value={profileEditMobile}
                           onChange={(e) => setProfileEditMobile(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
+                          className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-mono outline-none"
                           placeholder="09123456789"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Address in Gumaca */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-stone-400" />
+                          {prefLanguage === "tagalog" ? "Barangay / Tirahan sa Gumaca" : "Barangay / Address in Gumaca"}
+                        </label>
+                        <input
+                          type="text"
+                          value={profileEditAddress}
+                          onChange={(e) => setProfileEditAddress(e.target.value)}
+                          className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
+                          placeholder="e.g. Brgy. Mabini, Gumaca, Quezon"
+                        />
+                      </div>
+
+                      {/* Emergency Contact */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                          <PhoneCall className="h-3 w-3 text-stone-400" />
+                          {prefLanguage === "tagalog" ? "Emergency Contact / Magulang" : "Emergency Contact / Guardian"}
+                        </label>
+                        <input
+                          type="text"
+                          value={profileEditEmergencyContact}
+                          onChange={(e) => setProfileEditEmergencyContact(e.target.value)}
+                          className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
+                          placeholder={userSession.role === "student" ? "Pangalan at Numero ng Magulang/Guardian" : "Barangay / Office Contact"}
                         />
                       </div>
                     </div>
 
                     {/* Facebook Profile Link / Messenger */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
-                        <Facebook className="h-3 w-3 text-blue-600" />
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                        <Facebook className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                         {prefLanguage === "tagalog" ? "Facebook Account / Profile Link (Messenger)" : "Facebook Profile Link / Messenger"}
                       </label>
                       <input
                         type="url"
                         value={profileEditFacebook}
                         onChange={(e) => setProfileEditFacebook(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
+                        className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
                         placeholder="https://facebook.com/your.profile"
                       />
                     </div>
 
                     {/* School / Institution / Business */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                         {userSession.role === "student" ? (
                           <GraduationCap className="h-3 w-3 text-stone-400" />
                         ) : (
                           <Building className="h-3 w-3 text-stone-400" />
                         )}
-                        {userSession.role === "student" ? (prefLanguage === "tagalog" ? "Paaralan / Kolehiyo" : "School / College") : (prefLanguage === "tagalog" ? "Pangalan ng Negosyo / Tuluyan" : "Housing Business Name")}
+                        {userSession.role === "student" ? (prefLanguage === "tagalog" ? "Paaralan / Trabaho / Unibersidad" : "School / Workplace / College") : (prefLanguage === "tagalog" ? "Pangalan ng Negosyo / Tuluyan" : "Housing Business Name")}
                       </label>
                       <input
                         type="text"
                         value={profileEditSchool}
                         onChange={(e) => setProfileEditSchool(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-medium"
-                        placeholder={userSession.role === "student" ? "Gumaca National High School / SLSU Gumaca" : "Dormitory / Apartment Name"}
+                        className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-medium outline-none"
+                        placeholder={userSession.role === "student" ? "SLSU Gumaca / PUP / Empleyado sa Bayan" : "Dormitory / Apartment Name"}
                       />
                     </div>
 
                     {/* Short Bio / Description */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                         {prefLanguage === "tagalog" ? "Maikling Tungkol sa Sarili / Bio" : "Short Bio / Note"}
                       </label>
                       <textarea
                         rows={3}
                         value={profileEditBio}
                         onChange={(e) => setProfileEditBio(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-normal resize-none"
+                        className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-normal resize-none outline-none"
                         placeholder={prefLanguage === "tagalog" ? "Ipakilala ang sarili o mag-iwan ng maikling tala..." : "Introduce yourself or leave a short note..."}
                       />
                     </div>
 
                     {/* Business Permit & Verification Proof Section (Landlords only) */}
                     {userSession.role === "landlord" && (
-                      <div className="pt-3.5 border-t border-stone-200/80 space-y-3">
+                      <div className="pt-3.5 border-t border-stone-200/80 dark:border-stone-700/80 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-                            <span className="text-xs font-bold text-stone-800 uppercase tracking-wide">
+                            <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span className="text-xs font-bold text-stone-800 dark:text-stone-100 uppercase tracking-wide">
                               {prefLanguage === "tagalog" ? "Business Permit at Katibayan (Proof)" : "Business Permit & Proof Documents"}
                             </span>
                           </div>
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-2.5 py-0.5 rounded-full">
                             <ShieldCheck className="h-3 w-3 text-stone-500 shrink-0" />
                             {profileEditPermitStatus || (prefLanguage === "tagalog" ? "Hindi pa nafi-fill out" : "Not Provided")}
                           </span>
@@ -3079,7 +4229,7 @@ export default function App() {
                         <div className="grid grid-cols-1 gap-2.5">
                           {/* Permit / Document Number */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                               <Award className="h-3 w-3 text-stone-400 shrink-0" />
                               {prefLanguage === "tagalog" ? "Numero ng Mayor's / Business Permit" : "Mayor's / Business Permit No."}
                             </label>
@@ -3087,14 +4237,14 @@ export default function App() {
                               type="text"
                               value={profileEditPermitNo}
                               onChange={(e) => setProfileEditPermitNo(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-stone-800 font-mono"
+                              className="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:bg-white dark:focus:bg-stone-800 rounded-xl px-3 py-2 text-xs text-stone-800 dark:text-stone-100 font-mono outline-none"
                               placeholder="e.g. BP-2026-GUM-8842"
                             />
                           </div>
 
                           {/* Upload Attachment File */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
                               <FileText className="h-3 w-3 text-stone-400 shrink-0" />
                               {prefLanguage === "tagalog" ? "Kopyang Permit / Dokumento (Attachment)" : "Proof Document / Permit File"}
                             </label>
@@ -3114,12 +4264,12 @@ export default function App() {
                               />
                               <label
                                 htmlFor="profile-permit-file-upload"
-                                className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-700 font-medium flex items-center justify-between cursor-pointer transition-colors"
+                                className="w-full bg-stone-50 dark:bg-stone-800/80 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-2 text-xs text-stone-700 dark:text-stone-200 font-medium flex items-center justify-between cursor-pointer transition-colors"
                               >
-                                <span className="truncate max-w-[160px] font-mono text-[11px] text-stone-600">
+                                <span className="truncate max-w-[160px] font-mono text-[11px] text-stone-600 dark:text-stone-300">
                                   {profileEditPermitFile || (prefLanguage === "tagalog" ? "Pumili ng permit file..." : "Choose permit file...")}
                                 </span>
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md shrink-0">
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/50 px-2 py-0.5 rounded-md shrink-0">
                                   <Upload className="h-3 w-3" />
                                   {prefLanguage === "tagalog" ? "I-upload" : "Upload"}
                                 </span>
@@ -3207,17 +4357,17 @@ export default function App() {
                     </div>
 
                     {/* Section 1: Change Password & Password Strength Meter */}
-                    <div className="bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80 space-y-3">
-                      <div className="flex items-center gap-2 border-b border-stone-200/60 pb-2">
-                        <KeyRound className="h-4 w-4 text-pink-600 shrink-0" />
-                        <h4 className="font-bold text-xs text-stone-900">
+                    <div className="bg-stone-50/80 dark:bg-stone-800/80 p-3.5 rounded-2xl border border-stone-200/80 dark:border-stone-700/80 space-y-3">
+                      <div className="flex items-center gap-2 border-b border-stone-200/60 dark:border-stone-700/60 pb-2">
+                        <KeyRound className="h-4 w-4 text-pink-600 dark:text-pink-400 shrink-0" />
+                        <h4 className="font-bold text-xs text-stone-900 dark:text-stone-100">
                           {prefLanguage === "tagalog" ? "Pagbabago ng Password" : "Change Password"}
                         </h4>
                       </div>
 
                       {/* Kasalukuyang Password (Current Password) */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                           {prefLanguage === "tagalog" ? "Kasalukuyang Password (I-type para kumpirmahin)" : "Current Password (Optional)"}
                         </label>
                         <div className="relative">
@@ -3225,13 +4375,13 @@ export default function App() {
                             type={showProfileCurrentPassword ? "text" : "password"}
                             value={profileCurrentPassword}
                             onChange={(e) => setProfileCurrentPassword(e.target.value)}
-                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 dark:text-stone-100 font-mono outline-none"
                             placeholder={prefLanguage === "tagalog" ? "I-type ang kasalukuyang password" : "Type current password"}
                           />
                           <button
                             type="button"
                             onClick={() => setShowProfileCurrentPassword(!showProfileCurrentPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
                           >
                             {showProfileCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
@@ -3240,7 +4390,7 @@ export default function App() {
 
                       {/* Bagong Password */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                           {prefLanguage === "tagalog" ? "Bagong Password" : "New Password"}
                         </label>
                         <div className="relative">
@@ -3248,13 +4398,13 @@ export default function App() {
                             type={showProfilePassword ? "text" : "password"}
                             value={profileEditPassword}
                             onChange={(e) => setProfileEditPassword(e.target.value)}
-                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none"
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 focus:border-pink-500 rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 dark:text-stone-100 font-mono outline-none"
                             placeholder={prefLanguage === "tagalog" ? "I-type ang bagong password" : "Type new password"}
                           />
                           <button
                             type="button"
                             onClick={() => setShowProfilePassword(!showProfilePassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
                           >
                             {showProfilePassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
@@ -3264,11 +4414,11 @@ export default function App() {
                       {/* Confirm New Password */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                             {prefLanguage === "tagalog" ? "Kumpirmahin ang Bagong Password" : "Confirm New Password"}
                           </label>
                           {profileEditPassword && profileConfirmPassword && (
-                            <span className={`text-[10px] font-bold ${profileEditPassword === profileConfirmPassword ? "text-emerald-600" : "text-rose-600"}`}>
+                            <span className={`text-[10px] font-bold ${profileEditPassword === profileConfirmPassword ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                               {profileEditPassword === profileConfirmPassword
                                 ? (prefLanguage === "tagalog" ? "✓ Nagmamatch" : "✓ Match")
                                 : (prefLanguage === "tagalog" ? "✕ Hindi Nagmamatch" : "✕ Doesn't Match")}
@@ -3280,17 +4430,17 @@ export default function App() {
                             type={showProfileConfirmPassword ? "text" : "password"}
                             value={profileConfirmPassword}
                             onChange={(e) => setProfileConfirmPassword(e.target.value)}
-                            className={`w-full bg-white border rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 font-mono outline-none ${
+                            className={`w-full bg-white dark:bg-stone-900 border rounded-xl pl-3 pr-10 py-2 text-xs text-stone-800 dark:text-stone-100 font-mono outline-none ${
                               profileConfirmPassword && profileEditPassword !== profileConfirmPassword
-                                ? "border-rose-300 focus:border-rose-500"
-                                : "border-stone-200 focus:border-pink-500"
+                                ? "border-rose-300 dark:border-rose-700 focus:border-rose-500"
+                                : "border-stone-200 dark:border-stone-700 focus:border-pink-500"
                             }`}
                             placeholder={prefLanguage === "tagalog" ? "I-type muli ang bagong password" : "Re-type new password"}
                           />
                           <button
                             type="button"
                             onClick={() => setShowProfileConfirmPassword(!showProfileConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
                           >
                             {showProfileConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
@@ -3299,17 +4449,17 @@ export default function App() {
 
                       {/* Interactive Password Strength Meter */}
                       {profileEditPassword && (
-                        <div className="p-2.5 bg-white rounded-xl border border-stone-200/80 space-y-2">
+                        <div className="p-2.5 bg-white dark:bg-stone-900 rounded-xl border border-stone-200/80 dark:border-stone-700/80 space-y-2">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-stone-600">
+                            <span className="font-bold text-stone-600 dark:text-stone-300">
                               {prefLanguage === "tagalog" ? "Lakas ng Password:" : "Password Strength:"}
                             </span>
                             <span className={`font-bold ${
                               profileEditPassword.length < 6
-                                ? "text-rose-600"
+                                ? "text-rose-600 dark:text-rose-400"
                                 : profileEditPassword.length >= 8 && /[0-9]/.test(profileEditPassword) && /[A-Z]/.test(profileEditPassword)
-                                ? "text-emerald-600"
-                                : "text-amber-600"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-amber-600 dark:text-amber-400"
                             }`}>
                               {profileEditPassword.length < 6
                                 ? (prefLanguage === "tagalog" ? "Mahina 🔴" : "Weak 🔴")
@@ -3320,7 +4470,7 @@ export default function App() {
                           </div>
 
                           {/* Colored Progress Bar */}
-                          <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="w-full bg-stone-100 dark:bg-stone-800 h-1.5 rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all duration-300 ${
                                 profileEditPassword.length < 6
@@ -3333,17 +4483,17 @@ export default function App() {
                           </div>
 
                           {/* Criteria Checklist */}
-                          <div className="grid grid-cols-2 gap-1.5 text-[10px] text-stone-600 pt-1">
-                            <span className={`flex items-center gap-1 ${profileEditPassword.length >= 8 ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px] text-stone-600 dark:text-stone-300 pt-1">
+                            <span className={`flex items-center gap-1 ${profileEditPassword.length >= 8 ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-stone-400"}`}>
                               {profileEditPassword.length >= 8 ? "✓" : "○"} {prefLanguage === "tagalog" ? "8+ na letra" : "8+ characters"}
                             </span>
-                            <span className={`flex items-center gap-1 ${/[0-9]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                            <span className={`flex items-center gap-1 ${/[0-9]/.test(profileEditPassword) ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-stone-400"}`}>
                               {/[0-9]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "May numero (0-9)" : "Includes numbers"}
                             </span>
-                            <span className={`flex items-center gap-1 ${/[A-Z]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                            <span className={`flex items-center gap-1 ${/[A-Z]/.test(profileEditPassword) ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-stone-400"}`}>
                               {/[A-Z]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "May malaking letra (A-Z)" : "Capital letters"}
                             </span>
-                            <span className={`flex items-center gap-1 ${/[^A-Za-z0-9]/.test(profileEditPassword) ? "text-emerald-600 font-bold" : "text-stone-400"}`}>
+                            <span className={`flex items-center gap-1 ${/[^A-Za-z0-9]/.test(profileEditPassword) ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-stone-400"}`}>
                               {/[^A-Za-z0-9]/.test(profileEditPassword) ? "✓" : "○"} {prefLanguage === "tagalog" ? "Special symbol (!@#$)" : "Special symbol"}
                             </span>
                           </div>
@@ -3352,16 +4502,16 @@ export default function App() {
                     </div>
 
                     {/* Section 2: Two-Factor Authentication (2FA) */}
-                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="p-3.5 bg-stone-50/80 dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700/80 rounded-2xl flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 bg-pink-100 text-pink-700 rounded-xl shrink-0">
+                        <div className="p-2 bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 rounded-xl shrink-0">
                           <Smartphone className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-xs font-bold text-stone-900 block truncate">
+                          <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block truncate">
                             {prefLanguage === "tagalog" ? "Two-Factor Authentication (2FA)" : "Two-Factor Authentication"}
                           </span>
-                          <span className="text-[10px] text-stone-500 block leading-tight">
+                          <span className="text-[10px] text-stone-500 dark:text-stone-400 block leading-tight">
                             {prefLanguage === "tagalog"
                               ? "Hihingi ng SMS / Email OTP verification bago mag-login sa bagong cellphone o computer."
                               : "Require SMS or Email OTP verification when logging in from new devices."}
@@ -3382,7 +4532,7 @@ export default function App() {
                           );
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          is2FAEnabled ? "bg-gradient-to-r from-pink-500 to-blue-600" : "bg-stone-300"
+                          is2FAEnabled ? "bg-gradient-to-r from-pink-500 to-blue-600" : "bg-stone-300 dark:bg-stone-700"
                         }`}
                       >
                         <span
@@ -3394,15 +4544,15 @@ export default function App() {
                     </div>
 
                     {/* Section 3: 4-Digit Quick Security PIN */}
-                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl space-y-2">
+                    <div className="p-3.5 bg-stone-50/80 dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700/80 rounded-2xl space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Fingerprint className="h-4 w-4 text-emerald-600 shrink-0" />
-                          <span className="text-xs font-bold text-stone-900">
+                          <Fingerprint className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
                             {prefLanguage === "tagalog" ? "4-Digit Security PIN" : "4-Digit Security PIN"}
                           </span>
                         </div>
-                        <span className="text-[10px] text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md font-medium">
+                        <span className="text-[10px] text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/50 px-2 py-0.5 rounded-md font-medium">
                           {prefLanguage === "tagalog" ? "Para sa mabilis na Kumpirmasyon" : "For Fast Confirmation"}
                         </span>
                       </div>
@@ -3414,19 +4564,19 @@ export default function App() {
                             maxLength={4}
                             value={securityPin}
                             onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ""))}
-                            className="w-full bg-white border border-stone-200 focus:border-pink-500 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-stone-800 outline-none"
+                            className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 focus:border-pink-500 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-widest text-stone-800 dark:text-stone-100 outline-none"
                             placeholder="****"
                           />
                           <button
                             type="button"
                             onClick={() => setShowSecurityPin(!showSecurityPin)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
                           >
                             {showSecurityPin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         </div>
                       </div>
-                      <p className="text-[10px] text-stone-500 font-light">
+                      <p className="text-[10px] text-stone-500 dark:text-stone-400 font-light">
                         {prefLanguage === "tagalog"
                           ? "Gamitin ang 4-digit PIN na ito para sa mabilis na pag-verify sa booking at reservation."
                           : "Use this 4-digit PIN for quick booking & landlord action verification."}
@@ -3434,36 +4584,36 @@ export default function App() {
                     </div>
 
                     {/* Section 4: Active Devices & Session Log */}
-                    <div className="p-3.5 bg-stone-50/80 border border-stone-200/80 rounded-2xl space-y-2.5">
-                      <div className="flex items-center justify-between border-b border-stone-200/60 pb-2">
+                    <div className="p-3.5 bg-stone-50/80 dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700/80 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-stone-200/60 dark:border-stone-700/60 pb-2">
                         <div className="flex items-center gap-2">
-                          <Laptop className="h-4 w-4 text-pink-600 shrink-0" />
-                          <span className="text-xs font-bold text-stone-900">
+                          <Laptop className="h-4 w-4 text-pink-600 dark:text-pink-400 shrink-0" />
+                          <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
                             {prefLanguage === "tagalog" ? "Mga Naka-login na Device (Active Sessions)" : "Active Device Sessions"}
                           </span>
                         </div>
-                        <span className="text-[10px] text-stone-500 font-medium">
+                        <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
                           {activeSessions.length} {prefLanguage === "tagalog" ? "Device" : "Device(s)"}
                         </span>
                       </div>
 
                       <div className="space-y-2">
                         {activeSessions.map((session) => (
-                          <div key={session.id} className="p-2.5 bg-white border border-stone-200/70 rounded-xl flex items-center justify-between gap-2 text-xs">
+                          <div key={session.id} className="p-2.5 bg-white dark:bg-stone-900 border border-stone-200/70 dark:border-stone-700/70 rounded-xl flex items-center justify-between gap-2 text-xs">
                             <div className="flex items-start gap-2.5 min-w-0">
                               {session.device.includes("Mobile") || session.device.includes("iPhone") ? (
-                                <Smartphone className="h-4 w-4 text-pink-600 shrink-0 mt-0.5" />
+                                <Smartphone className="h-4 w-4 text-pink-600 dark:text-pink-400 shrink-0 mt-0.5" />
                               ) : (
-                                <Laptop className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <Laptop className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                               )}
                               <div className="min-w-0">
-                                <span className="font-bold text-stone-800 text-[11px] block truncate">{session.device}</span>
-                                <span className="text-[10px] text-stone-500 block truncate">{session.location} ({session.ip})</span>
+                                <span className="font-bold text-stone-800 dark:text-stone-100 text-[11px] block truncate">{session.device}</span>
+                                <span className="text-[10px] text-stone-500 dark:text-stone-400 block truncate">{session.location} ({session.ip})</span>
                               </div>
                             </div>
 
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
-                              session.current ? "bg-emerald-100 text-emerald-800" : "bg-stone-100 text-stone-600"
+                              session.current ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300"
                             }`}>
                               {session.current
                                 ? (prefLanguage === "tagalog" ? "Kasalukuyan 🟢" : "Active Now 🟢")
@@ -3486,7 +4636,7 @@ export default function App() {
                                 : "Successfully logged out all other device sessions!"
                             );
                           }}
-                          className="w-full mt-1 py-2 px-3 bg-stone-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-stone-200 text-stone-700 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                          className="w-full mt-1 py-2 px-3 bg-stone-100 dark:bg-stone-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-200 dark:hover:border-rose-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                         >
                           <LogOut className="h-3.5 w-3.5" />
                           <span>
@@ -3502,28 +4652,28 @@ export default function App() {
                 {profileTab === "notifications" && (
                   <div className="space-y-4">
                     {/* Compact Field Options: Language & Theme */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-stone-50/80 dark:bg-stone-800/80 p-3.5 rounded-2xl border border-stone-200/80 dark:border-stone-700/80">
                       {/* Language Field Option */}
                       <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
-                          <Globe className="h-3.5 w-3.5 text-pink-600 shrink-0" />
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800 dark:text-stone-100">
+                          <Globe className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400 shrink-0" />
                           <span>{t("prefLanguageLabel")}</span>
                         </label>
                         <select
                           value={prefLanguage}
                           onChange={(e) => setPrefLanguage(e.target.value as "tagalog" | "english")}
-                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
+                          className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
                         >
-                          <option value="english">🇺🇸 English</option>
-                          <option value="tagalog">🇵🇭 Tagalog (Filipino)</option>
+                          <option value="english" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100">🇺🇸 English</option>
+                          <option value="tagalog" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100">🇵🇭 Tagalog (Filipino)</option>
                         </select>
                       </div>
 
                       {/* Theme Field Option */}
                       <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-stone-800 dark:text-stone-100">
                           {prefTheme === "dark" ? (
-                            <Moon className="h-3.5 w-3.5 text-pink-500 shrink-0" />
+                            <Moon className="h-3.5 w-3.5 text-pink-500 dark:text-pink-400 shrink-0" />
                           ) : (
                             <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                           )}
@@ -3532,27 +4682,27 @@ export default function App() {
                         <select
                           value={prefTheme}
                           onChange={(e) => setPrefTheme(e.target.value as "light" | "dark")}
-                          className="w-full bg-white border border-stone-200 text-stone-900 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
+                          className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none cursor-pointer shadow-2xs"
                         >
-                          <option value="light">☀️ Light Mode</option>
-                          <option value="dark">🌙 Dark Mode</option>
+                          <option value="light" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100">☀️ Light Mode</option>
+                          <option value="dark" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100">🌙 Dark Mode</option>
                         </select>
                       </div>
                     </div>
 
                     {/* Alerts & Other Preferences */}
                     <div className="space-y-2.5 pt-1">
-                      <div className="text-xs font-bold text-stone-900 flex items-center gap-2">
-                        <Bell className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <div className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{prefLanguage === "tagalog" ? "Mga Setting ng Notipikasyon at Mapa" : "Notification & Map Preferences"}</span>
                       </div>
 
-                      <label className="flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl cursor-pointer hover:bg-stone-100/80 transition-colors">
+                      <label className="flex items-center justify-between p-3.5 bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700/80 rounded-2xl cursor-pointer hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
                         <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-pink-600" />
+                          <Mail className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                           <div>
-                            <span className="text-xs font-bold text-stone-800 block">{prefLanguage === "tagalog" ? "Notipikasyon sa Email" : "Email Alerts"}</span>
-                            <span className="text-[10px] text-stone-500 font-light">{prefLanguage === "tagalog" ? "Makatanggap ng email updates sa mga bagong boarding house." : "Receive email updates about new boarding houses."}</span>
+                            <span className="text-xs font-bold text-stone-800 dark:text-stone-100 block">{prefLanguage === "tagalog" ? "Notipikasyon sa Email" : "Email Alerts"}</span>
+                            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-light">{prefLanguage === "tagalog" ? "Makatanggap ng email updates sa mga bagong boarding house." : "Receive email updates about new boarding houses."}</span>
                           </div>
                         </div>
                         <input
@@ -3563,12 +4713,12 @@ export default function App() {
                         />
                       </label>
 
-                      <label className="flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl cursor-pointer hover:bg-stone-100/80 transition-colors">
+                      <label className="flex items-center justify-between p-3.5 bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700/80 rounded-2xl cursor-pointer hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
                         <div className="flex items-center gap-3">
-                          <Phone className="h-4 w-4 text-emerald-600" />
+                          <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                           <div>
-                            <span className="text-xs font-bold text-stone-800 block">{prefLanguage === "tagalog" ? "Notipikasyon sa SMS / CP" : "SMS Notification Alerts"}</span>
-                            <span className="text-[10px] text-stone-500 font-light">{prefLanguage === "tagalog" ? "Makatanggap ng text alert sa iyong cell phone number." : "Receive text alerts on your mobile phone number."}</span>
+                            <span className="text-xs font-bold text-stone-800 dark:text-stone-100 block">{prefLanguage === "tagalog" ? "Notipikasyon sa SMS / CP" : "SMS Notification Alerts"}</span>
+                            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-light">{prefLanguage === "tagalog" ? "Makatanggap ng text alert sa iyong cell phone number." : "Receive text alerts on your mobile phone number."}</span>
                           </div>
                         </div>
                         <input
@@ -3579,12 +4729,12 @@ export default function App() {
                         />
                       </label>
 
-                      <label className="flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl cursor-pointer hover:bg-stone-100/80 transition-colors">
+                      <label className="flex items-center justify-between p-3.5 bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700/80 rounded-2xl cursor-pointer hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
                         <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-blue-600" />
+                          <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           <div>
-                            <span className="text-xs font-bold text-stone-800 block">{prefLanguage === "tagalog" ? "Awtomatikong Ipakita ang Hangganan ng Mapa" : "Auto-Highlight Map Boundaries"}</span>
-                            <span className="text-[10px] text-stone-500 font-light">{prefLanguage === "tagalog" ? "Awtomatikong ipakita ang outline ng barangay sa mapa." : "Automatically display barangay boundary outlines."}</span>
+                            <span className="text-xs font-bold text-stone-800 dark:text-stone-100 block">{prefLanguage === "tagalog" ? "Awtomatikong Ipakita ang Hangganan ng Mapa" : "Auto-Highlight Map Boundaries"}</span>
+                            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-light">{prefLanguage === "tagalog" ? "Awtomatikong ipakita ang outline ng barangay sa mapa." : "Automatically display barangay boundary outlines."}</span>
                           </div>
                         </div>
                         <input
@@ -3611,60 +4761,60 @@ export default function App() {
                       </div>
                       <p className="text-[11px] text-stone-300 font-light leading-relaxed">
                         {prefLanguage === "tagalog"
-                          ? "Ang opisyal na Housing at Boarding House Directory sa bayan ng Gumaca, Quezon. Idinisenyo upang tulungan ang mga estudyante, guro, at magulang na makahanap ng ligtas, abot-kaya, at kumportableng tirahan malapit sa kanilang paaralan."
-                          : "The official Housing & Boarding House Directory of Gumaca, Quezon. Built to empower students, teachers, and parents in finding safe, affordable, and comfortable homes near local schools."}
+                          ? "Ang opisyal na Housing at Boarding House Directory sa bayan ng Gumaca, Quezon. Idinisenyo upang tulungan ang mga tenant, estudyante, at mga manggagawa na makahanap ng ligtas, abot-kaya, at kumportableng tirahan malapit sa kanilang eskwelahan at trabaho."
+                          : "The official Housing & Boarding House Directory of Gumaca, Quezon. Built to empower tenants, students, and workers in finding safe, affordable, and comfortable homes near local schools and workplaces."}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
-                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
-                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
-                          <span>🎓</span> {prefLanguage === "tagalog" ? "Estudyante" : "Students"}
+                      <div className="bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
+                        <p className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                          <span>🎓</span> {prefLanguage === "tagalog" ? "Tenants / Umuupa" : "Tenants"}
                         </p>
-                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                        <p className="text-stone-500 dark:text-stone-400 text-[10px] leading-normal font-light">
                           {prefLanguage === "tagalog" ? "Kalkulado ang oras ng lakad at biyahe sa trike papuntang eskwelahan." : "Calculates walk & trike time to nearby campuses."}
                         </p>
                       </div>
-                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
-                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
+                      <div className="bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
+                        <p className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                           <span>🔑</span> {prefLanguage === "tagalog" ? "Landlords" : "Landlords"}
                         </p>
-                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                        <p className="text-stone-500 dark:text-stone-400 text-[10px] leading-normal font-light">
                           {prefLanguage === "tagalog" ? "Libreng pag-post at pag-upload ng Mayor's Permit at BFP Safety Certificates." : "Free listing and permit verification uploads."}
                         </p>
                       </div>
-                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 transition-colors">
-                        <p className="font-bold text-stone-900 flex items-center gap-1.5">
+                      <div className="bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 rounded-xl p-3 space-y-1 hover:bg-stone-100/80 dark:hover:bg-stone-800 transition-colors">
+                        <p className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                           <span>🛡️</span> {prefLanguage === "tagalog" ? "Rehistrado" : "Verified"}
                         </p>
-                        <p className="text-stone-500 text-[10px] leading-normal font-light">
+                        <p className="text-stone-500 dark:text-stone-400 text-[10px] leading-normal font-light">
                           {prefLanguage === "tagalog" ? "May transparent reviews, ratings, at interactive barangay map." : "Verified ratings, reviews, and interactive maps."}
                         </p>
                       </div>
                     </div>
 
-                    <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2 text-[11px]">
-                      <p className="font-bold text-amber-900 flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-amber-600" />
+                    <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 rounded-2xl space-y-2 text-[11px]">
+                      <p className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                         <span>{prefLanguage === "tagalog" ? "Mga Nakasasakop na Paaralan sa Gumaca:" : "Schools Covered in Gumaca, Quezon:"}</span>
                       </p>
-                      <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-stone-700">
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 SLSU Gumaca</span>
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🎓 Eastern Quezon College (EQC)</span>
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🎨 PIAT College</span>
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Gumaca National High School (GNHS)</span>
-                        <span className="bg-white border border-stone-200 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Holy Child Jesus College</span>
+                      <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-stone-700 dark:text-stone-300">
+                        <span className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 px-2.5 py-1 rounded-lg shadow-2xs">🏫 SLSU Gumaca</span>
+                        <span className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 px-2.5 py-1 rounded-lg shadow-2xs">🎓 Eastern Quezon College (EQC)</span>
+                        <span className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 px-2.5 py-1 rounded-lg shadow-2xs">🎨 PIAT College</span>
+                        <span className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Gumaca National High School (GNHS)</span>
+                        <span className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 px-2.5 py-1 rounded-lg shadow-2xs">🏫 Holy Child Jesus College</span>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Modal Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
                   <button
                     type="button"
                     onClick={() => setShowProfileModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-100 transition-colors cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
                   >
                     {t("close")}
                   </button>

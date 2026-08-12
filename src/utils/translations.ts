@@ -4,11 +4,11 @@ export const translations = {
   tagalog: {
     // Header & Nav
     appName: "CasaFinder",
-    tagline: "Gumaca Student Housing Portal",
+    tagline: "Gumaca Housing & Rental Portal",
     hello: "Kumusta,",
-    studentRole: "ESTUDYANTE 🎓",
+    studentRole: "TENANT / UMUUPA 🎓",
     landlordRole: "LANDLORD 🏠",
-    studentAccount: "STUDENT ACCOUNT",
+    studentAccount: "TENANT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
     postProperty: "Mag-post ng Tuluyan",
     profileSettings: "Profile & Settings",
@@ -17,7 +17,7 @@ export const translations = {
     // Quick Nav Tabs
     tabList: "📋 Listahan ng Tuluyan",
     tabMap: "🗺️ Interactive Map",
-    tabChecklist: "📝 Student Checklist",
+    tabChecklist: "📝 Tenant Checklist",
     tabFare: "🚕 Fare Calculator",
     tabBudget: "💰 Budget Splitter",
 
@@ -129,11 +129,11 @@ export const translations = {
   english: {
     // Header & Nav
     appName: "CasaFinder",
-    tagline: "Gumaca Student Housing Portal",
+    tagline: "Gumaca Housing & Rental Portal",
     hello: "Hello,",
-    studentRole: "STUDENT 🎓",
+    studentRole: "TENANT 🎓",
     landlordRole: "LANDLORD 🏠",
-    studentAccount: "STUDENT ACCOUNT",
+    studentAccount: "TENANT ACCOUNT",
     landlordAccount: "LANDLORD ACCOUNT",
     postProperty: "Post Housing",
     profileSettings: "Profile & Settings",
@@ -142,7 +142,7 @@ export const translations = {
     // Quick Nav Tabs
     tabList: "📋 Property Listings",
     tabMap: "🗺️ Interactive Map",
-    tabChecklist: "📝 Student Checklist",
+    tabChecklist: "📝 Tenant Checklist",
     tabFare: "🚕 Fare Calculator",
     tabBudget: "💰 Budget Splitter",
 

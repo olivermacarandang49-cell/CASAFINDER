@@ -14,48 +14,78 @@
 
 /* Dark mode theme overrides */
 html.dark, html.dark body {
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
 }
 
 html.dark .bg-white {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
+  background-color: #0d0d0d;
+  border-color: #18181b;
 }
 
 html.dark .bg-\[\#faf9f6\] {
-  background-color: #0f172a !important;
+  background-color: #000000 !important;
 }
 
 html.dark .text-stone-900,
 html.dark .text-stone-950,
-html.dark .text-stone-800 {
-  color: #f8fafc !important;
-}
-
+html.dark .text-stone-800,
 html.dark .text-stone-700,
 html.dark .text-stone-600,
-html.dark .text-stone-500 {
-  color: #cbd5e1 !important;
+html.dark .text-stone-500,
+html.dark .text-stone-400,
+html.dark .text-stone-300,
+html.dark .text-stone-200,
+html.dark .text-stone-100,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+html.dark .text-gray-500,
+html.dark .text-gray-400,
+html.dark .text-gray-300,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-slate-300 {
+  color: #ffffff !important;
+}
+
+/* Explicit black text override for specified exceptions */
+html.dark .text-black,
+html.dark .dark\:text-black,
+html.dark .force-black,
+html.dark .force-black * {
+  color: #000000 !important;
 }
 
 html.dark .bg-stone-50 {
-  background-color: #334155 !important;
-  border-color: #475569 !important;
-  color: #f8fafc !important;
+  background-color: #0d0d0d;
+  border-color: #18181b;
 }
 
 html.dark .bg-stone-100 {
-  background-color: #334155 !important;
+  background-color: #141414;
 }
 
 html.dark .border-stone-200 {
-  border-color: #334155 !important;
+  border-color: #18181b;
 }
 
 html.dark .border-stone-100 {
-  border-color: #1e293b !important;
+  border-color: #121212;
+}
+
+html.dark .custom-leaflet-property-popup .leaflet-popup-content-wrapper {
+  background-color: #09090b !important;
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+}
+html.dark .custom-leaflet-property-popup .leaflet-popup-tip {
+  background: #09090b !important;
 }
 
 /* Custom fade transitions for interactive components */
@@ -79,6 +109,19 @@ html.dark .border-stone-100 {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Hide scrollbars globally on mobile screens (max-width: 768px) */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
 }
 
 /* Mobile-only positioning and styling for zoom controls (+ and -) */

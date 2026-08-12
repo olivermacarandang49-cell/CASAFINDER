@@ -79,11 +79,18 @@ export default function LandlordProfileModal({
 
           <div className="flex flex-row items-center gap-3">
             <div className="relative shrink-0">
-              <img
-                src={avatar}
-                alt={name}
-                className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl object-cover border-2 border-white/80 shadow-md"
-              />
+              {avatar && (avatar.startsWith("http") || avatar.startsWith("data:image/")) ? (
+                <img
+                  src={avatar}
+                  alt={name}
+                  className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl object-cover border-2 border-white/80 shadow-md"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white text-2xl flex items-center justify-center font-bold border-2 border-white/80 shadow-md">
+                  {avatar || "🏠"}
+                </div>
+              )}
               {hasAnyPermit && (
                 <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-0.5 rounded-full shadow-md" title="LGU & BFP Verified">
                   <ShieldCheck className="h-3.5 w-3.5" />

@@ -10,9 +10,11 @@ interface PropertyCardProps {
   aiMatch?: AiMatch;
   onSelect: () => void;
   onEdit?: (property: Property) => void;
+  onApprove?: (property: Property) => void;
+  onReject?: (property: Property) => void;
   onViewLandlordProfile?: (property: Property) => void;
   onViewOnMap?: (property: Property, schoolId?: string) => void;
-  currentUserRole?: "student" | "landlord" | null;
+  currentUserRole?: "student" | "landlord" | "admin" | null;
   language?: Language;
   key?: string;
 }
@@ -22,6 +24,8 @@ export default function PropertyCard({
   aiMatch,
   onSelect,
   onEdit,
+  onApprove,
+  onReject,
   onViewLandlordProfile,
   onViewOnMap,
   currentUserRole,
@@ -58,15 +62,9 @@ export default function PropertyCard({
   };
 
   return (
-    <motion.div
+    <div
       id={`property-card-${property.id}`}
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      whileHover={{ y: -6 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/80 bg-white transition-all duration-300 hover:border-pink-400 hover:shadow-xl hover:shadow-pink-500/10 cursor-pointer"
+      className="group relative flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/80 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-pink-400 hover:shadow-xl hover:shadow-pink-500/10 cursor-pointer"
       onClick={onSelect}
     >
       {/* Property Image & Overlays */}
@@ -80,8 +78,18 @@ export default function PropertyCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
 
-        {/* Property Type & Gender Policy Badges */}
+        {/* Property Type, Gender Policy, and Approval Status Badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1 items-center max-w-[85%]">
+          {property.approvalStatus === "pending" && (
+            <span className="rounded-full bg-amber-500 text-stone-900 font-extrabold px-2.5 py-1 text-[9px] sm:text-[10px] shadow-md animate-pulse border border-amber-300">
+              ⏳ Pending Approval
+            </span>
+          )}
+          {property.approvalStatus === "rejected" && (
+            <span className="rounded-full bg-red-600 text-white font-extrabold px-2.5 py-1 text-[9px] sm:text-[10px] shadow-md border border-red-400">
+              ❌ Rejected
+            </span>
+          )}
           <span className="rounded-full bg-stone-900/80 backdrop-blur-md px-2.5 py-1 text-[9px] sm:text-[10px] font-bold text-white shadow-xs border border-white/20">
             {property.type}
           </span>
@@ -139,7 +147,7 @@ export default function PropertyCard({
           {property.title}
         </h3>
 
-        <p className="mb-3 line-clamp-2 text-[11px] sm:text-xs leading-relaxed text-stone-500 font-light">
+        <p className="mb-3 line-clamp-2 text-[11px] sm:text-xs leading-relaxed text-stone-600 font-normal">
           {property.description}
         </p>
 
@@ -274,6 +282,41 @@ export default function PropertyCard({
             )}
           </div>
         </div>
+
+        {/* Admin Action Bar */}
+        {currentUserRole === "admin" && (
+          <div className="mt-3 pt-2.5 border-t border-amber-200 bg-amber-50/80 -mx-3.5 -mb-3.5 p-3 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900">
+              Admin Action:
+            </span>
+            <div className="flex items-center gap-1.5">
+              {property.approvalStatus !== "approved" && onApprove && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onApprove(property);
+                  }}
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                >
+                  <span>Approve ✅</span>
+                </button>
+              )}
+              {property.approvalStatus !== "rejected" && onReject && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject(property);
+                  }}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                >
+                  <span>Reject ❌</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Recommendation Context Footer */}
@@ -284,6 +327,6 @@ export default function PropertyCard({
           </p>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

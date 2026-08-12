@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import L from "leaflet";
-import { getGumacaSchools } from "../utils/schoolDistances";
 import {
   Navigation,
   MapPin,
@@ -11,7 +11,8 @@ import {
   Maximize2,
   X,
   Compass,
-  Check
+  Check,
+  Lock
 } from "lucide-react";
 
 interface PostingLocationMapProps {
@@ -19,6 +20,7 @@ interface PostingLocationMapProps {
   lng: number | null;
   onChangeLocation: (lat: number, lng: number) => void;
   neighborhood?: string;
+  language?: "english" | "tagalog";
 }
 
 // Default fallback coordinates for Gumaca barangays
@@ -44,218 +46,192 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
   lng,
   onChangeLocation,
   neighborhood,
+  language = "english",
 }) => {
+  const isTagalog = language === "tagalog";
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const propertyMarkerRef = useRef<L.Marker | null>(null);
-  const userMarkerRef = useRef<L.Marker | null>(null);
-  const userAccuracyCircleRef = useRef<L.Circle | null>(null);
-  const schoolsLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullView, setIsFullView] = useState(false);
+  const isFullViewRef = useRef(false);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isGpsSuccess, setIsGpsSuccess] = useState(false);
-  const [showSchoolsOnMap, setShowSchoolsOnMap] = useState(true);
-  const [userLocation, setUserLocation] = useState<{
-    lat: number;
-    lng: number;
-    accuracy: number;
-  } | null>(null);
 
   // Determine current active property coordinates
   const defaultCoords = getNeighborhoodDefaultLatLng(neighborhood);
   const currentLat = lat ?? defaultCoords[0];
   const currentLng = lng ?? defaultCoords[1];
 
-  // Initialize Leaflet Map ONCE on mount
+  // Re-initialize or update Leaflet Map cleanly whenever isFullView or mapMode changes
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    isFullViewRef.current = isFullView;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    if (!leafletMapRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: [currentLat, currentLng],
-        zoom: 16,
-        zoomControl: true,
-      });
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      // Map click handler to update property pin location
-      map.on("click", (e: L.LeafletMouseEvent) => {
-        onChangeLocation(e.latlng.lat, e.latlng.lng);
-      });
-
-      leafletMapRef.current = map;
+    // Destroy any existing map instance on re-mount or container switch
+    if (leafletMapRef.current) {
+      try {
+        leafletMapRef.current.remove();
+      } catch (e) {}
+      leafletMapRef.current = null;
+      tileLayerRef.current = null;
+      propertyMarkerRef.current = null;
     }
 
-    setTimeout(() => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
-      }
-    }, 150);
-
-    return () => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
-      }
-    };
-  }, []);
-
-  // Sync Leaflet viewport dimensions whenever isFullView changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
-      }
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [isFullView]);
-
-  // Update Property Listing Pin on Map
-  useEffect(() => {
-    const map = leafletMapRef.current;
-    if (!map) return;
-
-    const propertyIcon = L.divIcon({
-      className: "custom-posting-property-pin",
-      html: `
-        <div class="relative flex flex-col items-center cursor-grab active:cursor-grabbing group">
-          <div class="bg-indigo-600 text-white p-2 rounded-2xl shadow-xl ring-4 ring-indigo-500/30 border-2 border-white flex items-center justify-center transition-transform transform group-hover:scale-110">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </div>
-          <div class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md mt-0.5 whitespace-nowrap border border-white/50">
-            🏠 Inilagay na Pin
-          </div>
-          <div class="w-3 h-3 bg-indigo-600 rotate-45 -mt-2 border-r border-b border-white shadow-xs"></div>
-        </div>
-      `,
-      iconSize: [120, 60],
-      iconAnchor: [60, 52],
+    // Create fresh Leaflet map on current container
+    const map = L.map(container, {
+      center: [currentLat, currentLng],
+      zoom: isFullView ? 17 : 16,
+      zoomControl: isFullView,
+      dragging: isFullView,
+      touchZoom: isFullView,
+      doubleClickZoom: isFullView,
+      scrollWheelZoom: isFullView,
+      boxZoom: isFullView,
+      keyboard: isFullView,
     });
 
-    if (!propertyMarkerRef.current) {
-      const marker = L.marker([currentLat, currentLng], {
+    // Map click handler
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      if (isFullViewRef.current) {
+        onChangeLocation(e.latlng.lat, e.latlng.lng);
+      } else {
+        setIsFullView(true);
+      }
+    });
+
+    leafletMapRef.current = map;
+
+    // 1. Add Tile Layer (Standard Clean Street Map)
+    const tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+
+    const tileLayer = L.tileLayer(tileUrl, {
+      maxZoom: 20,
+      attribution,
+      subdomains: "abcd",
+    }).addTo(map);
+    tileLayerRef.current = tileLayer;
+
+    // Helper to create Property Pin
+    const createPropertyMarker = (mapInstance: L.Map, pinLat: number, pinLng: number) => {
+      const propertyIcon = L.divIcon({
+        className: "custom-posting-property-pin",
+        html: `
+          <div class="relative flex flex-col items-center cursor-grab active:cursor-grabbing group">
+            <div class="text-rose-600 drop-shadow-md transition-transform transform group-hover:scale-110">
+              <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="currentColor" stroke="#ffffff" stroke-width="1.5">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [38, 38],
+        iconAnchor: [19, 38],
+      });
+
+      const marker = L.marker([pinLat, pinLng], {
         icon: propertyIcon,
-        draggable: true,
-      }).addTo(map);
+        draggable: isFullViewRef.current,
+      }).addTo(mapInstance);
 
       marker.on("dragend", (e: any) => {
         const position = e.target.getLatLng();
         onChangeLocation(position.lat, position.lng);
       });
 
-      propertyMarkerRef.current = marker;
-    } else {
-      propertyMarkerRef.current.setLatLng([currentLat, currentLng]);
+      return marker;
+    };
+
+    // 2. Add Property Pin ONLY if landlord user has set coordinates / detected GPS
+    if (lat !== null && lng !== null) {
+      propertyMarkerRef.current = createPropertyMarker(map, lat, lng);
     }
 
-    map.panTo([currentLat, currentLng], { animate: true });
-  }, [currentLat, currentLng]);
-
-  // Draw or update User Exact Position Marker
-  useEffect(() => {
-    const map = leafletMapRef.current;
-    if (!map || !userLocation) return;
-
-    // User exact location pin with pulsing effect
-    const userExactIcon = L.divIcon({
-      className: "user-exact-gps-pin",
-      html: `
-        <div class="relative flex flex-col items-center">
-          <div class="absolute -top-1 w-10 h-10 bg-sky-500/30 rounded-full animate-ping"></div>
-          <div class="bg-sky-500 text-white p-2 rounded-full shadow-lg ring-4 ring-sky-400/50 border-2 border-white flex items-center justify-center z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
-          </div>
-          <div class="bg-sky-950 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md mt-1 border border-sky-400/40 whitespace-nowrap z-10">
-            📍 Exact Location Mo
-          </div>
-        </div>
-      `,
-      iconSize: [110, 50],
-      iconAnchor: [55, 20],
-    });
-
-    if (!userMarkerRef.current) {
-      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
-        icon: userExactIcon,
-        zIndexOffset: 1000,
-      }).addTo(map);
-    } else {
-      userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+    // 3. Add Property Pin ONLY if landlord user has set coordinates / detected GPS
+    if (lat !== null && lng !== null) {
+      propertyMarkerRef.current = createPropertyMarker(map, lat, lng);
     }
 
-    // Accuracy Circle
-    if (!userAccuracyCircleRef.current) {
-      userAccuracyCircleRef.current = L.circle([userLocation.lat, userLocation.lng], {
-        radius: Math.max(userLocation.accuracy, 15),
-        color: "#0284c7",
-        fillColor: "#38bdf8",
-        fillOpacity: 0.2,
-        weight: 1.5,
-      }).addTo(map);
-    } else {
-      userAccuracyCircleRef.current.setLatLng([userLocation.lat, userLocation.lng]);
-      userAccuracyCircleRef.current.setRadius(Math.max(userLocation.accuracy, 15));
-    }
-  }, [userLocation]);
+    // Invalidate size multiple times as container finishes mounting/animating
+    const refreshMap = () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.invalidateSize({ animate: false });
+        if (tileLayerRef.current) {
+          tileLayerRef.current.redraw();
+        }
+      }
+    };
 
-  // Render all school pinpoints on PostingLocationMap if enabled
+    refreshMap();
+    const t1 = setTimeout(refreshMap, 50);
+    const t2 = setTimeout(refreshMap, 150);
+    const t3 = setTimeout(refreshMap, 300);
+    const t4 = setTimeout(refreshMap, 500);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      if (leafletMapRef.current) {
+        try {
+          leafletMapRef.current.remove();
+        } catch (e) {}
+        leafletMapRef.current = null;
+        tileLayerRef.current = null;
+        propertyMarkerRef.current = null;
+      }
+    };
+  }, [isFullView]);
+
+  // Synchronize Pin Position and Map Center when lat / lng changes
   useEffect(() => {
     const map = leafletMapRef.current;
     if (!map) return;
 
-    if (!schoolsLayerRef.current) {
-      schoolsLayerRef.current = L.layerGroup().addTo(map);
-    } else {
-      schoolsLayerRef.current.clearLayers();
-    }
-
-    if (!showSchoolsOnMap) return;
-
-    const schools = getGumacaSchools();
-    schools.forEach((sch) => {
-      const schoolIcon = L.divIcon({
-        className: "custom-posting-school-marker !bg-transparent !border-none",
+    if (lat !== null && lng !== null) {
+      const propertyIcon = L.divIcon({
+        className: "custom-posting-property-pin",
         html: `
-          <div class="cursor-pointer group flex flex-col items-center transition-transform hover:scale-110 active:scale-95">
-            <div class="relative flex items-center justify-center">
-              <div class="w-7 h-7 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-amber-300 rounded-full border-2 border-amber-400 shadow-lg flex items-center justify-center">
-                <span class="text-[10px]">🎓</span>
-              </div>
-            </div>
-            <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-amber-400 -mt-0.5"></div>
-            <div class="bg-indigo-950/90 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow mt-0.5 border border-amber-400/40 whitespace-nowrap">
-              ${sch.shortName || sch.name}
+          <div class="relative flex flex-col items-center cursor-grab active:cursor-grabbing group">
+            <div class="text-rose-600 drop-shadow-md transition-transform transform group-hover:scale-110">
+              <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="currentColor" stroke="#ffffff" stroke-width="1.5">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
             </div>
           </div>
         `,
-        iconSize: [100, 45],
-        iconAnchor: [50, 25]
+        iconSize: [38, 38],
+        iconAnchor: [19, 38],
       });
 
-      const marker = L.marker([sch.lat, sch.lng], {
-        icon: schoolIcon,
-        title: sch.name
-      });
+      if (!propertyMarkerRef.current) {
+        const marker = L.marker([lat, lng], {
+          icon: propertyIcon,
+          draggable: isFullViewRef.current,
+        }).addTo(map);
 
-      marker.bindPopup(`
-        <div class="p-2 font-sans min-w-[180px]">
-          <div class="flex items-center gap-1.5 mb-1">
-            <span class="text-sm">🎓</span>
-            <strong class="text-xs font-bold text-stone-900">${sch.name}</strong>
-          </div>
-          <p class="text-[10px] text-stone-600 m-0">${sch.desc}</p>
-        </div>
-      `);
+        marker.on("dragend", (e: any) => {
+          const position = e.target.getLatLng();
+          onChangeLocation(position.lat, position.lng);
+        });
 
-      schoolsLayerRef.current?.addLayer(marker);
-    });
-  }, [showSchoolsOnMap]);
+        propertyMarkerRef.current = marker;
+      } else {
+        propertyMarkerRef.current.setLatLng([lat, lng]);
+      }
+      map.panTo([lat, lng], { animate: true });
+    } else {
+      if (propertyMarkerRef.current) {
+        propertyMarkerRef.current.remove();
+        propertyMarkerRef.current = null;
+      }
+    }
+  }, [lat, lng]);
 
   const [gpsNotice, setGpsNotice] = useState<{
     type: "warning" | "info";
@@ -267,54 +243,25 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
   const processPosition = (position: GeolocationPosition) => {
     const userLat = position.coords.latitude;
     const userLng = position.coords.longitude;
-    const accuracy = position.coords.accuracy || 20;
 
-    setUserLocation({
-      lat: userLat,
-      lng: userLng,
-      accuracy,
-    });
     setIsLocating(false);
 
-    // Validate if coordinates are inside Philippines (Lat 4.5..21.5, Lng 116..127)
-    const isPhilippines = userLat >= 4.5 && userLat <= 21.5 && userLng >= 116.0 && userLng <= 127.0;
-    // Check if within Gumaca / Quezon region (~ Lat 13.70..14.15, Lng 121.80..122.30)
+    // ALWAYS move the pin to exact GPS location
+    onChangeLocation(userLat, userLng);
+    setIsGpsSuccess(true);
+
     const isGumacaRegion = userLat >= 13.70 && userLat <= 14.15 && userLng >= 121.80 && userLng <= 122.30;
-
-    if (!isPhilippines) {
-      // Returned a datacenter/VPN location outside PH (e.g. Singapore, US)
-      setGpsNotice({
-        type: "warning",
-        title: "⚠️ Pahiwatig sa VPN / Server IP Location",
-        message: `Ang kasalukuyang GPS ng iyong device ay nasa labas ng Pilipinas (Lat: ${userLat.toFixed(2)}, Lng: ${userLng.toFixed(2)}). Napanatili ang inyong inilagay na pin sa mapa sa Gumaca.`
-      });
-      setIsGpsSuccess(false);
-
-      if (leafletMapRef.current) {
-        leafletMapRef.current.flyTo([currentLat, currentLng], 16, { animate: true });
-      }
-      return;
-    }
-
     if (!isGumacaRegion) {
-      // Inside PH but outside Gumaca
       setGpsNotice({
         type: "info",
-        title: "📍 Nahanap ang GPS sa labas ng Gumaca",
-        message: `Nakuha ang GPS ng device mo (Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}), ngunit ang posting na ito ay para sa Bayan ng Gumaca, Quezon. Napanatili ang inyong inilagay na pin sa mapa.`
+        title: isTagalog ? "📍 Nakuha ang iyong Eksaktong GPS Location" : "📍 Exact GPS Location Acquired",
+        message: isTagalog 
+          ? `Naka-center na sa iyong eksaktong GPS coordinates (Lat: ${userLat.toFixed(5)}, Lng: ${userLng.toFixed(5)}).`
+          : `Centered at your exact GPS coordinates (Lat: ${userLat.toFixed(5)}, Lng: ${userLng.toFixed(5)}).`
       });
-      setIsGpsSuccess(false);
-
-      if (leafletMapRef.current) {
-        leafletMapRef.current.flyTo([currentLat, currentLng], 16, { animate: true });
-      }
-      return;
+    } else {
+      setGpsNotice(null);
     }
-
-    // Valid Gumaca GPS position
-    onChangeLocation(userLat, userLng);
-    setGpsNotice(null);
-    setIsGpsSuccess(true);
 
     if (leafletMapRef.current) {
       leafletMapRef.current.flyTo([userLat, userLng], 17, {
@@ -324,43 +271,63 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
     }
   };
 
-  // Fast GPS Trigger with immediate fallback
+  // Fast GPS Trigger with robust fallback
   const handleGetGPSLocation = () => {
+    setIsFullView(true);
     setIsLocating(true);
     setGpsError(null);
     setGpsNotice(null);
     setIsGpsSuccess(false);
 
     if (!navigator.geolocation) {
-      setGpsError("Hindi supported ng iyong browser ang Geolocation. I-click na lamang ang pwesto sa mapa.");
+      setGpsError(
+        isTagalog
+          ? "Hindi supported ng iyong browser ang Geolocation. I-click na lamang ang pwesto sa mapa."
+          : "Geolocation is not supported by your browser. Please click the location on the map."
+      );
       setIsLocating(false);
       return;
     }
 
-    // Fast attempt 1: High accuracy with tight 3.5s timeout
+    // Attempt 1: High accuracy with 10s timeout
     navigator.geolocation.getCurrentPosition(
       (pos) => processPosition(pos),
       () => {
-        // Fast attempt 2: Standard accuracy (super fast < 1s via wifi/cell)
+        // Fallback attempt 2: Standard accuracy (fast cell/wifi position)
         navigator.geolocation.getCurrentPosition(
           (pos) => processPosition(pos),
           (err) => {
             setIsLocating(false);
             if (err.code === err.PERMISSION_DENIED) {
-              setGpsError("Paki-tulutan ang Location Access sa browser o i-click ang pwesto sa mapa ng Gumaca.");
+              setGpsError(
+                isTagalog
+                  ? "Paki-tulutan ang Location Access sa iyong browser o i-click ang pwesto sa mapa."
+                  : "Please allow location access in your browser or click the location on the map."
+              );
+            } else if (err.code === err.TIMEOUT) {
+              setGpsError(
+                isTagalog
+                  ? "Nag-timeout ang GPS request. Paki-subukan muli o i-click ang pwesto sa mapa."
+                  : "GPS request timed out. Please try again or click the location on the map."
+              );
             } else {
-              setGpsError("Hindi makuha ang GPS. Maaari mong i-click nang direkta sa mapa ang eksaktong pwesto.");
+              setGpsError(
+                isTagalog
+                  ? "Hindi makuha ang GPS. Maaari mong i-click nang direkta sa mapa ang eksaktong pwesto."
+                  : "Unable to get GPS. You can click directly on the map for the exact location."
+              );
             }
           },
-          { enableHighAccuracy: false, timeout: 3000, maximumAge: 300000 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
         );
       },
-      { enableHighAccuracy: true, timeout: 3500, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
   // Instant Reset to Gumaca Barangay Center
   const handleResetToGumacaBarangay = () => {
+    setIsFullView(true);
     const coords = getNeighborhoodDefaultLatLng(neighborhood);
     onChangeLocation(coords[0], coords[1]);
     setGpsError(null);
@@ -381,10 +348,12 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
           </div>
           <div>
             <h4 className="text-xs font-bold text-stone-800">
-              Lokasyon sa Mapa (Gumaca, Quezon Pin) 📍
+              {isTagalog ? "Lokasyon sa Mapa (Gumaca, Quezon Pin) 📍" : "Map Location (Gumaca, Quezon Pin) 📍"}
             </h4>
             <p className="text-[10px] text-stone-500">
-              I-click ang eksaktong pwesto ng bahay o apartment sa Gumaca, Quezon
+              {isTagalog
+                ? "I-click ang eksaktong pwesto ng bahay o apartment sa Gumaca, Quezon"
+                : "Click the exact location of the house or apartment in Gumaca, Quezon"}
             </p>
           </div>
         </div>
@@ -395,10 +364,10 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
             type="button"
             onClick={handleResetToGumacaBarangay}
             className="bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 rounded-xl py-1.5 px-2.5 text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
-            title="I-center ang pin sa napiling Barangay sa Gumaca"
+            title={isTagalog ? "I-center ang pin sa napiling Barangay sa Gumaca" : "Center pin to selected Barangay in Gumaca"}
           >
             <Compass className="h-3.5 w-3.5 text-indigo-600" />
-            <span>Reset sa Barangay 📍</span>
+            <span>{isTagalog ? "Reset sa Barangay 📍" : "Reset to Barangay 📍"}</span>
           </button>
 
           {/* GPS Button */}
@@ -411,12 +380,12 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
             {isLocating ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Kinukuha ang GPS...</span>
+                <span>{isTagalog ? "Kinukuha ang GPS..." : "Getting GPS..."}</span>
               </>
             ) : (
               <>
                 <Navigation className="h-3.5 w-3.5 fill-white/20" />
-                <span>Exact GPS Location Ko 📍</span>
+                <span>{isTagalog ? "Exact GPS Location Ko 📍" : "My Exact GPS Location 📍"}</span>
               </>
             )}
           </button>
@@ -424,16 +393,16 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
       </div>
 
       {/* GPS Status & Notifications */}
-      {isGpsSuccess && userLocation && (
+      {isGpsSuccess && lat !== null && lng !== null && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] p-2.5 rounded-xl flex items-center justify-between gap-2 font-medium">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
             <span>
-              <strong>Nahanap ang Exact Location mo sa Gumaca!</strong> (Lat: {userLocation.lat.toFixed(5)}, Lng: {userLocation.lng.toFixed(5)})
+              <strong>{isTagalog ? "Nahanap at Inilipat sa Exact GPS Location!" : "Found and Moved to Exact GPS Location!"}</strong> (Lat: {lat.toFixed(5)}, Lng: {lng.toFixed(5)})
             </span>
           </div>
           <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
-            ±{Math.round(userLocation.accuracy)}m Accuracy
+            GPS Active 📍
           </span>
         </div>
       )}
@@ -457,161 +426,224 @@ export const PostingLocationMap: React.FC<PostingLocationMapProps> = ({
         </div>
       )}
 
-      {/* PERSISTENT SINGLE MAP CONTAINER WRAPPER */}
-      <div
-        className={
-          isFullView
-            ? "fixed inset-0 z-[200] bg-stone-900/90 backdrop-blur-md p-2 sm:p-4 flex flex-col transition-all duration-200"
-            : "relative rounded-xl overflow-hidden border border-stone-200 shadow-inner group"
-        }
-      >
-        {/* Full View Header Bar */}
-        {isFullView && (
-          <div className="bg-stone-900 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 rounded-t-3xl">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-600 text-white rounded-2xl shadow-md">
+      {/* MAP CONTAINER AREA */}
+      {!isFullView ? (
+        /* COMPACT PREVIEW IN FORM */
+        <div
+          onClick={() => setIsFullView(true)}
+          className="relative w-full h-52 rounded-2xl overflow-hidden border border-stone-200 shadow-xs cursor-pointer group hover:border-indigo-400 transition-colors bg-stone-100"
+        >
+          <div
+            ref={mapContainerRef}
+            className="w-full h-full z-0 pointer-events-none select-none opacity-90"
+            style={{ width: "100%", height: "100%" }}
+          />
+
+          {/* Compact View Overlay Badges */}
+          <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between gap-1.5 pointer-events-none">
+            <div className="bg-stone-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 shrink-0">
+              <Lock className="h-3 w-3 text-amber-400" />
+              <span>{isTagalog ? "Naka-lock (Static Preview)" : "Locked (Static Preview)"}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFullView(true);
+              }}
+              className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg shadow-lg border border-indigo-400/80 flex items-center gap-1 text-[11px] font-bold cursor-pointer transition-transform active:scale-95 shrink-0"
+            >
+              <Maximize2 className="h-3 w-3" />
+              <span>Full View 📍</span>
+            </button>
+          </div>
+
+          <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-xl px-2.5 py-1.5 shadow-md flex items-center justify-between gap-2 z-10 group-hover:bg-indigo-50/90 transition-colors">
+            <div className="flex items-center gap-1 text-[10px] font-mono text-stone-700 min-w-0">
+              <Crosshair className="h-3 w-3 text-indigo-600 shrink-0" />
+              {lat !== null && lng !== null ? (
+                <span className="truncate">{lat.toFixed(5)}, {lng.toFixed(5)}</span>
+              ) : (
+                <span className="truncate font-sans italic text-amber-700 font-semibold">
+                  {isTagalog ? "Wala pang nakalagay na pin (Paki-GPS)" : "No pin set yet (Use GPS)"}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-indigo-600 font-bold shrink-0 flex items-center gap-0.5 whitespace-nowrap">
+              <span>{isTagalog ? "Pindutin para palitan" : "Click to change"}</span>
+              <span>→</span>
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* FORM PLACEHOLDER WHILE FULL VIEW IS ACTIVE */
+        <div
+          onClick={() => setIsFullView(true)}
+          className="relative w-full h-52 rounded-2xl overflow-hidden border-2 border-indigo-500 bg-indigo-950 p-4 text-white flex flex-col items-center justify-center text-center gap-2 cursor-pointer shadow-lg animate-pulse"
+        >
+          <Compass className="h-8 w-8 text-indigo-400 animate-spin" style={{ animationDuration: "10s" }} />
+          <div>
+            <h4 className="font-bold text-sm text-white">
+              {isTagalog ? "Naka-open ang Full View Map 📍" : "Full View Map Active 📍"}
+            </h4>
+            <p className="text-xs text-indigo-200 mt-0.5">
+              {isTagalog
+                ? "Nasa full screen ang mapa para mas madaling mag-pin ng eksaktong lokasyon."
+                : "Map is in full screen mode for easy exact location pinning."}
+            </p>
+          </div>
+          <span className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md mt-1">
+            {isTagalog ? "Bumalik sa Full View Map" : "Return to Full View Map"}
+          </span>
+        </div>
+      )}
+
+      {/* FULL VIEW MAP PORTAL (MOUNTED DIRECTLY TO DOCUMENT BODY) */}
+      {isFullView && createPortal(
+        <div className="fixed inset-0 z-[999999] bg-stone-950 flex flex-col w-screen h-screen overflow-hidden">
+          {/* Full Screen Header Bar */}
+          <div className="bg-stone-900 text-white px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 border-b border-stone-800 shadow-lg z-20">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-md shrink-0">
                 <Compass className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="font-display text-base font-bold text-white flex items-center gap-2">
-                  Gumaca Expanded Map Location Selector 🗺️
+              <div className="min-w-0">
+                <h3 className="font-bold text-xs sm:text-base text-white truncate flex items-center gap-1.5">
+                  <span>Gumaca Map Location Selector</span>
+                  <span>🗺️</span>
                 </h3>
-                <p className="text-xs text-stone-300 font-light">
-                  I-point out ang exact location o i-drag ang pin sa eksaktong pwesto.
+                <p className="text-[10px] sm:text-xs text-stone-300 truncate">
+                  {isTagalog
+                    ? "I-drag ang pin o i-click sa mapa ang exact location."
+                    : "Drag the pin or click on the map for the exact location."}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleGetGPSLocation}
                 disabled={isLocating}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl py-2 px-3.5 text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer active:scale-95 disabled:opacity-60"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-1.5 px-2.5 sm:px-3 text-xs font-bold transition-all flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95 disabled:opacity-60"
               >
                 {isLocating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Kinukuha ang GPS...</span>
-                  </>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <>
-                    <Navigation className="h-4 w-4 fill-white/20" />
-                    <span>Eksaktong Lokasyon Ko 📍</span>
-                  </>
+                  <Navigation className="h-3.5 w-3.5" />
                 )}
+                <span className="hidden sm:inline">{isTagalog ? "GPS Ko 📍" : "My GPS 📍"}</span>
               </button>
+
+              {lat !== null && lng !== null ? (
+                <button
+                  type="button"
+                  onClick={() => setIsFullView(false)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-1.5 px-3 sm:px-4 text-xs font-bold transition-all flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95"
+                >
+                  <Check className="h-4 w-4" />
+                  <span>{isTagalog ? "I-confirm Pin Location ✓" : "Confirm Pin Location ✓"}</span>
+                </button>
+              ) : null}
 
               <button
                 type="button"
                 onClick={() => setIsFullView(false)}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl py-2 px-4 text-xs font-bold transition-all flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95"
-              >
-                <Check className="h-4 w-4" />
-                <span>I-confirm Lokasyon</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsFullView(false)}
-                className="p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-2xl transition-colors cursor-pointer"
-                title="Isara ang Full View"
+                className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                title={isTagalog ? "Isara ang Full View Map" : "Close Full View Map"}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
-        )}
 
-        {/* GPS Banner in Full View */}
-        {isFullView && userLocation && (
-          <div className="bg-sky-900 text-sky-100 text-xs px-4 py-2 border-b border-sky-800 flex items-center justify-between shrink-0 font-medium">
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2.5 h-2.5 bg-sky-400 rounded-full animate-ping"></span>
-              <span>
-                📍 Natukoy ang iyong exact GPS location: <strong>Lat {userLocation.lat.toFixed(6)}, Lng {userLocation.lng.toFixed(6)}</strong>
-              </span>
-            </div>
-            <span className="text-[11px] bg-sky-800 px-2.5 py-0.5 rounded-full font-bold">
-              Accurate within ±{Math.round(userLocation.accuracy)} meters
-            </span>
-          </div>
-        )}
-
-        {/* PERMANENT LEAFLET MAP ELEMENT */}
-        <div className={isFullView ? "relative flex-1 w-full bg-stone-100 rounded-b-3xl overflow-hidden" : "relative w-full h-56"}>
-          <div
-            ref={mapContainerRef}
-            className="w-full h-full z-0"
-            style={{ height: isFullView ? "100%" : "220px" }}
-          />
-
-          {/* Expand Button Overlay (Compact Mode) */}
-          {!isFullView && (
-            <div className="absolute top-2 right-2 z-10">
-              <button
-                type="button"
-                onClick={() => setIsFullView(true)}
-                className="bg-white/90 hover:bg-white text-stone-800 p-2 rounded-xl shadow-md border border-stone-200 flex items-center gap-1 text-xs font-bold cursor-pointer backdrop-blur-xs transition-transform active:scale-95"
-              >
-                <Maximize2 className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">I-expand</span>
-              </button>
-            </div>
-          )}
-
-          {/* Coordinates Overlay (Compact Mode) */}
-          {!isFullView && (
-            <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-xs border border-stone-200 rounded-xl p-2 shadow-md flex items-center justify-between text-[11px] z-10">
-              <div className="flex items-center gap-1.5 font-mono text-stone-800">
-                <Crosshair className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="font-semibold">Lat:</span> {currentLat.toFixed(6)},{" "}
-                <span className="font-semibold">Lng:</span> {currentLng.toFixed(6)}
+          {/* GPS Banner inside Full View */}
+          {lat !== null && lng !== null && (
+            <div className="bg-stone-900 text-emerald-400 text-xs px-3 sm:px-4 py-2 border-b border-stone-800 flex items-center justify-between shrink-0 font-medium z-20">
+              <div className="flex items-center gap-2 truncate">
+                <span className="inline-block w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping shrink-0"></span>
+                <span className="truncate">
+                  📍 Active Coordinates: <strong>Lat {lat.toFixed(5)}, Lng {lng.toFixed(5)}</strong>
+                </span>
               </div>
-              <span className="text-[10px] text-stone-500 hidden sm:inline">
-                I-drag ang pin o i-click ang mapa upang palitan
-              </span>
             </div>
           )}
 
-          {/* Floating Bottom Card (Full View Mode) */}
-          {isFullView && (
-            <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-stone-200 shadow-xl z-10 flex flex-col space-y-2">
+          {/* FULL VIEW MAP ELEMENT CONTAINER */}
+          <div className="relative flex-1 w-full h-full bg-stone-900 overflow-hidden">
+            <div
+              ref={mapContainerRef}
+              className="w-full h-full z-0"
+              style={{ width: "100%", height: "100%" }}
+            />
+
+            {/* Floating Bottom Card (Full View Mode) */}
+            <div className="absolute bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:w-96 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-stone-200 shadow-2xl z-10 flex flex-col space-y-2">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2">
                 <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                   <Crosshair className="h-4 w-4 text-indigo-600" />
-                  Selected Pin Coordinates
+                  {lat !== null && lng !== null
+                    ? (isTagalog ? "Selected Pin Coordinates" : "Selected Pin Coordinates")
+                    : (isTagalog ? "Walang Pin Pa" : "No Pin Yet")}
                 </span>
-                <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold">
-                  Active Pin
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                  lat !== null && lng !== null ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"
+                }`}>
+                  {lat !== null && lng !== null
+                    ? (isTagalog ? "Active Pin 📍" : "Active Pin 📍")
+                    : (isTagalog ? "Naka-off ang Pin 📍" : "Pin Disabled 📍")}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-stone-50 p-2 rounded-xl border border-stone-100">
                 <div>
                   <span className="text-[10px] text-stone-400 font-sans uppercase font-bold block">Latitude</span>
-                  <span className="text-stone-800 font-bold">{currentLat.toFixed(6)}</span>
+                  <span className="text-stone-800 font-bold">{lat !== null ? lat.toFixed(6) : "--"}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-stone-400 font-sans uppercase font-bold block">Longitude</span>
-                  <span className="text-stone-800 font-bold">{currentLng.toFixed(6)}</span>
+                  <span className="text-stone-800 font-bold">{lng !== null ? lng.toFixed(6) : "--"}</span>
                 </div>
               </div>
+              {lat === null || lng === null ? (
+                <p className="text-[11px] text-amber-700 italic font-medium text-center">
+                  {isTagalog ? (
+                    <>I-click ang <strong>"GPS Ko 📍"</strong> o mag-click sa mapa para maglagay ng pin.</>
+                  ) : (
+                    <>Click <strong>"My GPS 📍"</strong> or click on the map to place a pin.</>
+                  )}
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setIsFullView(false)}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className={`w-full rounded-xl py-2.5 px-3 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-1.5 ${
+                  lat !== null && lng !== null
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                    : "bg-stone-700 hover:bg-stone-600 text-stone-200"
+                }`}
               >
-                Gamitin ang Coordinates na Ito 👍
+                {lat !== null && lng !== null ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>{isTagalog ? "I-confirm Pin Location ✓" : "Confirm Pin Location ✓"}</span>
+                  </>
+                ) : (
+                  <span>{isTagalog ? "Isara ang Mapa (Walang Pin)" : "Close Map (No Pin)"}</span>
+                )}
               </button>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <p className="text-[10px] text-stone-500 italic flex items-center gap-1">
         <span>💡</span>
         <span>
-          Pwedeng i-drag ang pin o pindutin ang <strong>I-expand</strong> button sa ibabaw ng mapa para sa mas malaking layout.
+          {isTagalog
+            ? "Naka-lock ang mini preview para mabilis ang pag-scroll sa form. Pindutin ang mapa o ang Full View button para i-open at mag-set ng lokasyon."
+            : "The mini preview is locked for smooth scrolling. Click the map or the Full View button to open and set a location."}
         </span>
       </p>
     </div>
