@@ -57,7 +57,8 @@ import {
   AlertTriangle,
   Activity,
   Facebook,
-  PhoneCall
+  PhoneCall,
+  MoreVertical
 } from "lucide-react";
 
 // Pre-defined room image presets to make listings look beautiful instantly
@@ -201,6 +202,7 @@ export default function App() {
   // Profile & Settings Modal & Dropdown Menu State
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showProfileMoreMenu, setShowProfileMoreMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [profileTab, setProfileTab] = useState<"profile" | "settings" | "notifications" | "about">("profile");
   const [profileEditName, setProfileEditName] = useState("");
@@ -286,6 +288,7 @@ export default function App() {
   // Admin & Landlord Approval States
   const [adminTabFilter, setAdminTabFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [showLandlordPendingOnly, setShowLandlordPendingOnly] = useState(false);
+  const [showLandlordBoard, setShowLandlordBoard] = useState(true);
 
   useEffect(() => {
     if (prefTheme === "dark") {
@@ -798,12 +801,14 @@ export default function App() {
     setSecurityErrorMsg("");
     setProfileSuccessMsg("");
     setProfileTab("profile");
+    setShowProfileMoreMenu(false);
     setShowProfileModal(true);
   };
 
   const handleOpenProfileTab = (tab: "profile" | "settings" | "notifications" | "about" = "profile") => {
     handleOpenProfile();
     setProfileTab(tab);
+    setShowProfileMoreMenu(false);
   };
 
   // Handle Profile update save
@@ -1444,20 +1449,20 @@ export default function App() {
             {/* 2. Role Choice Tabs */}
             {authMode !== "forgot" && authMode !== "adminLogin" && (
               <div className="space-y-1">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 block text-center sm:text-left">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-pink-600 block text-center sm:text-left">
                   {t("selectRole")}
                 </span>
-                <div className="grid grid-cols-2 p-1 bg-gradient-to-r from-pink-50/90 to-blue-50/90 border border-pink-100 rounded-xl">
+                <div className="grid grid-cols-2 p-1 bg-stone-100 border border-stone-200 rounded-xl gap-1">
                   <button
                     type="button"
                     onClick={() => {
                       setLoginRole("student");
                       setLoginError("");
                     }}
-                    className={`py-1.5 sm:py-2 px-3 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`py-2 px-3 text-[11px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       loginRole === "student"
-                        ? "bg-white text-pink-600 shadow-xs border border-pink-200/60"
-                        : "text-stone-500 hover:text-stone-800"
+                        ? "bg-pink-600 text-white shadow-xs font-black"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
                     }`}
                   >
                     <Users className="h-3.5 w-3.5" />
@@ -1469,10 +1474,10 @@ export default function App() {
                       setLoginRole("landlord");
                       setLoginError("");
                     }}
-                    className={`py-1.5 sm:py-2 px-3 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`py-2 px-3 text-[11px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       loginRole === "landlord"
-                        ? "bg-white text-blue-600 shadow-xs border border-blue-200/60"
-                        : "text-stone-500 hover:text-stone-800"
+                        ? "bg-blue-600 text-white shadow-xs font-black"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
                     }`}
                   >
                     <Building className="h-3.5 w-3.5" />
@@ -1484,7 +1489,7 @@ export default function App() {
 
             {/* Error Message */}
             {loginError && (
-              <div className="p-2 sm:p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[10px] sm:text-xs lg:text-sm text-rose-600 font-medium">
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-semibold">
                 ⚠️ {loginError}
               </div>
             )}
@@ -1739,11 +1744,11 @@ export default function App() {
               ) : (
                 <>
                   {/* Login/Signup Form */}
-                  <form onSubmit={handleLoginSubmit} className="space-y-1.5 sm:space-y-2 lg:space-y-3 animate-none">
+                  <form onSubmit={handleLoginSubmit} className="space-y-2.5 animate-none">
                     {authMode === "signup" && (
-                      <div className="space-y-0.5 lg:space-y-1">
-                        <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                          <Mail className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
+                      <div className="space-y-1">
+                        <label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1">
+                          <Mail className="h-3.5 w-3.5 text-pink-500" />
                           {prefLanguage === "tagalog" ? "Email Address o Mobile Number" : "Email Address or Mobile Number"}
                         </label>
                         <input
@@ -1756,14 +1761,14 @@ export default function App() {
                           }
                           value={signupEmail}
                           onChange={e => setSignupEmail(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-medium"
+                          className="w-full bg-white border border-stone-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none transition-all font-medium placeholder:text-stone-400"
                         />
                       </div>
                     )}
 
-                    <div className="space-y-0.5 lg:space-y-1">
-                      <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                        <Shield className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
+                    <div className="space-y-1">
+                      <label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1">
+                        <Shield className="h-3.5 w-3.5 text-pink-500" />
                         {authMode === "signup" 
                           ? (prefLanguage === "tagalog" ? "Gumawa ng Username" : "Create Username") 
                           : (prefLanguage === "tagalog" ? "Username, Email, o Mobile" : "Username, Email, or Mobile")
@@ -1779,14 +1784,14 @@ export default function App() {
                         }
                         value={loginUsername}
                         onChange={e => setLoginUsername(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl px-2.5 py-1 sm:py-1.5 lg:py-2 lg:px-3 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                        className="w-full bg-white border border-stone-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none transition-all font-mono placeholder:text-stone-400"
                       />
                     </div>
 
-                    <div className="space-y-0.5 lg:space-y-1">
+                    <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
-                          <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-pink-500" />
+                        <label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1">
+                          <Lock className="h-3.5 w-3.5 text-pink-500" />
                           Password
                         </label>
                         {authMode === "login" && (
@@ -1801,7 +1806,7 @@ export default function App() {
                               setForgotConfirmPassword("");
                               setForgotSuccessMsg("");
                             }}
-                            className="text-[9px] sm:text-[10px] lg:text-xs text-pink-600 hover:text-pink-800 font-bold hover:underline cursor-pointer"
+                            className="text-[10px] sm:text-xs text-pink-600 hover:text-pink-800 font-bold hover:underline cursor-pointer"
                           >
                             {t("forgotPasswordLink")}
                           </button>
@@ -1814,22 +1819,22 @@ export default function App() {
                           placeholder="••••••••"
                           value={loginPassword}
                           onChange={e => setLoginPassword(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 focus:border-pink-500 focus:bg-white rounded-xl pl-2.5 pr-8 py-1 sm:py-1.5 lg:py-2 lg:pl-3 lg:pr-9 text-[11px] sm:text-xs lg:text-sm text-stone-800 focus:outline-hidden transition-all font-mono"
+                          className="w-full bg-white border border-stone-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl pl-3 pr-9 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none transition-all font-mono placeholder:text-stone-400"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-2.5 lg:right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-800 focus:outline-none cursor-pointer"
                           title={showPassword ? "Hide Password" : "Show Password"}
                         >
-                          {showPassword ? <EyeOff className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> : <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />}
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-1.5 sm:py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl text-[11px] sm:text-xs lg:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer mt-0.5 lg:mt-1 active:scale-95"
+                      className="w-full bg-gradient-to-r from-pink-500 via-pink-600 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer mt-1 active:scale-95"
                     >
                       {authMode === "signup" ? (
                         <>{t("signupBtn")}</>
@@ -1851,18 +1856,18 @@ export default function App() {
                           setLoginPassword("");
                           setLoginError("");
                         }}
-                        className="text-[10px] sm:text-[11px] text-amber-700 hover:text-amber-900 font-bold hover:underline cursor-pointer inline-flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/70"
+                        className="text-[11px] text-amber-800 hover:text-amber-950 font-bold hover:underline cursor-pointer inline-flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-300"
                       >
-                        <Shield className="h-3 w-3 text-amber-600 shrink-0" />
+                        <Shield className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                         <span>{prefLanguage === "tagalog" ? "Esklusibong Portal ng Admin Login 🔒" : "Exclusive System Admin Portal 🔒"}</span>
                       </button>
                     </div>
                   )}
 
                   {/* Alternate switch link */}
-                  <div className="text-center text-[10px] sm:text-[11px] lg:text-xs pt-0.5">
+                  <div className="text-center text-xs pt-0.5">
                     {authMode === "login" ? (
-                      <span className="text-stone-500">
+                      <span className="text-stone-600 font-medium">
                         {prefLanguage === "tagalog" ? "Bago sa CasaFinder? " : "New to CasaFinder? "}
                         <button
                           type="button"
@@ -1873,13 +1878,13 @@ export default function App() {
                             setSignupEmail("");
                             setLoginError("");
                           }}
-                          className="text-pink-600 font-bold hover:underline cursor-pointer"
+                          className="text-pink-600 font-bold hover:underline cursor-pointer ml-1"
                         >
                           {prefLanguage === "tagalog" ? "Mag-sign Up dito!" : "Sign Up here!"}
                         </button>
                       </span>
                     ) : (
-                      <span className="text-stone-500">
+                      <span className="text-stone-600 font-medium">
                         {prefLanguage === "tagalog" ? "May account na? " : "Already have an account? "}
                         <button
                           type="button"
@@ -1890,7 +1895,7 @@ export default function App() {
                             setSignupEmail("");
                             setLoginError("");
                           }}
-                          className="text-pink-600 font-bold hover:underline cursor-pointer"
+                          className="text-pink-600 font-bold hover:underline cursor-pointer ml-1"
                         >
                           {prefLanguage === "tagalog" ? "Mag-log In dito!" : "Log In here!"}
                         </button>
@@ -1899,40 +1904,40 @@ export default function App() {
                   </div>
 
                   {/* Quick Demo Credentials */}
-                  <div className="pt-2.5 border-t border-pink-100/80 space-y-1">
-                    <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-pink-600/80 text-center">
+                  <div className="pt-2 border-t border-stone-200 space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-pink-600 text-center">
                       {t("quickAccessDemo")}
                     </p>
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => handleQuickLogin("student")}
-                        className="bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                        className="bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-xs active:scale-95"
                       >
-                        <div className="text-[9px] sm:text-[11px] font-bold text-pink-700 group-hover:scale-102 transition-transform truncate">
+                        <div className="text-[11px] font-bold text-pink-700 group-hover:scale-102 transition-transform truncate">
                           Demo Tenant 🎓
                         </div>
-                        <div className="text-[8px] sm:text-[9px] text-pink-500 font-mono mt-0.5">Quick Access</div>
+                        <div className="text-[9px] text-pink-600 font-mono mt-0.5">Quick Access</div>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickLogin("landlord")}
-                        className="bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                        className="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-xs active:scale-95"
                       >
-                        <div className="text-[9px] sm:text-[11px] font-bold text-blue-700 group-hover:scale-102 transition-transform truncate">
+                        <div className="text-[11px] font-bold text-blue-700 group-hover:scale-102 transition-transform truncate">
                           Demo Landlord 🏠
                         </div>
-                        <div className="text-[8px] sm:text-[9px] text-blue-500 font-mono mt-0.5">Property Owner</div>
+                        <div className="text-[9px] text-blue-600 font-mono mt-0.5">Property Owner</div>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickLogin("admin")}
-                        className="bg-amber-50/90 hover:bg-amber-100 border border-amber-300/80 rounded-xl p-1.5 sm:p-2 text-center transition-all cursor-pointer group shadow-2xs active:scale-95"
+                        className="bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl p-2 text-center transition-all cursor-pointer group shadow-xs active:scale-95"
                       >
-                        <div className="text-[9px] sm:text-[11px] font-bold text-amber-800 group-hover:scale-102 transition-transform truncate">
+                        <div className="text-[11px] font-bold text-amber-800 group-hover:scale-102 transition-transform truncate">
                           Demo Admin 🛡️
                         </div>
-                        <div className="text-[8px] sm:text-[9px] text-amber-600 font-mono mt-0.5">2 Accs Portal</div>
+                        <div className="text-[9px] text-amber-700 font-mono mt-0.5">2 Accs Portal</div>
                       </button>
                     </div>
                   </div>
@@ -1977,219 +1982,67 @@ export default function App() {
               </div>
             </div>
 
-            {/* Mobile Profile Icon Button */}
-            <div className="md:hidden relative">
+            {/* Mobile Profile & Settings Button */}
+            <div className="md:hidden flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setShowUserMenu(!showUserMenu)}
+                onClick={() => setShowAboutModal(true)}
+                className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-purple-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title="About CasaFinder"
+              >
+                <Info className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenProfile}
                 className="bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-blue-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
-                title="Profile & Settings"
+                title="Settings / Profile Info"
               >
                 <UserCog className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </button>
-
-              {/* Mobile Profile Dropdown Menu */}
-              <AnimatePresence>
-                {showUserMenu && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setShowUserMenu(false)} 
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                      className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
-                    >
-                      <div className="p-2.5 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-100 dark:border-stone-700 mb-1">
-                        <p className="font-bold text-stone-800 dark:text-stone-100 text-xs truncate">{userSession.name}</p>
-                        <p className="text-[10px] text-stone-500 dark:text-stone-400 font-mono truncate">@{userSession.username}</p>
-                        <span className={`inline-block text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded border ${
-                          userSession.role === "student"
-                            ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800"
-                            : userSession.role === "landlord"
-                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                            : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                        }`}>
-                          {userSession.role === "student" ? t("studentAccount") : userSession.role === "landlord" ? t("landlordAccount") : "System Admin 🛡️"}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("profile");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <User className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabProfileInfo")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("settings");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Lock className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabSecurity")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("notifications");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Bell className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabPreferences")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("about");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Info className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabAbout")}</span>
-                      </button>
-
-                      <div className="border-t border-stone-100 my-1 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            handleSignOut();
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold transition-colors flex items-center gap-2 cursor-pointer"
-                        >
-                          <LogOut className="h-3.5 w-3.5" />
-                          <span>{t("logOut")} 🚪</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="bg-stone-100 dark:bg-stone-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-stone-600 dark:text-stone-300 hover:text-rose-600 dark:hover:text-rose-400 border border-stone-200 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title={t("logOut")}
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
           {/* Quick Header Buttons & Desktop Menu */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-            {/* Desktop Profile & Settings Menu Dropdown */}
-            <div className="hidden md:block relative">
+            {/* Desktop Profile & Settings Direct Button */}
+            <div className="hidden md:flex items-center gap-1.5">
+              {/* About CasaFinder Button - Right beside Profile info button */}
               <button
                 type="button"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-blue-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl p-2.5 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
-                title="Profile & Settings"
+                onClick={() => setShowAboutModal(true)}
+                className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-purple-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                title="About CasaFinder"
               >
-                <UserCog className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                <Info className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                <span>About CasaFinder</span>
               </button>
 
-              {/* Desktop Dropdown Menu */}
-              <AnimatePresence>
-                {showUserMenu && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setShowUserMenu(false)} 
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                      className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xl p-2 space-y-1 font-sans text-xs"
-                    >
-                      <div className="p-2.5 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-100 dark:border-stone-700 mb-1">
-                        <p className="font-bold text-stone-800 dark:text-stone-100 text-xs truncate">{userSession.name}</p>
-                        <p className="text-[10px] text-stone-500 dark:text-stone-400 font-mono truncate">@{userSession.username}</p>
-                        <span className={`inline-block text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded border ${
-                          userSession.role === "student"
-                            ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800"
-                            : userSession.role === "landlord"
-                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                            : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                        }`}>
-                          {userSession.role === "student" ? t("studentAccount") : userSession.role === "landlord" ? t("landlordAccount") : "System Admin 🛡️"}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("profile");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <User className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabProfileInfo")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("settings");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Lock className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabSecurity")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("notifications");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Bell className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabPreferences")}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          handleOpenProfileTab("about");
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-stone-700 dark:text-stone-100 hover:bg-pink-50 dark:hover:bg-pink-950/60 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Info className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                        <span>{t("tabAbout")}</span>
-                      </button>
-
-                      <div className="border-t border-stone-100 my-1 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            handleSignOut();
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold transition-colors flex items-center gap-2 cursor-pointer"
-                        >
-                          <LogOut className="h-3.5 w-3.5" />
-                          <span>{t("logOut")} 🚪</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              <button
+                type="button"
+                onClick={handleOpenProfile}
+                className="bg-gradient-to-r from-pink-50 to-blue-50 dark:from-stone-800 dark:to-stone-800 hover:from-pink-100 hover:to-blue-100 text-stone-800 dark:text-stone-100 border border-pink-200/70 dark:border-stone-700 rounded-xl px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                title="Settings / Profile Info"
+              >
+                <UserCog className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                <span>{t("tabProfileInfo")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="bg-stone-100 dark:bg-stone-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-stone-600 dark:text-stone-300 hover:text-rose-600 dark:hover:text-rose-400 border border-stone-200 dark:border-stone-700 rounded-xl p-2 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title={t("logOut")}
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
 
             {userSession.role === "landlord" && (
@@ -2513,33 +2366,77 @@ export default function App() {
 
           {/* Landlord View Navigation Bar */}
           {userSession?.role === "landlord" && (
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-stone-900 text-white rounded-2xl p-3.5 sm:p-4 mb-5 border border-indigo-700/50 shadow-md space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl text-lg font-bold border border-indigo-400/30 shrink-0">
-                    🏠
+            showLandlordBoard ? (
+              <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-stone-900 text-white rounded-2xl p-3.5 sm:p-4 mb-5 border border-indigo-700/50 shadow-md space-y-3 relative">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 pr-10 sm:pr-0">
+                    <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl text-lg font-bold border border-indigo-400/30 shrink-0">
+                      🏠
+                    </div>
+                    <div>
+                      <h3 className="font-display font-extrabold text-white text-xs sm:text-sm">
+                        {prefLanguage === "tagalog" ? "Landlord Management Dashboard" : "Landlord Management Dashboard"}
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-stone-300">
+                        {prefLanguage === "tagalog"
+                          ? "Ang iyong mga ipinost na tuluyan ay lalabas muna bilang 'Pending' (Kulay Grey) sa iyong Sariling Page hangga't 'di pa inaaprubahan ng Admin."
+                          : "Your newly posted listings appear as 'Pending' (Greyed out) on your personal page until approved by an Admin."}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-display font-extrabold text-white text-xs sm:text-sm">
-                      {prefLanguage === "tagalog" ? "Landlord Management Dashboard" : "Landlord Management Dashboard"}
-                    </h3>
-                    <p className="text-[10px] sm:text-[11px] text-stone-300">
-                      {prefLanguage === "tagalog"
-                        ? "Ang iyong mga ipinost na tuluyan ay lalabas muna bilang 'Pending' (Kulay Grey) sa iyong Sariling Page hangga't 'di pa inaaprubahan ng Admin."
-                        : "Your newly posted listings appear as 'Pending' (Greyed out) on your personal page until approved by an Admin."}
-                    </p>
+
+                  {/* Switcher Buttons & X Close Button */}
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-indigo-800/80 pt-2 sm:pt-0 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowLandlordPendingOnly(false)}
+                      className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                        !showLandlordPendingOnly
+                          ? "bg-pink-600 text-white border-pink-400 shadow-sm font-extrabold"
+                          : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                      }`}
+                    >
+                      <span>🌐 Public Search Feed</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowLandlordPendingOnly(true)}
+                      className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                        showLandlordPendingOnly
+                          ? "bg-amber-500 text-stone-950 border-amber-300 shadow-sm font-extrabold"
+                          : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                      }`}
+                    >
+                      <span>🏠 My Personal Page</span>
+                      <span className="px-1.5 py-0.2 bg-stone-950/40 rounded-full text-[10px] font-mono">
+                        {propertiesList.filter(p => p.landlordUsername === userSession.username || p.landlordEmail === userSession.username).length}
+                      </span>
+                    </button>
+
+                    {/* Malaking X Close Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowLandlordBoard(false)}
+                      className="h-8 w-8 rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold text-sm shadow-md transition-all cursor-pointer active:scale-95 shrink-0 border border-red-400"
+                      title={prefLanguage === "tagalog" ? "Isara ang Dashboard Board" : "Close Dashboard Board"}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
-
-                {/* Switcher Buttons */}
-                <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-indigo-800/80 pt-2 sm:pt-0">
+              </div>
+            ) : (
+              /* Matitira lamang ang Public Search Feed at My Personal Page */
+              <div className="flex items-center justify-between bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-2 mb-5 shadow-xs">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setShowLandlordPendingOnly(false)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
                       !showLandlordPendingOnly
                         ? "bg-pink-600 text-white border-pink-400 shadow-sm font-extrabold"
-                        : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                        : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200"
                     }`}
                   >
                     <span>🌐 Public Search Feed</span>
@@ -2548,20 +2445,28 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setShowLandlordPendingOnly(true)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 border ${
                       showLandlordPendingOnly
                         ? "bg-amber-500 text-stone-950 border-amber-300 shadow-sm font-extrabold"
-                        : "bg-stone-800/80 text-stone-300 border-stone-700 hover:bg-stone-700"
+                        : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200"
                     }`}
                   >
                     <span>🏠 My Personal Page</span>
-                    <span className="px-1.5 py-0.2 bg-stone-950/40 rounded-full text-[10px] font-mono">
+                    <span className="px-1.5 py-0.2 bg-stone-200 dark:bg-stone-950 rounded-full text-[10px] font-mono">
                       {propertiesList.filter(p => p.landlordUsername === userSession.username || p.landlordEmail === userSession.username).length}
                     </span>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowLandlordBoard(true)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline px-3 py-1 cursor-pointer"
+                >
+                  + Ipakita muli ang Dashboard
+                </button>
               </div>
-            </div>
+            )
           )}
 
           {/* Property Cards Grid */}
@@ -3854,91 +3759,193 @@ export default function App() {
               className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-2xl max-w-md w-full overflow-hidden my-auto max-h-[88vh] flex flex-col text-stone-800 dark:text-stone-100"
             >
               {/* Modal Header */}
-              <div className="bg-stone-900 dark:bg-stone-950 text-white p-3.5 sm:p-4 relative flex items-center gap-3 shrink-0 border-b border-stone-800">
-                <div className="h-10 w-10 bg-gradient-to-tr from-pink-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-pink-500/20 shrink-0 overflow-hidden">
-                  {userSession.avatar && (userSession.avatar.startsWith("data:image/") || userSession.avatar.startsWith("http")) ? (
-                    <img src={userSession.avatar} alt={userSession.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    userSession.avatar || (userSession.role === "student" ? "🎓" : "🏠")
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h2 className="font-display font-bold text-sm text-white truncate">
-                      {t("profileTitle")}
-                    </h2>
-                    <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
-                      userSession.role === "student"
-                        ? "bg-pink-950/80 text-pink-300 border-pink-800"
-                        : "bg-blue-950/80 text-blue-300 border-blue-800"
-                    }`}>
-                      {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
-                    </span>
+              <div className="bg-stone-900 dark:bg-stone-950 text-white p-3.5 sm:p-4 relative flex items-center justify-between gap-3 shrink-0 border-b border-stone-800">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="h-10 w-10 bg-gradient-to-tr from-pink-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md shadow-pink-500/20 shrink-0 overflow-hidden">
+                    {userSession.avatar && (userSession.avatar.startsWith("data:image/") || userSession.avatar.startsWith("http")) ? (
+                      <img src={userSession.avatar} alt={userSession.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      userSession.avatar || (userSession.role === "student" ? "🎓" : "🏠")
+                    )}
                   </div>
-                  <p className="text-[10px] text-stone-300 font-light truncate mt-0.5">
-                    {userSession.name} (@{userSession.username})
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h2 className="font-display font-bold text-sm text-white truncate">
+                        {profileTab === "profile" && t("profileTitle")}
+                        {profileTab === "settings" && (prefLanguage === "tagalog" ? "Seguridad at Password" : "Security & Password")}
+                        {profileTab === "notifications" && (prefLanguage === "tagalog" ? "Preferences at Display" : "Preferences & Display")}
+                        {profileTab === "about" && (prefLanguage === "tagalog" ? "Tungkol sa Casa Finder" : "About Casa Finder")}
+                      </h2>
+                      <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
+                        userSession.role === "student"
+                          ? "bg-pink-950/80 text-pink-300 border-pink-800"
+                          : "bg-blue-950/80 text-blue-300 border-blue-800"
+                      }`}>
+                        {userSession.role === "student" ? t("studentAccount") : t("landlordAccount")}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-stone-300 font-light truncate mt-0.5">
+                      {userSession.name} (@{userSession.username})
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowProfileModal(false)}
-                  className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-stone-800 transition-colors cursor-pointer shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+                {/* Header Actions: Three Dots Menu & Close */}
+                <div className="flex items-center gap-1 shrink-0 relative">
+                  {/* Three Dots Button */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowProfileMoreMenu(!showProfileMoreMenu)}
+                      className={`p-1.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                        showProfileMoreMenu
+                          ? "bg-pink-600 text-white border-pink-500 shadow-md shadow-pink-500/20"
+                          : "bg-stone-800/80 hover:bg-stone-800 text-stone-300 hover:text-white border-stone-700/60"
+                      }`}
+                      title={prefLanguage === "tagalog" ? "Iba pang Opsyon (Security, Preferences, About)" : "More Options (Security, Preferences, About)"}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+
+                    {/* Three Dots Dropdown Menu */}
+                    <AnimatePresence>
+                      {showProfileMoreMenu && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40 bg-transparent"
+                            onClick={() => setShowProfileMoreMenu(false)}
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                            className="absolute right-0 top-10 z-50 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-2xl p-2 space-y-1 text-stone-800 dark:text-stone-100 font-sans text-xs"
+                          >
+                            <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 border-b border-stone-100 dark:border-stone-800">
+                              {prefLanguage === "tagalog" ? "Mga Setting at Opsyon" : "Settings & Options"}
+                            </div>
+
+                            {/* Profile Info Option */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileTab("profile");
+                                setShowProfileMoreMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-colors flex items-center justify-between gap-2 cursor-pointer ${
+                                profileTab === "profile"
+                                  ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold"
+                                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                                <span>{t("tabProfileInfo")}</span>
+                              </div>
+                              {profileTab === "profile" && <Check className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />}
+                            </button>
+
+                            {/* Security & Password */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileTab("settings");
+                                setShowProfileMoreMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-colors flex items-center justify-between gap-2 cursor-pointer ${
+                                profileTab === "settings"
+                                  ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold"
+                                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Lock className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                                <span>{prefLanguage === "tagalog" ? "Security & Password" : "Security & Password"}</span>
+                              </div>
+                              {profileTab === "settings" && <Check className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />}
+                            </button>
+
+                            {/* Preferences & Display */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileTab("notifications");
+                                setShowProfileMoreMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-colors flex items-center justify-between gap-2 cursor-pointer ${
+                                profileTab === "notifications"
+                                  ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold"
+                                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Bell className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                                <span>{prefLanguage === "tagalog" ? "Preferences & Display" : "Preferences & Display"}</span>
+                              </div>
+                              {profileTab === "notifications" && <Check className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />}
+                            </button>
+
+                            {/* About Casa Finder */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileTab("about");
+                                setShowProfileMoreMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-colors flex items-center justify-between gap-2 cursor-pointer ${
+                                profileTab === "about"
+                                  ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold"
+                                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Info className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                                <span>{prefLanguage === "tagalog" ? "About Casa Finder" : "About Casa Finder"}</span>
+                              </div>
+                              {profileTab === "about" && <Check className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />}
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Close Modal Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      setShowProfileMoreMenu(false);
+                    }}
+                    className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-stone-800 transition-colors cursor-pointer"
+                    title={t("close")}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* Navigation Tabs */}
-              <div className="flex border-b border-stone-200 dark:border-stone-800 bg-stone-100/90 dark:bg-stone-900 px-3 pt-2 gap-1.5 overflow-x-auto shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setProfileTab("profile")}
-                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
-                    profileTab === "profile"
-                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
-                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
-                  }`}
-                >
-                  <User className={`h-3.5 w-3.5 ${profileTab === "profile" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
-                  <span className={profileTab === "profile" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabProfileInfo")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProfileTab("settings")}
-                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
-                    profileTab === "settings"
-                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
-                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
-                  }`}
-                >
-                  <Lock className={`h-3.5 w-3.5 ${profileTab === "settings" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
-                  <span className={profileTab === "settings" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabSecurity")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProfileTab("notifications")}
-                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
-                    profileTab === "notifications"
-                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
-                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
-                  }`}
-                >
-                  <Bell className={`h-3.5 w-3.5 ${profileTab === "notifications" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
-                  <span className={profileTab === "notifications" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabPreferences")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProfileTab("about")}
-                  className={`py-2 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
-                    profileTab === "about"
-                      ? "border-pink-500 bg-pink-600 dark:bg-pink-600 text-white dark:text-white shadow-2xs"
-                      : "border-transparent text-stone-900 dark:text-black bg-stone-200/80 dark:bg-stone-300 hover:bg-stone-300 dark:hover:bg-stone-200"
-                  }`}
-                >
-                  <Info className={`h-3.5 w-3.5 ${profileTab === "about" ? "text-white dark:text-white" : "text-pink-600 dark:text-pink-700"}`} />
-                  <span className={profileTab === "about" ? "text-white dark:text-white font-bold" : "text-black dark:text-black force-black font-bold"}>{t("tabAbout")}</span>
-                </button>
-              </div>
+              {/* Quick Sub-view Back Bar (when in Security, Preferences, or About) */}
+              {profileTab !== "profile" && (
+                <div className="bg-stone-100 dark:bg-stone-800/80 px-4 py-2 flex items-center justify-between border-b border-stone-200 dark:border-stone-700 text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileTab("profile");
+                      setShowProfileMoreMenu(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 font-bold text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors cursor-pointer active:scale-95"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{prefLanguage === "tagalog" ? "Bumalik sa Profile Info" : "Back to Profile Info"}</span>
+                  </button>
+                  <span className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                    {profileTab === "settings" && (prefLanguage === "tagalog" ? "Seguridad & PIN" : "Security & PIN")}
+                    {profileTab === "notifications" && (prefLanguage === "tagalog" ? "Tema & Wika" : "Theme & Display")}
+                    {profileTab === "about" && (prefLanguage === "tagalog" ? "Tungkol" : "About")}
+                  </span>
+                </div>
+              )}
 
               {/* Modal Body & Form */}
               <form onSubmit={handleSaveProfile} className="p-3.5 space-y-3 overflow-y-auto flex-1">
